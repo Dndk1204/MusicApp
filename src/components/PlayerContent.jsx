@@ -97,72 +97,21 @@ const PlayerContent = ({ song, songUrl }) => {
   };
 
   useEffect(() => {
-    // Stop previous sound before playing a new one
-    if (sound) {
-      sound.unload();
-    }
-
-    setIsLoading(true);
-    setSeek(0);
-
+    if (sound) sound.unload();
+    setIsLoading(true); setSeek(0);
     const newSound = new Howl({
-      src: [songUrl],
-      format: ['mp3', 'mpeg'],
-      html5: true,
-      volume: volume,
-      crossOrigin: 'anonymous',
-      preload: 'metadata',
-      onplay: () => {
-        setIsPlaying(true);
-        setDuration(newSound.duration());
-        // Smooth time update with requestAnimationFrame
-        const updateSeek = () => {
-          if (newSound.playing()) {
-            setSeek(newSound.seek());
-            rafRef.current = requestAnimationFrame(updateSeek);
-          }
-        };
-        rafRef.current = requestAnimationFrame(updateSeek);
+      src: [songUrl], format: ['mp3', 'mpeg'], html5: true, volume: volume,
+      onplay: () => { setIsPlaying(true); setDuration(newSound.duration()); 
+        const updateSeek = () => { if(newSound.playing()) { setSeek(newSound.seek()); rafRef.current = requestAnimationFrame(updateSeek); }}; 
+        rafRef.current = requestAnimationFrame(updateSeek); 
       },
-      onpause: () => {
-        setIsPlaying(false);
-        if (rafRef.current) {
-          cancelAnimationFrame(rafRef.current);
-        }
-      },
-      onend: () => {
-        setIsPlaying(false);
-        setSeek(0);
-        if (rafRef.current) {
-          cancelAnimationFrame(rafRef.current);
-        }
-        onPlayNext();
-      },
-      onload: () => {
-        setDuration(newSound.duration());
-        setIsLoading(false);
-        setError(null);
-        console.log('[Howler] Loaded:', { 
-          duration: newSound.duration(),
-          url: songUrl.substring(0, 80)
-        });
-      },
-      onloaderror: (id, err) => {
-        const errorMsg = `Howler load error: ${err}`;
-        console.error('[Howler]', errorMsg, { url: songUrl });
-        setError(errorMsg);
-        setIsLoading(false);
-      }
+      onpause: () => { setIsPlaying(false); cancelAnimationFrame(rafRef.current); },
+      onend: () => { setIsPlaying(false); setSeek(0); onPlayNext(); },
+      onload: () => { setDuration(newSound.duration()); setIsLoading(false); setError(null); },
+      onloaderror: (id, err) => { setError(`Error: ${err}`); setIsLoading(false); }
     });
-
     setSound(newSound);
-
-    return () => {
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
-      }
-      newSound.unload();
-    };
+    return () => { cancelAnimationFrame(rafRef.current); newSound.unload(); };
   }, [songUrl]);
 
   const handlePlay = () => {
@@ -211,8 +160,6 @@ const PlayerContent = ({ song, songUrl }) => {
       console.error('Seek error:', err);
     }
   };
-
-
   
   // Auto-play the song after it loads
   useEffect(() => {
@@ -242,112 +189,114 @@ const PlayerContent = ({ song, songUrl }) => {
 
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 h-full gap-x-2">
+    <div className="grid grid-cols-2 md:grid-cols-3 h-full gap-x-6 items-center">
+      
+      {/* Error Toast */}
       {error && (
-        <div className="absolute top-0 left-0 right-0 bg-red-500 text-white text-xs p-2 rounded m-2 z-50">
-          ⚠️ {error}
+        <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-red-500/90 backdrop-blur text-white text-xs font-mono py-1 px-3 rounded border border-red-400 z-50 animate-bounce">
+          [ERR]: {error}
         </div>
       )}
       
-      <div className="flex w-full justify-start">
-        <div className="flex items-center gap-x-4">
-          <MediaItem data={song} />
-          <LikeButton songId={song.id} />
-        </div>
+      {/* 1. INFO SECTION */}
+      <div className="flex w-full justify-start items-center gap-x-4">
+         <MediaItem data={song} />
+         <LikeButton songId={song.id} />
       </div>
 
+      {/* 2. MOBILE PLAY BUTTON */}
       <div className="flex md:hidden col-auto w-full justify-end items-center">
         <button
           onClick={handlePlay}
           disabled={!sound || isLoading}
-          className="flex items-center justify-center h-12 w-12 rounded-full bg-gradient-to-b from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed p-1 cursor-pointer shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110 active:scale-95"
-          title={isPlaying ? "Pause" : "Play"}
+          className="flex items-center justify-center h-10 w-10 rounded-full bg-emerald-500 text-black shadow-[0_0_15px_rgba(16,185,129,0.4)] disabled:opacity-50"
         >
-          {isLoading ? (
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <Icon size={24} className="text-white" />
-          )}
+          {isLoading ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"/> : <Icon size={24} />}
         </button>
       </div>
 
-      <div className="hidden md:flex justify-center items-center w-full max-w-[722px] gap-x-6">
-        <button
-          onClick={() => setIsShuffle(!isShuffle)}
-          disabled={!sound}
-          className={`text-neutral-400 cursor-pointer hover:text-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition ${isShuffle ? 'text-green-500' : ''}`}
-          title="Shuffle"
-        >
-          <MdShuffle size={24} />
-        </button>
-        <button
-          onClick={onPlayPrevious}
-          disabled={isLoading || !sound}
-          className="text-neutral-400 cursor-pointer hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition"
-          title="Previous"
-        >
-          <AiFillStepBackward size={30} />
-        </button>
-        <button
-          onClick={handlePlay}
-          disabled={!sound || isLoading}
-          className="flex items-center justify-center h-14 w-14 rounded-full bg-gradient-to-b from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed p-1 cursor-pointer shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110 active:scale-95"
-          title={isPlaying ? "Pause" : "Play"}
-        >
-          {isLoading ? (
-            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <Icon size={28} className="text-white" />
-          )}
-        </button>
-        <button
-          onClick={onPlayNext}
-          disabled={isLoading || !sound}
-          className="text-neutral-400 cursor-pointer hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition"
-          title="Next"
-        >
-          <AiFillStepForward size={30} />
-        </button>
-        <button
-          onClick={() => setRepeatMode(!repeatMode)}
-          disabled={!sound}
-          className={`text-neutral-400 cursor-pointer hover:text-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition ${repeatMode ? 'text-green-500' : ''}`}
-          title="Repeat One"
-        >
-          {repeatMode ? <MdRepeatOne size={24} /> : <MdRepeat size={24} />}
-        </button>
-        <div className="flex-1 flex items-center gap-x-2">
-          <span className="text-xs text-neutral-400 min-w-8">
-            {formatTime(seek)}
-          </span>
-          <Slider value={seek} max={duration} onChange={handleSeekChange} disabled={isLoading || !sound} />
-          <span className="text-xs text-neutral-400 min-w-8">
-            {formatTime(duration)}
-          </span>
+      {/* 3. DESKTOP CONTROLS */}
+      <div className="hidden md:flex flex-col justify-center items-center w-full max-w-[722px] gap-y-2">
+        
+        <div className="flex items-center gap-x-6">
+            <button
+                onClick={() => setIsShuffle(!isShuffle)}
+                disabled={!sound}
+                className={`transition ${isShuffle ? 'text-emerald-600 dark:text-emerald-500 drop-shadow-md' : 'text-neutral-400 hover:text-neutral-800 dark:hover:text-white'}`}
+            >
+                <MdShuffle size={20} />
+            </button>
+            
+            <button
+                onClick={onPlayPrevious}
+                disabled={isLoading || !sound}
+                className="text-neutral-400 hover:text-neutral-800 dark:hover:text-white transition hover:scale-110"
+            >
+                <AiFillStepBackward size={26} />
+            </button>
+
+            <button
+                onClick={handlePlay}
+                disabled={!sound || isLoading}
+                // Nút Play màu Emerald đậm hơn ở Light mode cho nổi
+                className="flex items-center justify-center h-10 w-10 rounded-full bg-emerald-500 text-white dark:text-black shadow-md hover:scale-110 transition active:scale-95"
+            >
+                 {isLoading ? <div className="w-5 h-5 border-2 border-white/50 border-t-transparent rounded-full animate-spin"/> : <Icon size={24} className="ml-0.5"/>}
+            </button>
+
+            <button
+                onClick={onPlayNext}
+                disabled={isLoading || !sound}
+                className="text-neutral-400 hover:text-neutral-800 dark:hover:text-white transition hover:scale-110"
+            >
+                <AiFillStepForward size={26} />
+            </button>
+
+            <button
+                onClick={() => setRepeatMode(!repeatMode)}
+                disabled={!sound}
+                className={`transition ${repeatMode ? 'text-emerald-600 dark:text-emerald-500 drop-shadow-md' : 'text-neutral-400 hover:text-neutral-800 dark:hover:text-white'}`}
+            >
+                {repeatMode ? <MdRepeatOne size={20} /> : <MdRepeat size={20} />}
+            </button>
+        </div>
+
+        {/* Slider Row */}
+        <div className="w-full flex items-center gap-x-3">
+             <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-500 min-w-[40px] text-right">
+                {formatTime(seek)}
+             </span>
+             <div className="flex-1 h-full flex items-center">
+                 <Slider value={seek} max={duration} onChange={handleSeekChange} disabled={isLoading || !sound} />
+             </div>
+             <span className="text-[10px] font-mono text-neutral-500 dark:text-neutral-500 min-w-[40px]">
+                {formatTime(duration)}
+             </span>
         </div>
         
       </div>
 
+      {/* 4. VOLUME CONTROL */}
       <div className="hidden md:flex w-full justify-end pr-2">
-        <div className="flex items-center gap-x-2 w-[120px]">
+        <div className="flex items-center gap-x-3 w-[140px]">
           <button
             onClick={toggleMute}
             disabled={!sound}
-            className="cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:text-green-500 transition"
-            title={volume === 0 ? "Unmute" : "Mute"}
+            className="text-neutral-400 hover:text-emerald-600 dark:hover:text-emerald-500 transition"
           >
-            <VolumeIcon size={34} />
+            <VolumeIcon size={22} />
           </button>
           <Slider 
             value={volume} 
             onChange={(value) => { 
-              setVolume(value); 
+              setVolume(value);
               if (sound) sound.volume(value);
             }} 
             disabled={!sound}
           />
         </div>
       </div>
+
     </div>
   );
 };
