@@ -74,7 +74,16 @@ const Navbar = () => {
 
   useEffect(() => {
     getUserData();
-    const { data: authListener } = supabase.auth.onAuthStateChange(() => getUserData());
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_OUT') {
+            setUser(null);
+            setAvatarUrl(null);
+            setIsAdmin(false);
+        } else {
+            getUserData();
+        }
+    });
+
     const handleProfileUpdate = () => getUserData();
     window.addEventListener('profile-updated', handleProfileUpdate);
     const handleClickOutside = (event) => {
@@ -90,21 +99,54 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     setShowMenu(false);
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) console.error("Lỗi đăng xuất:", error.message);
+    setUser(null);
+    setAvatarUrl(null);
+    setIsAdmin(false);
     router.refresh();
+    window.location.href = '/'; 
   }
 
-  // --- LOGIC SEARCH ---
+  // --- LOGIC SEARCH (SỬA LẠI) ---
+  
+  // 1. Tự động tìm sau 1200ms khi gõ
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(searchValue), 1200);
+    const timer = setTimeout(() => {
+        setDebouncedValue(searchValue);
+    }, 1200);
     return () => clearTimeout(timer);
   }, [searchValue]);
 
+  // 2. Effect chạy khi debouncedValue thay đổi (tự động tìm)
   useEffect(() => {
-    const query = { title: debouncedValue };
-    const url = qs.stringifyUrl({ url: '/search', query: query }, { skipEmptyString: true, skipNull: true });
-    if(debouncedValue) router.push(url);
+    if(debouncedValue) {
+        const query = { title: debouncedValue };
+        const url = qs.stringifyUrl({ 
+            url: '/search', 
+            query: query 
+        }, { skipEmptyString: true, skipNull: true });
+        router.push(url);
+    }
   }, [debouncedValue, router]);
+
+  // 3. Xử lý Enter: TÌM NGAY LẬP TỨC (Bỏ qua debounce)
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+        e.preventDefault(); // Ngăn form submit mặc định (nếu có)
+        
+        if (!searchValue) return; // Không tìm nếu rỗng
+
+        // Tạo URL trực tiếp và Push luôn
+        const query = { title: searchValue };
+        const url = qs.stringifyUrl({ 
+            url: '/search', 
+            query: query 
+        }, { skipEmptyString: true, skipNull: true });
+        
+        router.push(url);
+    }
+  };
 
   return (
     <div className="h-[80px] w-full glass border-b border-neutral-200 dark:border-white/5 flex items-center justify-between px-6 sticky top-0 z-50 shrink-0 transition-colors duration-300 bg-white/70 dark:bg-black/40 backdrop-blur-xl hover:border-emerald-200 hover:shadow-[0_0_5px_rgba(16,185,129,0.2)]">
@@ -116,7 +158,7 @@ const Navbar = () => {
                 <Disc size={20} className="text-white"/>
             </div>
             <span className="text-xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-blue-600 dark:from-white dark:to-neutral-400 font-mono">
-                CẦN THỐNG NHẤT CHỌN RA TÊN WEB :)
+                MUSIC_OS
             </span>
         </div>
       </div>
@@ -132,26 +174,17 @@ const Navbar = () => {
                 placeholder="Search songs, artists..."
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
+                onKeyDown={handleKeyDown} // Sự kiện nhấn phím
                 className="
                   block w-full p-2.5 pl-10 text-sm 
-                  
-                  /* --- BACKGROUND --- */
                   bg-neutral-100 dark:bg-black/20 
-                  
-                  /* --- TEXT COLOR --- */
                   text-neutral-900 dark:text-white 
-                  
-                  /* --- DEFAULT BORDER (Xám nhạt) --- */
                   border border-neutral-300 dark:border-white/10 
                   rounded-full 
                   transition-all duration-300 
                   font-mono backdrop-blur-sm shadow-sm
-                  
-                  /* --- HOVER EFFECT (QUAN TRỌNG: Đổi viền thành Emerald thay vì đen) --- */
                   hover:border-emerald-500 
                   hover:shadow-[0_0_15px_rgba(16,185,129,0.3)] 
-                  
-                  /* --- FOCUS EFFECT --- */
                   focus:border-emerald-500 
                   focus:ring-0 
                   focus:shadow-[0_0_20px_rgba(16,185,129,0.5)]
@@ -170,11 +203,7 @@ const Navbar = () => {
               flex items-center justify-center 
               bg-neutral-100 dark:bg-black/50 
               shadow-sm
-              
-              /* --- DEFAULT BORDER (Hơi xanh nhẹ) --- */
               border border-emerald-500/30
-              
-              /* --- HOVER EFFECT (Xanh đậm phát sáng) --- */
               transition-all duration-300
               hover:border-emerald-500
               hover:shadow-[0_0_15px_rgba(16,185,129,0.5)]

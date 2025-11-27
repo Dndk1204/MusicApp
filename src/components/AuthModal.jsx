@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useModal } from "@/context/ModalContext";
-import { X, Lock, Mail, ShieldAlert, Fingerprint } from "lucide-react"; // Thêm icon trang trí
+import { useRouter } from "next/navigation"; // <--- 1. THÊM IMPORT NÀY
+import { X, Lock, Mail, ShieldAlert, Fingerprint } from "lucide-react";
 
 const AuthModal = () => {
   const { isOpen, closeModal, view } = useModal();
+  const router = useRouter(); // <--- 2. KHAI BÁO ROUTER Ở ĐÂY
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -67,9 +69,10 @@ const AuthModal = () => {
         if (error) throw error;
         
         setMessage({ type: 'success', text: ':: ACCESS_GRANTED ::' });
+        
         setTimeout(() => {
             closeModal();
-            window.location.reload(); 
+            router.refresh(); // <--- Giờ dòng này sẽ hoạt động tốt
         }, 1000);
       }
       else if (variant === 'recovery') {
