@@ -5,6 +5,7 @@ import AuthModal from "@/components/AuthModal";
 import Player from "@/components/Player";
 import SupabaseProvider from "@/providers/SupabaseProvider";
 import { ModalProvider } from "@/context/ModalContext";
+import GlobalPopup from "@/components/GlobalPopup";
 
 // Cấu hình font Monospace
 const font = Space_Mono({ 
@@ -28,6 +29,7 @@ export default function RootLayout({ children }) {
             </Sidebar>
             <Player />
             <AuthModal />
+            <GlobalPopup />
           </ModalProvider>
         </SupabaseProvider>
       </body>

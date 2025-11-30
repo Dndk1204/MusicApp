@@ -39,16 +39,23 @@ const getSongs = async ({ title, artist, tag, boost, limit = 20 } = {}) => {
               getJamendoTracks({ ...baseParams, artist_name: title })
           ]);
 
-          // 1. XỬ LÝ TÌM NGHỆ SĨ (Logic mới)
-          // Nếu tìm thấy bài hát khớp tên tác giả, ta lấy thông tin tác giả từ bài hát đó
+          // --- NÂNG CẤP LOGIC TÌM ARTIST ---
+          // Gom tất cả bài hát tìm được theo tên tác giả
+          // Dùng Map để lọc ra danh sách CÁC tác giả duy nhất (Unique Artists)
           if (byArtistName && byArtistName.length > 0) {
-              // Lấy đại diện bài đầu tiên để lấy info tác giả
-              const rep = byArtistName[0];
-              artistsFound.push({
-                  id: rep.artist_id,
-                  name: rep.artist_name,
-                  image: rep.image || rep.album_image || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=200&auto=format&fit=crop", 
+              const artistMap = new Map();
+              byArtistName.forEach(track => {
+                  // Nếu chưa có tác giả này trong danh sách -> Thêm vào
+                  if (!artistMap.has(track.artist_id)) {
+                      artistMap.set(track.artist_id, {
+                          id: track.artist_id,
+                          name: track.artist_name,
+                          image: track.image || track.album_image || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=200&auto=format&fit=crop", 
+                      });
+                  }
               });
+              // Chuyển Map thành Mảng
+              artistsFound = Array.from(artistMap.values());
           }
 
           // 2. XỬ LÝ TÌM BÀI HÁT (Gộp và lọc trùng)

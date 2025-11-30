@@ -2,55 +2,54 @@
 
 import { useEffect, useState, useRef } from "react";
 import { Howl } from "howler";
-import { BsPlayFill, BsPauseFill, BsRewind, BsFastForward } from "react-icons/bs";
-import { AiFillStepBackward, AiFillStepForward } from "react-icons/ai";
-import { HiSpeakerWave, HiSpeakerXMark } from "react-icons/hi2";
-import { MdShuffle, MdRepeat, MdRepeatOne } from "react-icons/md";
-import { AlignJustify } from "lucide-react"; 
+import { 
+  Play, Pause, Rewind, FastForward, SkipBack, SkipForward, 
+  Volume2, VolumeX, Shuffle, Repeat, Repeat1, AlignJustify 
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import usePlayer from "@/hooks/usePlayer";
+import useTrackStats from "@/hooks/useTrackStats";
 import LikeButton from "./LikeButton";
 import MediaItem from "./MediaItem";
 import Slider from "./Slider";
+// Giữ lại AudioVisualizer để trang trí (nếu thích), bỏ CyberCard
+import { AudioVisualizer } from "./CyberComponents";
 
 const PlayerContent = ({ song, songUrl }) => {
   const player = usePlayer();
   const router = useRouter(); 
   
+  useTrackStats(song);
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [sound, setSound] = useState(null);
   const [seek, setSeek] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  
-  // State UI
+
   const [volume, setVolume] = useState(1); 
   const [prevVolume, setPrevVolume] = useState(1); 
-  const [isDragging, setIsDragging] = useState(false); 
   
+  const isDraggingRef = useRef(false);
   const rafRef = useRef(null);
 
-  // Helper kẹp giá trị 0-1
   const clampVolume = (val) => Math.max(0, Math.min(1, val));
 
-  // 1. Sync Volume
   useEffect(() => {
       if (player.volume !== undefined) {
           setVolume(player.volume);
       }
   }, []);
 
-  // 2. Sync Loop
   useEffect(() => {
     if (sound) { sound.loop(player.repeatMode === 2); }
   }, [player.repeatMode, sound]);
 
-  const Icon = isPlaying ? BsPauseFill : BsPlayFill;
-  const VolumeIcon = volume === 0 ? HiSpeakerXMark : HiSpeakerWave;
+  const Icon = isPlaying ? Pause : Play;
+  const VolumeIcon = volume === 0 ? VolumeX : Volume2;
 
-  // ... (Giữ nguyên toàn bộ logic onPlayNext, onPlayPrevious, useEffect init howler...)
   const onPlayNext = () => {
     if (player.ids.length === 0) return;
     const currentIndex = player.ids.findIndex((id) => id === player.activeId);
@@ -102,8 +101,9 @@ const PlayerContent = ({ song, songUrl }) => {
       onplay: () => {
         setIsPlaying(true);
         setDuration(newSound.duration());
+        
         const updateSeek = () => { 
-             if (!isDragging && newSound.playing()) {
+             if (!isDraggingRef.current && newSound.playing()) {
                 setSeek(newSound.seek()); 
              }
              rafRef.current = requestAnimationFrame(updateSeek); 
@@ -178,13 +178,13 @@ const PlayerContent = ({ song, songUrl }) => {
   }
 
   const handleSeekChange = (newValue) => {
-    setIsDragging(true);
+    isDraggingRef.current = true;
     setSeek(newValue);
   };
 
   const handleSeekCommit = (newValue) => {
     if (sound) sound.seek(newValue);
-    setIsDragging(false);
+    isDraggingRef.current = false;
   };
   
   useEffect(() => {
@@ -215,68 +215,77 @@ const PlayerContent = ({ song, songUrl }) => {
         </div>
       )}
 
-      {/* 1. INFO SECTION (ĐÃ SỬA) */}
-      {/* Thêm w-auto hoặc max-w để giới hạn chiều rộng, giúp LikeButton không bị đẩy xa */}
+      {/* 1. INFO */}
       <div className="flex w-full justify-start items-center">
-         <div className="flex items-center gap-x-3 w-auto max-w-[300px]">
-             <MediaItem data={song} />
+         <div className="flex items-center gap-x-3 w-auto max-w-[300px] -translate-y-1">
+             <MediaItem data={song} /> 
              <LikeButton songId={song?.id} />
+             {/* Sóng nhạc nhỏ bên cạnh */}
+             <div className="hidden sm:block ml-1">
+                <AudioVisualizer isPlaying={isPlaying} />
+             </div>
          </div>
       </div>
 
-      {/* 2. MOBILE PLAY BUTTON */}
+      {/* 2. MOBILE PLAY */}
       <div className="flex md:hidden col-auto w-full justify-end items-center">
-        <button onClick={handlePlay} disabled={!sound || isLoading} className="flex items-center justify-center h-10 w-10 rounded-full bg-emerald-500 text-black shadow-md disabled:opacity-50">
-          {isLoading ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"/> : <Icon size={24} fill="currentColor" />}
+        <button onClick={handlePlay} disabled={!sound || isLoading} className="flex items-center justify-center h-8 w-8 rounded-full bg-emerald-500 text-black shadow-md disabled:opacity-50">
+          {isLoading ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"/> : <Icon size={20} fill="currentColor" />}
         </button>
       </div>
 
-      {/* 3. DESKTOP CONTROLS */}
-      <div className="hidden md:flex flex-col justify-center items-center w-full max-w-[722px] gap-y-2">
-        <div className="flex items-center gap-x-6">
+      {/* 3. CONTROLS (QUAY LẠI STANDARD LAYOUT) */}
+      <div className="hidden md:flex flex-col justify-center items-center w-full max-w-[722px] gap-y-1">
+        <div className="flex items-center gap-x-4 translate-y-1">
             <button onClick={() => player.setIsShuffle(!player.isShuffle)} disabled={!sound} className={`transition ${player.isShuffle ? 'text-emerald-600 dark:text-emerald-500 drop-shadow-md' : 'text-neutral-400 hover:text-neutral-800 dark:hover:text-white'}`}>
-                <MdShuffle size={20} />
+                <Shuffle size={16} />
             </button>
+            
             <button onClick={onPlayPrevious} disabled={isLoading || !sound} className="text-neutral-400 hover:text-neutral-800 dark:hover:text-white transition hover:scale-110">
-                <AiFillStepBackward size={26} />
+                <SkipBack size={20} />
             </button>
+            
             <button onClick={handleSkipBackward} disabled={!sound} className="text-neutral-400 hover:text-neutral-800 dark:hover:text-white transition hover:scale-110" title="Skip -5s">
-                <BsRewind size={20} />
+                <Rewind size={16} />
             </button>
-            <button onClick={handlePlay} disabled={!sound || isLoading} className="flex items-center justify-center h-10 w-10 rounded-full bg-emerald-500 text-white dark:text-black shadow-md hover:scale-110 transition active:scale-95">
-                 {isLoading ? <div className="w-5 h-5 border-2 border-white/50 border-t-transparent rounded-full animate-spin"/> : <Icon size={24} className="ml-0.5" fill="currentColor"/>}
+            
+            <button onClick={handlePlay} disabled={!sound || isLoading} className="flex items-center justify-center h-8 w-8 rounded-full bg-emerald-500 text-white dark:text-black shadow-md hover:scale-110 transition active:scale-95">
+                 {isLoading ? <div className="w-4 h-4 border-2 border-white/50 border-t-transparent rounded-full animate-spin"/> : <Icon size={18} className="ml-0.5" fill="currentColor"/>}
             </button>
+            
             <button onClick={handleSkipForward} disabled={!sound} className="text-neutral-400 hover:text-neutral-800 dark:hover:text-white transition hover:scale-110" title="Skip +5s">
-                <BsFastForward size={20} />
+                <FastForward size={16} />
             </button>
+            
             <button onClick={onPlayNext} disabled={isLoading || !sound} className="text-neutral-400 hover:text-neutral-800 dark:hover:text-white transition hover:scale-110">
-                <AiFillStepForward size={26} />
+                <SkipForward size={20} />
             </button>
+            
             <button onClick={() => player.setRepeatMode((player.repeatMode + 1) % 3)} disabled={!sound} className={`transition ${player.repeatMode !== 0 ? 'text-emerald-600 dark:text-emerald-500 drop-shadow-md' : 'text-neutral-400 hover:text-neutral-800 dark:hover:text-white'}`} title={player.repeatMode === 0 ? "No Repeat" : player.repeatMode === 1 ? "Repeat All" : "Repeat One"}>
-                {player.repeatMode === 2 ? <MdRepeatOne size={20} /> : <MdRepeat size={20} />}
+                {player.repeatMode === 2 ? <Repeat1 size={16} /> : <Repeat size={16} />}
             </button>
         </div>
         
-        <div className="w-full flex items-center gap-x-3">
-             <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-500 min-w-[40px] text-right">{formatTime(seek)}</span>
+        <div className="w-full flex items-center gap-x-2 -translate-y-2">
+             <span className="text-[9px] font-mono text-emerald-600 dark:text-emerald-500 min-w-[30px] text-right">{formatTime(seek)}</span>
              <div className="flex-1 h-full flex items-center">
                  <Slider 
-                    value={seek} 
-                    max={duration || 100} 
-                    onChange={handleSeekChange} 
-                    onCommit={handleSeekCommit} 
-                    disabled={isLoading || !sound} 
+                   value={seek} 
+                   max={duration || 100} 
+                   onChange={handleSeekChange} 
+                   onCommit={handleSeekCommit} 
+                   disabled={isLoading || !sound} 
                  />
              </div>
-             <span className="text-[10px] font-mono text-neutral-500 dark:text-neutral-500 min-w-[40px]">{formatTime(duration)}</span>
+             <span className="text-[9px] font-mono text-neutral-500 dark:text-neutral-500 min-w-[30px]">{formatTime(duration)}</span>
         </div>
       </div>
 
       {/* 4. VOLUME & LYRICS */}
       <div className="hidden md:flex w-full justify-end pr-2">
-        <div className="flex items-center gap-x-3 w-[180px]"> 
+        <div className="flex items-center gap-x-2 w-[150px]">
           <button onClick={toggleMute} disabled={!sound} className="text-neutral-400 hover:text-emerald-600 dark:hover:text-emerald-500 transition">
-            <VolumeIcon size={22} />
+            <VolumeIcon size={18} />
           </button>
           
           <Slider 
@@ -287,7 +296,7 @@ const PlayerContent = ({ song, songUrl }) => {
           />
           
           <button onClick={openNowPlaying} className="text-neutral-400 hover:text-emerald-600 dark:hover:text-emerald-500 transition p-1 rounded-md hover:bg-neutral-200 dark:hover:bg-white/10" title="Lyrics & Details">
-            <AlignJustify size={20} />
+            <AlignJustify size={18} />
           </button>
         </div>
       </div>

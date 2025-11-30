@@ -10,16 +10,16 @@ const MediaItem = ({ data, onClick }) => {
   return (
     <div 
       className="
-        flex items-center gap-x-3 cursor-default w-full p-2 rounded-md 
-        /* Hiệu ứng hover nền cho item */
+        flex items-center gap-x-2 cursor-default w-full p-1.5 rounded-md 
+        /* Giảm padding p-2 -> p-1.5, gap-3 -> gap-2 */
         hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 
         transition
       "
     >
-      {/* 1. ẢNH BÌA -> Link tới Now Playing */}
+      {/* 1. ẢNH BÌA: Giảm size 48px -> 40px */}
       <Link 
         href="/now-playing" 
-        className="relative rounded-md min-h-[48px] min-w-[48px] overflow-hidden cursor-pointer hover:opacity-80 transition shadow-sm"
+        className="relative rounded-md min-h-[40px] min-w-[40px] overflow-hidden cursor-pointer hover:opacity-80 transition shadow-sm"
       >
         <Image
           fill
@@ -29,29 +29,25 @@ const MediaItem = ({ data, onClick }) => {
         />
       </Link>
 
-      <div className="flex flex-col gap-y-1 overflow-hidden">
-        {/* 2. TÊN BÀI HÁT -> Link tới Now Playing */}
+      <div className="flex flex-col gap-y-0.5 overflow-hidden"> {/* Giảm gap-y-1 -> 0.5 */}
+        {/* 2. TÊN BÀI HÁT: text-sm */}
         <Link 
             href="/now-playing"
             className="
-                truncate cursor-pointer hover:underline transition font-mono
-                /* Light: Đen đậm -> Hover Xanh ngọc đậm */
+                text-sm truncate cursor-pointer hover:underline transition font-mono
                 text-neutral-900 hover:text-emerald-600 
-                /* Dark: Trắng -> Hover Xanh ngọc sáng */
                 dark:text-white dark:hover:text-emerald-500
             "
         >
             {data.title}
         </Link>
         
-        {/* 3. TÊN NGHỆ SĨ -> Link tới Artist Page */}
+        {/* 3. TÊN NGHỆ SĨ: text-xs */}
         <Link 
             href={`/artist/${encodeURIComponent(data.author)}`}
             className="
-                text-sm truncate cursor-pointer hover:underline transition font-mono
-                /* Light: Xám trung tính -> Hover Đen */
+                text-xs truncate cursor-pointer hover:underline transition font-mono
                 text-neutral-500 hover:text-neutral-900 
-                /* Dark: Xám nhạt -> Hover Trắng */
                 dark:text-neutral-400 dark:hover:text-white
             "
         >
