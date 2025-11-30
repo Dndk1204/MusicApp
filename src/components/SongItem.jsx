@@ -4,7 +4,7 @@ import Image from "next/image";
 import useLoadImage from "@/hooks/useLoadImage";
 import { Play } from "lucide-react";
 import Link from "next/link";
-import { ScanlineOverlay } from "./CyberComponents"; // <--- IMPORT MỚI
+import { ScanlineOverlay } from "./CyberComponents"; 
 
 const SongItem = ({ data, onClick }) => {
   const imagePath = useLoadImage(data);
@@ -31,12 +31,12 @@ const SongItem = ({ data, onClick }) => {
         hover:-translate-y-1
       "
     >
-      {/* --- 1. TÍCH HỢP SCANLINE (Chỉ hiện khi Hover) --- */}
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-0">
+      {/* 1. SCANLINE (Đã import từ CyberComponents) */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-0 rounded-2xl overflow-hidden">
          <ScanlineOverlay />
       </div>
 
-      {/* --- 2. ẢNH (z-10 để nổi lên trên scanline) --- */}
+      {/* 2. ẢNH */}
       <div className="relative aspect-square w-full h-full rounded-xl overflow-hidden shadow-inner z-10">
         <Image
           className="object-cover transition-transform duration-500 group-hover:scale-110"
@@ -53,10 +53,8 @@ const SongItem = ({ data, onClick }) => {
         </div>
       </div>
 
-      {/* --- 3. THÔNG TIN (z-10) --- */}
+      {/* 3. THÔNG TIN */}
       <div className="flex flex-col items-start w-full pt-3 gap-y-1 z-10 relative">
-        
-        {/* Link Tên Bài Hát */}
         <Link 
             href="/now-playing"
             onClick={(e) => e.stopPropagation()} 
@@ -65,7 +63,6 @@ const SongItem = ({ data, onClick }) => {
             {data.title}
         </Link>
 
-        {/* Link Nghệ Sĩ */}
         <p className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 w-full truncate pb-1 flex items-center gap-1 uppercase tracking-wider">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
           <Link 

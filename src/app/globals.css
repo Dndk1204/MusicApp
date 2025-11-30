@@ -105,8 +105,7 @@ body::before {
 
 /* --- SCROLLBAR TÙY CHỈNH --- */
 *::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
 }
 *::-webkit-scrollbar-track {
   background: transparent;
