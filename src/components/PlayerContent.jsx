@@ -6,6 +6,7 @@ import { BsPlayFill, BsPauseFill } from "react-icons/bs";
 import { AiFillStepBackward, AiFillStepForward } from "react-icons/ai";
 import { HiSpeakerWave, HiSpeakerXMark } from "react-icons/hi2";
 import { MdShuffle, MdRepeat, MdRepeatOne } from "react-icons/md";
+import AddToPlaylistModal from "@/components/AddToPlaylistModal";
 
 import usePlayer from "@/hooks/usePlayer";
 import LikeButton from "./LikeButton";
@@ -23,6 +24,7 @@ const PlayerContent = ({ song, songUrl }) => {
   const [error, setError] = useState(null);
   const [isShuffle, setIsShuffle] = useState(false);
   const [repeatMode, setRepeatMode] = useState(false); // false = no repeat, true = repeat one
+  const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
   
   // Web Audio API references
   const audioContextRef = useRef(null);
@@ -325,7 +327,7 @@ const PlayerContent = ({ song, songUrl }) => {
             {formatTime(duration)}
           </span>
         </div>
-        
+        {/* Nút thêm vào playlist */}
       </div>
 
       <div className="hidden md:flex w-full justify-end pr-2">
