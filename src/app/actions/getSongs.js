@@ -1,5 +1,7 @@
 import { getJamendoTracks } from "@/lib/jamedoClient";
-import { supabase } from "@/lib/supabaseClient";
+
+// Client ID của bạn (Lấy từ các file trước)
+const CLIENT_ID = '3501caaa'; 
 
 const formatDuration = (seconds) => {
     if (!seconds) return "00:00";
@@ -21,10 +23,10 @@ const getSongs = async ({ title, artist, tag, boost, limit = 20 } = {}) => {
   if (boost) baseParams.boost = boost;
 
   let rawTracks = [];
-  let artistsFound = []; // Mảng chứa kết quả tìm kiếm nghệ sĩ
+  let artistsFound = []; 
 
   try {
-      // --- TRƯỜNG HỢP 1: TÌM CHÍNH XÁC NGHỆ SĨ (Trang ArtistPage) ---
+      // --- TRƯỜNG HỢP 1: TÌM CHÍNH XÁC NGHỆ SĨ ---
       if (artist) {
           console.log(`>>> Fetching specific artist: ${artist}`);
           rawTracks = await getJamendoTracks({ 
@@ -34,32 +36,53 @@ const getSongs = async ({ title, artist, tag, boost, limit = 20 } = {}) => {
       }
       // --- TRƯỜNG HỢP 2: TÌM KIẾM TỔNG HỢP (Thanh Search) ---
       else if (title) {
-          // Gọi song song: Tìm theo tên bài + Tìm theo tên tác giả
-          const [byNameSearch, byArtistName] = await Promise.all([
+          
+          // 1. Gọi API tìm Bài hát (Giữ nguyên để lấy list nhạc)
+          const tracksPromise = Promise.all([
               getJamendoTracks({ ...baseParams, namesearch: title }),
               getJamendoTracks({ ...baseParams, artist_name: title })
           ]);
 
-          // --- NÂNG CẤP LOGIC TÌM ARTIST ---
-          // Gom tất cả bài hát tìm được theo tên tác giả
-          // Dùng Map để lọc ra danh sách CÁC tác giả duy nhất (Unique Artists)
-          if (byArtistName && byArtistName.length > 0) {
+          // 2. GỌI API TÌM NGHỆ SĨ RIÊNG BIỆT (FIX LỖI THIẾU ARTIST)
+          // namesearch: tìm gần đúng tên nghệ sĩ
+          const artistsPromise = fetch(`https://api.jamendo.com/v3.0/artists/?client_id=${CLIENT_ID}&format=jsonpretty&namesearch=${title}&limit=102&order=popularity_total`)
+                                  .then(res => res.json())
+                                  .catch(err => ({ results: [] }));
+
+          // Chạy song song cả tìm nhạc và tìm nghệ sĩ
+          const [[byNameSearch, byArtistName], artistApiResponse] = await Promise.all([
+              tracksPromise,
+              artistsPromise
+          ]);
+
+          // --- XỬ LÝ ARTIST ---
+          // Ưu tiên lấy từ API Artist chuẩn vừa gọi
+          if (artistApiResponse.results && artistApiResponse.results.length > 0) {
+              artistsFound = artistApiResponse.results.map(a => ({
+                  id: a.id,
+                  name: a.name,
+                  image: a.image || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=200&auto=format&fit=crop",
+                  // Thêm followers nếu API trả về, hoặc mock data
+                  followers: "Unknown" 
+              }));
+          } 
+          
+          // (Fallback) Nếu API Artist không ra gì, mới dùng cách cũ trích xuất từ bài hát
+          if (artistsFound.length === 0 && byArtistName && byArtistName.length > 0) {
               const artistMap = new Map();
               byArtistName.forEach(track => {
-                  // Nếu chưa có tác giả này trong danh sách -> Thêm vào
                   if (!artistMap.has(track.artist_id)) {
                       artistMap.set(track.artist_id, {
                           id: track.artist_id,
                           name: track.artist_name,
-                          image: track.image || track.album_image || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=200&auto=format&fit=crop", 
+                          image: track.image || track.album_image, 
                       });
                   }
               });
-              // Chuyển Map thành Mảng
               artistsFound = Array.from(artistMap.values());
           }
 
-          // 2. XỬ LÝ TÌM BÀI HÁT (Gộp và lọc trùng)
+          // --- XỬ LÝ SONGS ---
           const combined = [...(byNameSearch || []), ...(byArtistName || [])];
           const uniqueMap = new Map();
           combined.forEach(track => {
@@ -68,7 +91,7 @@ const getSongs = async ({ title, artist, tag, boost, limit = 20 } = {}) => {
           rawTracks = Array.from(uniqueMap.values());
 
       } 
-      // --- TRƯỜNG HỢP 3: MẶC ĐỊNH (Tag, Boost...) ---
+      // --- TRƯỜNG HỢP 3: MẶC ĐỊNH ---
       else {
           if (!tag && !boost) baseParams.boost = "popularity_month";
           rawTracks = await getJamendoTracks(baseParams);
@@ -76,7 +99,6 @@ const getSongs = async ({ title, artist, tag, boost, limit = 20 } = {}) => {
 
       if (!rawTracks) rawTracks = [];
 
-      // Map dữ liệu bài hát
       const mappedSongs = rawTracks.map((track) => ({
         id: track.id,
         title: track.name,
@@ -88,7 +110,6 @@ const getSongs = async ({ title, artist, tag, boost, limit = 20 } = {}) => {
         user_id: 'jamendo_api'
       }));
 
-      // --- QUAN TRỌNG: TRẢ VỀ OBJECT { songs, artists } ---
       return { 
           songs: mappedSongs, 
           artists: artistsFound 

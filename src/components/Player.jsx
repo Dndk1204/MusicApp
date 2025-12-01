@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import usePlayer from "@/hooks/usePlayer";
 import useLoadSongUrl from "@/hooks/useLoadSongUrl";
 import PlayerContent from "./PlayerContent";
+import { supabase } from "@/lib/supabaseClient"; // 1. Import Supabase
 
 const formatDuration = (seconds) => {
     if (!seconds) return "00:00";
@@ -17,14 +18,37 @@ const Player = () => {
   const [song, setSong] = useState(null);
   const [isMounted, setIsMounted] = useState(false);
 
+  // --- 2. LOGIC RESET PLAYER ---
   useEffect(() => {
       setIsMounted(true);
-  }, []);
 
+      // A. Reset khi mở trang lần đầu / F5
+      // Dòng này đảm bảo mỗi khi tải lại trang, player sẽ trống trơn
+      player.setId(null); 
+      player.setIds([]);
+
+      // B. Lắng nghe sự kiện Đăng xuất
+      const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+          if (event === 'SIGNED_OUT') {
+              // Nếu đăng xuất: Xóa bài đang hát, xóa danh sách chờ
+              player.setId(null);
+              player.setIds([]);
+              setSong(null);
+          }
+      });
+
+      return () => {
+          authListener.subscription.unsubscribe();
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); 
+
+  // --- 3. LOGIC LOAD DATA BÀI HÁT (Giữ nguyên) ---
   useEffect(() => {
     if (!isMounted) return;
 
     const loadSongData = async () => {
+        // Nếu không có ID (do đã reset ở trên), thì setSong(null) và thoát
         if (!player.activeId) {
             setSong(null);
             return;
@@ -73,8 +97,8 @@ const Player = () => {
 
   if (!isMounted) return null;
 
+  // Nếu không có bài hát nào được chọn (do đã reset), hiện trạng thái chờ
   if (!song || !songUrl || !player.activeId) {
-    // Giảm chiều cao thanh chờ từ 80px -> 68px
     return (
       <div className="fixed bottom-0 w-full h-[68px] bg-white/80 dark:bg-black/40 backdrop-blur-xl border-t border-neutral-200 dark:border-white/5 flex items-center justify-center z-50 transition-colors duration-300">
          <p className="text-neutral-500 dark:text-neutral-400 font-mono text-[10px] tracking-widest uppercase animate-pulse">
@@ -84,7 +108,6 @@ const Player = () => {
     );
   }
 
-  // Giảm chiều cao thanh player chính từ 90px -> 72px
   return (
     <div className="fixed bottom-0 w-full h-[72px] bg-white/90 dark:bg-neutral-900/60 border-t border-neutral-200 dark:border-white/10 px-4 py-1 z-50 backdrop-blur-xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_-10px_30px_rgba(0,0,0,0.3)] transition-all duration-500">
       <PlayerContent key={songUrl} song={song} songUrl={songUrl} />

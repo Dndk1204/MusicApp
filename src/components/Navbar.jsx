@@ -162,58 +162,57 @@ const Navbar = () => {
         hover:border-emerald-200 hover:shadow-[0_0_5px_rgba(16,185,129,0.2)]
     ">
       
-      {/* LEFT: LOGO - VOID THEME */}
-<div className="flex items-center gap-x-6">
-  <div 
-    className="hidden md:flex items-center gap-x-4 cursor-pointer group" 
-    onClick={() => router.push('/')}
-  >
-    {/* --- 1. THE PORTAL ICON --- */}
-    {/* Khung icon: Đơn giản hóa, bỏ bớt chi tiết rườm rà, tập trung vào độ sâu */}
-    <div className="relative w-10 h-10 bg-black flex items-center justify-center overflow-hidden border border-neutral-800 group-hover:border-emerald-500/50 transition-colors duration-500">
-        
-        {/* Deep Void Circle (Vòng tròn hư không) */}
-        <div className="absolute w-full h-full rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.2)_0%,transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-        
-        {/* Spinning Disc - Biến tấu thành Singularity (Điểm kỳ dị) */}
-        <Disc size={20} className="text-neutral-400 group-hover:text-white animate-[spin_3s_linear_infinite] relative z-10 transition-colors duration-300" />
-        
-        {/* Glitch Lines (Chỉ hiện khi hover) */}
-        <div className="absolute inset-0 bg-[linear-gradient(transparent_50%,black_50%)] bg-[size:100%_2px] opacity-0 group-hover:opacity-20 pointer-events-none z-20"></div>
-        
-        {/* Góc vuông nhỏ (Minimal corners) */}
-        <div className="absolute top-0 left-0 w-1 h-1 bg-white/50"></div>
-        <div className="absolute bottom-0 right-0 w-1 h-1 bg-white/50"></div>
-    </div>
+      {/* LEFT: LOGO - VOID THEME (LIGHT/DARK MODE SUPPORTED) */}
+      <div className="flex items-center gap-x-6">
+        <div 
+          className="hidden md:flex items-center gap-x-4 cursor-pointer group" 
+          onClick={() => router.push('/')}
+        >
+          {/* --- 1. THE PORTAL ICON --- */}
+          <div className="relative w-10 h-10 bg-white dark:bg-black flex items-center justify-center overflow-hidden border border-neutral-200 dark:border-neutral-800 group-hover:border-emerald-500/50 transition-colors duration-500">
+              
+              {/* Deep Void Circle */}
+              <div className="absolute w-full h-full rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.2)_0%,transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              
+              {/* Spinning Disc */}
+              <Disc size={20} className="text-neutral-500 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-white animate-[spin_3s_linear_infinite] relative z-10 transition-colors duration-300" />
+              
+              {/* Glitch Lines (Thích ứng nền trắng/đen) */}
+              <div className="absolute inset-0 bg-[linear-gradient(transparent_50%,white_50%)] dark:bg-[linear-gradient(transparent_50%,black_50%)] bg-[size:100%_2px] opacity-0 group-hover:opacity-20 pointer-events-none z-20"></div>
+              
+              {/* Góc vuông nhỏ */}
+              <div className="absolute top-0 left-0 w-1 h-1 bg-neutral-900/20 dark:bg-white/50"></div>
+              <div className="absolute bottom-0 right-0 w-1 h-1 bg-neutral-900/20 dark:bg-white/50"></div>
+          </div>
 
-    {/* --- 2. VOID TYPOGRAPHY --- */}
-    <div className="flex flex-col items-start justify-center h-10">
-        
-        {/* Main Text: Khoảng cách chữ cực rộng, tạo cảm giác không gian */}
-        <div className="relative">
-            <h1 className="text-2xl font-black font-mono text-white tracking-[0.35em] leading-none group-hover:text-emerald-400 transition-colors duration-300 pl-1">
-                VOID
-            </h1>
-            
-            {/* Glitch Shadow (Bóng ma) - Hiệu ứng tách hình khi hover */}
-            <h1 className="absolute top-0 left-0 text-2xl font-black font-mono text-red-500 tracking-[0.35em] leading-none opacity-0 group-hover:opacity-70 mix-blend-screen -translate-x-[2px] pointer-events-none select-none" aria-hidden="true">
-                VOID
-            </h1>
-             <h1 className="absolute top-0 left-0 text-2xl font-black font-mono text-blue-500 tracking-[0.35em] leading-none opacity-0 group-hover:opacity-70 mix-blend-screen translate-x-[2px] pointer-events-none select-none" aria-hidden="true">
-                VOID
-            </h1>
-        </div>
+          {/* --- 2. VOID TYPOGRAPHY --- */}
+          <div className="flex flex-col items-start justify-center h-10">
+              
+              {/* Main Text */}
+              <div className="relative">
+                  <h1 className="text-2xl font-black font-mono text-neutral-900 dark:text-white tracking-[0.35em] leading-none group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300 pl-1">
+                      VOID
+                  </h1>
+                  
+                  {/* Glitch Shadow - Dùng mix-blend-multiply cho nền sáng để thấy màu */}
+                  <h1 className="absolute top-0 left-0 text-2xl font-black font-mono text-red-500 tracking-[0.35em] leading-none opacity-0 group-hover:opacity-70 mix-blend-multiply dark:mix-blend-screen -translate-x-[2px] pointer-events-none select-none" aria-hidden="true">
+                      VOID
+                  </h1>
+                  <h1 className="absolute top-0 left-0 text-2xl font-black font-mono text-blue-500 tracking-[0.35em] leading-none opacity-0 group-hover:opacity-70 mix-blend-multiply dark:mix-blend-screen translate-x-[2px] pointer-events-none select-none" aria-hidden="true">
+                      VOID
+                  </h1>
+              </div>
 
-        {/* Subtext: Dòng lệnh nhỏ bên dưới */}
-        <div className="flex items-center gap-2 overflow-hidden h-3">
-             <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-             <span className="text-[9px] font-mono text-neutral-500 tracking-widest uppercase group-hover:text-emerald-500/70 transition-colors">
-                System_Null
-             </span>
+              {/* Subtext */}
+              <div className="flex items-center gap-2 overflow-hidden h-3">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                  <span className="text-[9px] font-mono text-neutral-500 tracking-widest uppercase group-hover:text-emerald-600 dark:group-hover:text-emerald-500/70 transition-colors">
+                      System_Null
+                  </span>
+              </div>
+          </div>
         </div>
-    </div>
-  </div>
-</div>
+      </div>
 
       {/* CENTER: SEARCH BAR */}
       <div className="flex-1 max-w-[500px] mx-4"> {/* Max width nhỏ hơn 600 -> 500 */}
