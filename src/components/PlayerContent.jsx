@@ -6,8 +6,6 @@ import { BsPlayFill, BsPauseFill } from "react-icons/bs";
 import { AiFillStepBackward, AiFillStepForward } from "react-icons/ai";
 import { HiSpeakerWave, HiSpeakerXMark } from "react-icons/hi2";
 import { MdShuffle, MdRepeat, MdRepeatOne } from "react-icons/md";
-import AddToPlaylistModal from "@/components/AddToPlaylistModal";
-
 import usePlayer from "@/hooks/usePlayer";
 import LikeButton from "./LikeButton";
 import MediaItem from "./MediaItem";
