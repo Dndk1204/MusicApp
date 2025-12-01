@@ -1,12 +1,17 @@
-import { Figtree } from "next/font/google";
+import { Space_Mono } from "next/font/google"; // Import font mới
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import AuthModal from "@/components/AuthModal";
 import Player from "@/components/Player";
 import SupabaseProvider from "@/providers/SupabaseProvider";
 import { ModalProvider } from "@/context/ModalContext";
+import GlobalPopup from "@/components/GlobalPopup";
 
-const font = Figtree({ subsets: ["latin"] });
+// Cấu hình font Monospace
+const font = Space_Mono({ 
+  weight: ['400', '700'],
+  subsets: ["latin"] 
+});
 
 export const metadata = {
   title: "Music App",
@@ -24,6 +29,7 @@ export default function RootLayout({ children }) {
             </Sidebar>
             <Player />
             <AuthModal />
+            <GlobalPopup />
           </ModalProvider>
         </SupabaseProvider>
       </body>

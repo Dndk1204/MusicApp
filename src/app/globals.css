@@ -2,37 +2,118 @@
 @tailwind components;
 @tailwind utilities;
 
+/* --- CẤU HÌNH BIẾN MÀU (THEME VARIABLES) --- */
+:root {
+  /* --- LIGHT MODE (Mặc định) --- */
+  --bg-primary: #f3f4f6;       /* Nền sáng nhẹ */
+  --text-primary: #1f2937;     /* Chữ đen xám (Gray-800) */
+  
+  /* Cấu hình Kính (Glass) cho Light Mode */
+  --glass-bg: rgba(255, 255, 255, 0.65);
+  --glass-bg-hover: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(0, 0, 0, 0.08); /* Viền tối nhẹ */
+  --glass-shadow: rgba(0, 0, 0, 0.05);
+
+  /* Scrollbar cho Light Mode */
+  --scrollbar-thumb: rgba(0, 0, 0, 0.2);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.4);
+
+  /* Độ đậm nhạt của nền Aurora */
+  --aurora-opacity: 0.25; /* Mờ hơn ở nền sáng để không bị chói */
+}
+
+html.dark {
+  /* --- DARK MODE (Override) --- */
+  --bg-primary: #050505;       /* Nền đen thẳm */
+  --text-primary: #e5e5e5;     /* Chữ trắng xám */
+  
+  /* Cấu hình Kính (Glass) cho Dark Mode (Giữ nguyên style cũ của bạn) */
+  --glass-bg: rgba(20, 20, 20, 0.4);
+  --glass-bg-hover: rgba(30, 30, 30, 0.5);
+  --glass-border: rgba(255, 255, 255, 0.08); /* Viền trắng mờ */
+  --glass-shadow: rgba(0, 0, 0, 0.3);
+
+  /* Scrollbar cho Dark Mode */
+  --scrollbar-thumb: rgba(255, 255, 255, 0.2);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.4);
+
+  --aurora-opacity: 0.4;
+}
+
 html,
 body {
   height: 100%;
-  background-color: black; /* Nền tối cho web nhạc */
-  color: white;
+  width: 100%;
+  overflow: hidden; /* Chặn scroll body */
+  
+  /* Sử dụng biến màu */
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  
+  font-family: 'Space Mono', 'Courier New', monospace; 
+
+  /* Hiệu ứng chuyển màu mượt khi đổi theme */
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Dark scrollbar for better contrast with the dark UI */
-/* WebKit browsers (Chrome, Edge, Safari) */
+/* --- AURORA BACKGROUND ANIMATION --- */
+/* Tạo các đốm màu di chuyển phía sau lớp kính */
+body::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  /* Gradient giữ nguyên màu nhưng độ trong suốt (opacity) sẽ thay đổi theo theme */
+  background: radial-gradient(circle at 50% 50%, #10b981 0%, transparent 20%),
+              radial-gradient(circle at 80% 20%, #3b82f6 0%, transparent 20%),
+              radial-gradient(circle at 20% 80%, #8b5cf6 0%, transparent 20%);
+  filter: blur(80px);
+  
+  /* Dùng biến opacity */
+  opacity: var(--aurora-opacity);
+  
+  animation: moveBackground 20s infinite alternate;
+  z-index: -1;
+  pointer-events: none; /* Để không chặn click chuột */
+}
+
+@keyframes moveBackground {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  100% { transform: translate(-10%, -10%) rotate(10deg); }
+}
+
+/* --- GLASSMORPHISM UTILITY --- */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px 0 var(--glass-shadow);
+  
+  /* Transition cho hiệu ứng hover và đổi theme */
+  transition: all 0.3s ease;
+}
+
+/* Hover effect */
+.glass:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--text-primary); /* Khi hover viền sẽ sáng/đậm theo màu chữ */
+  border-opacity: 0.2;
+}
+
+/* --- SCROLLBAR TÙY CHỈNH --- */
 *::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+  width: 4px;
 }
-
 *::-webkit-scrollbar-track {
-  background: #070707; /* very dark track */
+  background: transparent;
 }
-
 *::-webkit-scrollbar-thumb {
-  background-color: #111827; /* dark thumb */
-  border-radius: 9999px;
-  border: 3px solid transparent;
-  background-clip: padding-box;
+  background-color: var(--scrollbar-thumb);
+  border-radius: 99px;
 }
-
 *::-webkit-scrollbar-thumb:hover {
-  background-color: #374151; /* slightly lighter on hover */
-}
-
-/* Firefox */
-html {
-  scrollbar-width: thin;
-  scrollbar-color: #111827 #070707;
+  background-color: var(--scrollbar-thumb-hover);
 }
