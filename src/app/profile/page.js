@@ -30,25 +30,35 @@ const PlaylistCard = ({ playlist }) => (
   </Link>
 );
 
-// --- ARTIST CARD (ĐÃ SỬA NÚT FOLLOW) ---
+// --- ARTIST CARD (FIXED LAYOUT: Button sang phải) ---
 const ArtistCard = ({ name, image, onUnfollow }) => (
-  <CyberCard className="flex items-center gap-3 p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition cursor-pointer group border border-transparent hover:border-emerald-500/30">
-     <Link href={`/artist/${encodeURIComponent(name)}`} className="flex-1 flex items-center gap-3">
-        <div className="w-12 h-12 rounded-full bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 flex items-center justify-center overflow-hidden group-hover:border-emerald-500/50 transition">
-            {image ? (<img src={image} className="w-full h-full object-cover" alt={name}/>) : (<User size={24} className="text-neutral-500 group-hover:text-emerald-500 transition"/>)}
-        </div>
-        <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-sm text-neutral-900 dark:text-white font-mono group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition truncate">{name}</h3>
-            <p className="text-[10px] text-neutral-500 font-mono uppercase tracking-widest">Artist</p>
-        </div>
-     </Link>
-     <div className="shrink-0">
-        {/* Truyền callback để khi Unfollow thì xóa khỏi list ngay lập tức */}
-        <FollowButton 
-            artistName={name} 
-            artistImage={image} 
-            onFollowChange={(isFollowing) => !isFollowing && onUnfollow(name)} 
-        />
+  // 1. Bỏ 'flex ...' ở CyberCard, chỉ giữ lại style nền và viền
+  <CyberCard className="p-0 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition cursor-pointer group border border-transparent hover:border-emerald-500/30">
+     
+     {/* 2. Thêm div bọc bên trong với class flex để dàn ngang nội dung */}
+     <div className="flex items-center justify-between gap-3 p-3 w-full">
+         
+         {/* Link Artist */}
+         <Link href={`/artist/${encodeURIComponent(name)}`} className="flex-1 flex items-center gap-3 min-w-0">
+            <div className="w-12 h-12 shrink-0 rounded-full bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 flex items-center justify-center overflow-hidden group-hover:border-emerald-500/50 transition">
+               {image ? (<img src={image} className="w-full h-full object-cover" alt={name}/>) : (<User size={24} className="text-neutral-500 group-hover:text-emerald-500 transition"/>)}
+            </div>
+            <div className="flex-1 min-w-0">
+               <h3 className="font-bold text-sm text-neutral-900 dark:text-white font-mono group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition truncate">
+                  {name}
+               </h3>
+               <p className="text-[10px] text-neutral-500 font-mono uppercase tracking-widest">Artist</p>
+            </div>
+         </Link>
+
+         {/* Nút Follow (Sẽ nằm bên phải nhờ flex và justify-between của div cha) */}
+         <div className="shrink-0 ml-2 pointer-events-auto relative z-20">
+            <FollowButton 
+                artistName={name} 
+                artistImage={image} 
+                onFollowChange={(isFollowing) => !isFollowing && onUnfollow(name)} 
+            />
+         </div>
      </div>
   </CyberCard>
 );
@@ -97,7 +107,6 @@ const ProfilePage = () => {
     getData();
   }, [router]);
 
-  // Hàm xử lý khi Unfollow thì xóa khỏi giao diện ngay
   const handleUnfollow = (artistName) => {
       setFollowedArtists(prev => prev.filter(a => a.artist_name !== artistName));
   };
