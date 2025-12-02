@@ -5,20 +5,22 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'images.unsplash.com',
-        port: '',
         pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'usercontent.jamendo.com',
-        port: '',
         pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'prod-1.storage.jamendo.com',
-        port: '',
         pathname: '/**',
+      },
+      {
+        protocol: "https",
+        hostname: "**.supabase.co",
+        pathname: "/**",
       },
     ],
   },
