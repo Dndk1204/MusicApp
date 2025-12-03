@@ -229,7 +229,7 @@ const Navbar = () => {
                   block w-full py-1.5 pl-4 pr-[70px] text-xs
                   bg-neutral-100 dark:bg-black/20 
                   text-neutral-900 dark:text-white 
-                  border border-neutral-300 dark:border-white/10 
+                  border border-neutral-500 dark:border-white/20 
                   rounded-full 
                   transition-all duration-300 
                   font-mono backdrop-blur-sm shadow-sm
@@ -245,17 +245,17 @@ const Navbar = () => {
             <div className="absolute inset-y-0 right-1 flex items-center gap-1">
                 <button 
                     onClick={() => setShowAdvancedSearch(true)}
-                    className="p-1.5 rounded-full text-neutral-400 hover:text-emerald-500 hover:bg-neutral-200 dark:hover:bg-white/10 transition"
+                    className="p-1.5 rounded-full text-neutral-500 hover:text-emerald-500 hover:bg-neutral-200 dark:hover:bg-white/10 transition"
                     title="Advanced Filter"
                 >
                     <SlidersHorizontal size={14} /> {/* Icon nhỏ 14 */}
                 </button>
 
-                <div className="w-[1px] h-3 bg-neutral-300 dark:bg-white/10"></div>
+                <div className="w-[1px] h-3 bg-neutral-400 dark:bg-white/10"></div>
 
                 <button 
                     onClick={handleSearchClick}
-                    className="p-1.5 rounded-full text-neutral-400 hover:text-emerald-500 hover:bg-neutral-200 dark:hover:bg-white/10 transition"
+                    className="p-1.5 rounded-full text-neutral-500 hover:text-emerald-500 hover:bg-neutral-200 dark:hover:bg-white/10 transition"
                     title="Search"
                 >
                     <Search size={14} /> {/* Icon nhỏ 14 */}
