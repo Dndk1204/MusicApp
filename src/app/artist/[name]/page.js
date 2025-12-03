@@ -10,47 +10,81 @@ import getSongs from "@/app/actions/getSongs";
 import getAlbums from "@/app/actions/getAlbums";
 import SongSection from "@/components/SongSection";
 import FollowButton from "@/components/FollowButton";
-// IMPORT: Thêm ScanlineOverlay
-import { DecoderText, GlitchText, ScanlineOverlay } from "@/components/CyberComponents";
+import { DecoderText, GlitchText, CyberCard, ScanlineOverlay } from "@/components/CyberComponents";
 
-// --- ALBUM CARD (ĐÃ THÊM SCANLINE OVERLAY) ---
+// --- COMPONENT SKELETON (MỚI) ---
+const ArtistSkeleton = () => {
+  return (
+    <div className="w-full h-full p-6 pb-[120px] overflow-y-auto bg-neutral-100 dark:bg-black animate-pulse transition-colors duration-500">
+        
+        {/* Header Skeleton */}
+        <div className="flex flex-col md:flex-row items-end gap-8 pb-8 border-b border-neutral-300 dark:border-white/10 mt-4">
+            {/* Avatar Circle */}
+            <div className="w-48 h-48 rounded-full bg-neutral-300 dark:bg-neutral-800 shrink-0 border-4 border-neutral-200 dark:border-neutral-700"></div>
+            
+            <div className="flex-1 w-full flex flex-col gap-4">
+                <div className="h-4 w-32 bg-neutral-300 dark:bg-neutral-800 rounded"></div> {/* Label */}
+                <div className="h-16 w-3/4 md:w-1/2 bg-neutral-300 dark:bg-neutral-800 rounded-lg"></div> {/* Name */}
+                
+                {/* Stats Row */}
+                <div className="flex gap-6 mt-2">
+                    <div className="h-4 w-24 bg-neutral-300 dark:bg-neutral-800 rounded"></div>
+                    <div className="h-4 w-24 bg-neutral-300 dark:bg-neutral-800 rounded"></div>
+                    <div className="h-4 w-24 bg-neutral-300 dark:bg-neutral-800 rounded"></div>
+                </div>
+
+                {/* Follow Button */}
+                <div className="h-10 w-32 bg-neutral-300 dark:bg-neutral-800 rounded-full mt-2"></div>
+            </div>
+        </div>
+
+        {/* Tabs Skeleton */}
+        <div className="flex gap-8 mb-8 mt-6">
+            <div className="h-6 w-32 bg-neutral-300 dark:bg-neutral-800 rounded"></div>
+            <div className="h-6 w-32 bg-neutral-300 dark:bg-neutral-800 rounded"></div>
+        </div>
+
+        {/* Content Skeleton (Song List) */}
+        <div className="flex flex-col gap-y-3">
+             <div className="h-8 w-full bg-neutral-200 dark:bg-white/5 rounded mb-2"></div>
+             {[1, 2, 3, 4, 5].map(i => (
+                 <div key={i} className="h-16 w-full bg-white/60 dark:bg-white/5 rounded-xl border border-neutral-200 dark:border-white/5"></div>
+             ))}
+        </div>
+    </div>
+  )
+}
+
+// --- ALBUM CARD (NÂNG CẤP DÙNG CYBER CARD) ---
 const AlbumCard = ({ album }) => (
-  <Link 
-    href={`/album/${album.id}`} 
-    className="group relative flex flex-col gap-3 p-3 rounded-2xl cursor-pointer transition-all duration-300 bg-white/60 dark:bg-neutral-900/40 border border-neutral-200 dark:border-white/5 backdrop-blur-md hover:bg-white/90 dark:hover:bg-neutral-800/60 hover:border-emerald-500/50 hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(16,185,129,0.15)]"
-  >
-      {/* Container Ảnh */}
-      <div className="relative w-full aspect-square rounded-xl overflow-hidden shadow-lg border border-neutral-200 dark:border-white/5">
-          
-          <Image 
-            src={album.image} 
-            alt={album.name} 
-            fill 
-            className="object-cover transition-transform duration-500 group-hover:scale-110"
-          />
-          
-          {/* --- HIỆU ỨNG SCANLINE (Mới thêm) --- */}
-          {/* Chỉ hiện khi hover, nằm đè lên ảnh */}
-          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10">
-             <ScanlineOverlay />
-          </div>
-
-          {/* Overlay tối màu + Nút Play */}
-          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
-             <div className="bg-emerald-500 p-3 rounded-full shadow-lg transform scale-75 group-hover:scale-100 transition-transform duration-300">
-                 <Play size={20} fill="black" className="text-black ml-1" />
-             </div>
-          </div>
-      </div>
-
-      <div>
-          <h3 className="font-bold font-mono text-sm text-neutral-900 dark:text-white truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-            {album.name}
-          </h3>
-          <p className="text-xs font-mono text-neutral-500 dark:text-neutral-400 flex items-center gap-1 mt-1">
-            <Calendar size={12}/> {album.release_date}
-          </p>
-      </div>
+  <Link href={`/album/${album.id}`}>
+    <CyberCard className="group relative flex flex-col gap-3 p-3 rounded-2xl cursor-pointer transition-all duration-300 hover:bg-white/90 dark:hover:bg-neutral-800/60 hover:border-emerald-500/50 hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(16,185,129,0.15)] h-full">
+        <div className="relative w-full aspect-square rounded-xl overflow-hidden shadow-lg border border-neutral-200 dark:border-white/5">
+            <Image 
+                src={album.image} 
+                alt={album.name} 
+                fill 
+                className="object-cover transition-transform duration-500 group-hover:scale-110"
+            />
+            {/* Scanline Overlay */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10">
+                <ScanlineOverlay />
+            </div>
+            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20 backdrop-blur-[1px]">
+                 <div className="bg-emerald-500 p-3 rounded-full shadow-xl transform scale-75 group-hover:scale-100 transition-transform duration-300">
+                     <Play size={20} fill="black" className="text-black ml-1" />
+                 </div>
+            </div>
+        </div>
+        <div>
+            <h3 className="font-bold font-mono text-sm text-neutral-900 dark:text-white truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                {album.name}
+            </h3>
+            <p className="text-xs font-mono text-neutral-500 dark:text-neutral-400 flex items-center gap-1 mt-1">
+                <Calendar size={12}/> {album.release_date}
+            </p>
+        </div>
+    </CyberCard>
   </Link>
 );
 
@@ -71,6 +105,7 @@ const ArtistPage = ({ params }) => {
             const name = decodeURIComponent(resolvedParams.name);
             setArtistName(name);
 
+            // 1. Fetch Songs & Albums
             const [songsData, albumsData] = await Promise.all([
                 getSongs({ artist: name, limit: 20 }),
                 getAlbums(name)
@@ -81,6 +116,7 @@ const ArtistPage = ({ params }) => {
                 albums: albumsData || []
             });
 
+            // 2. Get Stats
             const { count: followCount } = await supabase
                 .from('following_artists')
                 .select('*', { count: 'exact', head: true })
@@ -105,12 +141,8 @@ const ArtistPage = ({ params }) => {
     fetchData();
   }, [params]);
 
-  if (loading) return (
-    <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-neutral-100 dark:bg-black transition-colors">
-        <Loader2 className="animate-spin text-emerald-500" size={32} /> 
-        <DecoderText text="LOADING_ARTIST_DATA..." className="text-xs text-emerald-500 tracking-widest"/>
-    </div>
-  );
+  // --- THAY THẾ LOADING CŨ BẰNG SKELETON ---
+  if (loading) return <ArtistSkeleton />;
 
   if (!artistName) return null;
 
@@ -125,7 +157,7 @@ const ArtistPage = ({ params }) => {
              ) : (
                  <User size={80} className="text-emerald-500" />
              )}
-             {/* Scanline cho Avatar luôn */}
+             {/* Scanline cho Avatar */}
              <div className="absolute inset-0 opacity-0 group-hover:opacity-50 transition-opacity duration-300 pointer-events-none z-10 rounded-full overflow-hidden">
                 <ScanlineOverlay />
              </div>
@@ -149,7 +181,6 @@ const ArtistPage = ({ params }) => {
                 </div>
             </div>
 
-            {/* NÚT FOLLOW */}
             <FollowButton 
                 artistName={artistName} 
                 artistImage={data.albums.length > 0 ? data.albums[0].image : null}

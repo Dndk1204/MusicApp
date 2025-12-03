@@ -11,15 +11,19 @@
   /* Cấu hình Kính (Glass) cho Light Mode */
   --glass-bg: rgba(255, 255, 255, 0.65);
   --glass-bg-hover: rgba(255, 255, 255, 0.85);
-  --glass-border: rgba(0, 0, 0, 0.08); /* Viền tối nhẹ */
+  --glass-border: rgba(0, 0, 0, 0.08);
   --glass-shadow: rgba(0, 0, 0, 0.05);
 
-  /* Scrollbar cho Light Mode */
-  --scrollbar-thumb: rgba(0, 0, 0, 0.2);
-  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.4);
+  /* --- CẬP NHẬT SCROLLBAR (LIGHT) --- */
+  /* Track: neutral-100 */
+  --scrollbar-track: #f5f5f5; 
+  /* Thumb: neutral-300 */
+  --scrollbar-thumb: #d4d4d4; 
+  /* Hover: emerald-500/50 */
+  --scrollbar-thumb-hover: rgba(16, 185, 129, 0.5);
 
   /* Độ đậm nhạt của nền Aurora */
-  --aurora-opacity: 0.25; /* Mờ hơn ở nền sáng để không bị chói */
+  --aurora-opacity: 0.25;
 }
 
 html.dark {
@@ -27,15 +31,19 @@ html.dark {
   --bg-primary: #050505;       /* Nền đen thẳm */
   --text-primary: #e5e5e5;     /* Chữ trắng xám */
   
-  /* Cấu hình Kính (Glass) cho Dark Mode (Giữ nguyên style cũ của bạn) */
+  /* Cấu hình Kính (Glass) cho Dark Mode */
   --glass-bg: rgba(20, 20, 20, 0.4);
   --glass-bg-hover: rgba(30, 30, 30, 0.5);
-  --glass-border: rgba(255, 255, 255, 0.08); /* Viền trắng mờ */
+  --glass-border: rgba(255, 255, 255, 0.08);
   --glass-shadow: rgba(0, 0, 0, 0.3);
 
-  /* Scrollbar cho Dark Mode */
-  --scrollbar-thumb: rgba(255, 255, 255, 0.2);
-  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.4);
+  /* --- CẬP NHẬT SCROLLBAR (DARK) --- */
+  /* Track: black/20 */
+  --scrollbar-track: rgba(0, 0, 0, 0.2);
+  /* Thumb: emerald-500/20 */
+  --scrollbar-thumb: rgba(16, 185, 129, 0.3);
+  /* Hover: emerald-500/50 */
+  --scrollbar-thumb-hover: rgba(16, 185, 129, 0.5);
 
   --aurora-opacity: 0.4;
 }
@@ -44,7 +52,7 @@ html,
 body {
   height: 100%;
   width: 100%;
-  overflow: hidden; /* Chặn scroll body */
+  overflow: hidden; /* Chặn scroll body, chỉ scroll container con */
   
   /* Sử dụng biến màu */
   background-color: var(--bg-primary);
@@ -57,7 +65,6 @@ body {
 }
 
 /* --- AURORA BACKGROUND ANIMATION --- */
-/* Tạo các đốm màu di chuyển phía sau lớp kính */
 body::before {
   content: "";
   position: absolute;
@@ -65,18 +72,16 @@ body::before {
   left: -50%;
   width: 200%;
   height: 200%;
-  /* Gradient giữ nguyên màu nhưng độ trong suốt (opacity) sẽ thay đổi theo theme */
   background: radial-gradient(circle at 50% 50%, #10b981 0%, transparent 20%),
               radial-gradient(circle at 80% 20%, #3b82f6 0%, transparent 20%),
               radial-gradient(circle at 20% 80%, #8b5cf6 0%, transparent 20%);
   filter: blur(80px);
   
-  /* Dùng biến opacity */
   opacity: var(--aurora-opacity);
   
   animation: moveBackground 20s infinite alternate;
   z-index: -1;
-  pointer-events: none; /* Để không chặn click chuột */
+  pointer-events: none;
 }
 
 @keyframes moveBackground {
@@ -91,29 +96,31 @@ body::before {
   -webkit-backdrop-filter: blur(16px) saturate(180%);
   border: 1px solid var(--glass-border);
   box-shadow: 0 8px 32px 0 var(--glass-shadow);
-  
-  /* Transition cho hiệu ứng hover và đổi theme */
   transition: all 0.3s ease;
 }
 
-/* Hover effect */
 .glass:hover {
   background: var(--glass-bg-hover);
-  border-color: var(--text-primary); /* Khi hover viền sẽ sáng/đậm theo màu chữ */
+  border-color: var(--text-primary);
   border-opacity: 0.2;
 }
 
-/* --- SCROLLBAR TÙY CHỈNH --- */
+/* --- SCROLLBAR TÙY CHỈNH (GLOBAL) --- */
+/* Áp dụng cho tất cả các thành phần có scrollbar */
 *::-webkit-scrollbar {
-  width: 4px;
+  width: 6px; /* w-2 tương đương 8px */
+  height: 8px; /* Cho thanh ngang nếu có */
 }
+
 *::-webkit-scrollbar-track {
-  background: transparent;
+  background-color: var(--scrollbar-track);
 }
+
 *::-webkit-scrollbar-thumb {
   background-color: var(--scrollbar-thumb);
-  border-radius: 99px;
+  border-radius: 9999px; /* rounded-full */
 }
+
 *::-webkit-scrollbar-thumb:hover {
   background-color: var(--scrollbar-thumb-hover);
 }

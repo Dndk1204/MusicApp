@@ -6,6 +6,46 @@ import { supabase } from "@/lib/supabaseClient";
 import { User, Camera, Loader2, Pencil, X, Save, ShieldCheck } from "lucide-react";
 import { GlitchButton, HoloButton, CyberCard, DecoderText } from "@/components/CyberComponents";
 
+// --- COMPONENT SKELETON (GIAO DIỆN GIẢ LẬP) ---
+const AccountSkeleton = () => {
+  return (
+    <div className="w-full max-w-3xl animate-pulse pb-[100px]">
+        {/* Title Skeleton */}
+        <div className="mb-6 text-center flex flex-col items-center gap-3">
+            <div className="h-8 w-64 bg-neutral-300 dark:bg-neutral-800 rounded-md"></div>
+            <div className="h-3 w-40 bg-neutral-200 dark:bg-neutral-900 rounded-md"></div>
+        </div>
+
+        {/* Card Skeleton */}
+        <div className="w-full p-6 rounded-xl bg-white/50 dark:bg-white/5 border border-neutral-200 dark:border-white/5">
+            {/* Header Skeleton */}
+            <div className="flex justify-between items-center mb-6 border-b border-neutral-200 dark:border-white/5 pb-4">
+                <div className="h-4 w-32 bg-neutral-300 dark:bg-neutral-800 rounded"></div>
+                <div className="h-8 w-24 bg-neutral-300 dark:bg-neutral-800 rounded-full"></div>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-8 items-start">
+                {/* Avatar Skeleton */}
+                <div className="flex flex-col items-center gap-4 w-full md:w-auto">
+                    <div className="h-32 w-32 rounded-full bg-neutral-300 dark:bg-neutral-800"></div>
+                    <div className="h-3 w-24 bg-neutral-200 dark:bg-neutral-900 rounded"></div>
+                </div>
+
+                {/* Inputs Skeleton */}
+                <div className="flex-1 w-full flex flex-col gap-y-5">
+                    {[1, 2, 3].map((item) => (
+                        <div key={item} className="flex flex-col gap-y-2">
+                            <div className="h-3 w-20 bg-neutral-300 dark:bg-neutral-800 rounded"></div>
+                            <div className="h-11 w-full bg-neutral-200 dark:bg-neutral-900 rounded-md"></div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    </div>
+  );
+};
+
 const Account = () => {
   const router = useRouter();
   
@@ -24,6 +64,8 @@ const Account = () => {
 
   useEffect(() => {
     const getProfile = async () => {
+      // Fake delay một chút để thấy hiệu ứng skeleton rõ hơn (nếu mạng quá nhanh)
+      // await new Promise(resolve => setTimeout(resolve, 1000)); 
       try {
         setLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
@@ -74,13 +116,11 @@ const Account = () => {
   };
 
   return (
-    // SỬA: Theme Switcher Support
     <div className="w-full h-full flex flex-col items-center pt-8 px-4 bg-neutral-100 dark:bg-black text-neutral-900 dark:text-white min-h-screen transition-colors duration-500"> 
       
+      {/* THAY THẾ LOADER CŨ BẰNG ACCOUNT SKELETON */}
       {loading ? (
-        <div className="flex items-center gap-x-2 text-emerald-500 font-mono animate-pulse text-xs mt-20">
-          <Loader2 className="animate-spin" size={16} /> <DecoderText text="ACCESSING_USER_DATABASE..." />
-        </div>
+        <AccountSkeleton />
       ) : (
         <div className="w-full max-w-3xl animate-in fade-in zoom-in-95 duration-500 pb-[100px]"> 
             
@@ -95,7 +135,8 @@ const Account = () => {
             </div>
 
             {/* FORM CONTAINER */}
-            <CyberCard className="w-full p-6 rounded-xl shadow-2xl">
+            <CyberCard className="w-full p-6 rounded-xl shadow-2xl group/card">
+            
                 {/* HEADER FORM */}
                 <div className="flex justify-between items-center mb-6 border-b border-neutral-300 dark:border-white/10 pb-4">
                    <div className="flex items-center gap-2 text-[10px] font-mono text-neutral-500 dark:text-neutral-400">
@@ -124,11 +165,11 @@ const Account = () => {
                 <div className="flex flex-col md:flex-row gap-8 items-start">
                     {/* CỘT TRÁI: AVATAR */}
                     <div className="flex flex-col items-center gap-4 w-full md:w-auto md:sticky md:top-0">
-                        <div className="relative group">
+                        <div className="relative group/avatar">
                           <div className={`h-32 w-32 rounded-full bg-neutral-200 dark:bg-black/50 border-2 overflow-hidden flex items-center justify-center relative transition-all duration-300 ${isEditing ? 'border-emerald-500 cursor-pointer shadow-[0_0_20px_rgba(16,185,129,0.3)] animate-pulse' : 'border-neutral-300 dark:border-white/10'}`} onClick={() => isEditing && fileInputRef.current.click()}>
                               {avatarUrl ? <img src={avatarUrl} alt="Avatar" className="object-cover w-full h-full" /> : <User size={60} className="text-neutral-400 dark:text-neutral-600" />}
                               <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.1)_1px,transparent_1px)] bg-[size:100%_4px] opacity-20 pointer-events-none"></div>
-                              {isEditing && (<div className="absolute inset-0 bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"><Camera className="text-emerald-400" size={24} /></div>)}
+                              {isEditing && (<div className="absolute inset-0 bg-black/70 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity backdrop-blur-sm"><Camera className="text-emerald-400" size={24} /></div>)}
                           </div>
                           <input type="file" ref={fileInputRef} onChange={handleUploadAvatar} accept="image/*" className="hidden" />
                         </div>
@@ -149,9 +190,10 @@ const Account = () => {
                             <label className={`text-[10px] font-bold tracking-widest uppercase font-mono transition-colors ${isEditing ? 'text-emerald-600 dark:text-emerald-500' : 'text-neutral-500'}`}>Comm Link (Phone)</label>
                             <input disabled={!isEditing} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+84..." className={`px-4 py-2.5 rounded-md outline-none transition-all font-mono text-xs w-full ${isEditing ? 'bg-white dark:bg-black/40 text-emerald-600 dark:text-emerald-400 border border-emerald-500/50 focus:shadow-[0_0_15px_rgba(16,185,129,0.15)] focus:border-emerald-400' : 'bg-transparent text-neutral-900 dark:text-white border border-neutral-300 dark:border-white/10'}`}/>
                         </div>
+                        
                         {isEditing && (
                             <div className="pt-4">
-                              <GlitchButton onClick={handleSave} disabled={saving} className="w-full flex items-center justify-center gap-2 border-emerald-500/50 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500 hover:text-white">
+                              <GlitchButton onClick={handleSave} disabled={saving} className="w-full flex items-center justify-center gap-2 border-emerald-500/50 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500 hover:text-white group/btn">
                                   {saving ? <Loader2 className="animate-spin" size={16}/> : <Save size={16}/>} SAVE_CHANGES
                               </GlitchButton>
                             </div>

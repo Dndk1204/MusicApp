@@ -8,7 +8,41 @@ import {
   Search, Loader2, RefreshCw, Music, ArrowLeft, Eraser, Mic2, Heart, Skull, ArchiveRestore 
 } from "lucide-react";
 import useUI from "@/hooks/useUI";
-import { GlitchButton, HoloButton } from "@/components/CyberComponents";
+import { GlitchButton, HoloButton, GlitchText } from "@/components/CyberComponents";
+
+// --- COMPONENT SKELETON ---
+const AdminSkeleton = () => (
+    <div className="h-full w-full p-6 pb-[120px] overflow-y-auto bg-neutral-100 dark:bg-neutral-900 animate-pulse transition-colors duration-500">
+        {/* Header Skeleton */}
+        <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-neutral-300 dark:border-white/5 pb-6">
+            <div>
+                <div className="h-8 w-48 bg-neutral-300 dark:bg-neutral-800 rounded mb-2"></div>
+                <div className="h-3 w-32 bg-neutral-200 dark:bg-neutral-800 rounded"></div>
+            </div>
+            <div className="flex gap-3">
+                <div className="h-8 w-24 bg-neutral-300 dark:bg-neutral-800 rounded"></div>
+                <div className="h-8 w-24 bg-neutral-300 dark:bg-neutral-800 rounded"></div>
+                <div className="h-8 w-24 bg-neutral-300 dark:bg-neutral-800 rounded"></div>
+            </div>
+        </div>
+
+        {/* Grid Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {[1, 2, 3].map(i => (
+                <div key={i} className="bg-white/50 dark:bg-white/5 border border-neutral-200 dark:border-white/10 rounded-2xl p-6 h-32"></div>
+            ))}
+        </div>
+
+        {/* Stats Section Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div className="bg-white/50 dark:bg-white/5 border border-neutral-200 dark:border-white/5 rounded-xl p-5 h-64"></div>
+            <div className="bg-white/50 dark:bg-white/5 border border-neutral-200 dark:border-white/5 rounded-xl p-5 h-64"></div>
+        </div>
+
+        {/* Table Skeleton */}
+        <div className="bg-white/50 dark:bg-white/5 border border-neutral-200 dark:border-white/5 rounded-xl h-64"></div>
+    </div>
+);
 
 const AdminDashboard = () => {
   const router = useRouter();
@@ -42,10 +76,10 @@ const AdminDashboard = () => {
         const { count: userCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
         const { count: songCount } = await supabase.from('songs').select('*', { count: 'exact', head: true });
         
-        // --- SỬA: TĂNG LIMIT TỪ 3 LÊN 10 ---
+        // Tăng limit lên 10
         const { data: topSongs } = await supabase.from('songs').select('id, title, author, play_count').order('play_count', { ascending: false }).limit(10);
         
-        const { data: topSearched } = await supabase.from('artist_search_counts').select('artist_name, search_count').order('search_count', { ascending: false }).limit(5); // Tăng lên 5 luôn
+        const { data: topSearched } = await supabase.from('artist_search_counts').select('artist_name, search_count').order('search_count', { ascending: false }).limit(5);
         
         const { data: allUsers } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
         const { data: allSongs } = await supabase.from('songs').select('*').order('created_at', { ascending: false }).range(0, 1999); 
@@ -58,27 +92,14 @@ const AdminDashboard = () => {
 
         (dbArtists || []).forEach(a => {
             const key = a.name.trim().toLowerCase();
-            artistMap[key] = {
-                ...a,
-                originalName: a.name, 
-                followers: 0,
-                inDB: true
-            };
+            artistMap[key] = { ...a, originalName: a.name, followers: 0, inDB: true };
         });
 
         if (allFollows) {
             allFollows.forEach(item => {
                 const key = item.artist_name.trim().toLowerCase();
                 if (!artistMap[key]) {
-                    artistMap[key] = {
-                        id: null, 
-                        name: item.artist_name,
-                        originalName: item.artist_name,
-                        image_url: item.artist_image,
-                        created_at: new Date().toISOString(),
-                        followers: 0,
-                        inDB: false 
-                    };
+                    artistMap[key] = { id: null, name: item.artist_name, originalName: item.artist_name, image_url: item.artist_image, created_at: new Date().toISOString(), followers: 0, inDB: false };
                 }
                 artistMap[key].followers += 1;
             });
@@ -108,6 +129,9 @@ const AdminDashboard = () => {
   useEffect(() => {
     const init = async () => {
       setLoading(true);
+      // Thêm delay giả để thấy hiệu ứng skeleton (nếu cần test)
+      // await new Promise(r => setTimeout(r, 500)); 
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.push("/"); return; }
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
@@ -118,41 +142,34 @@ const AdminDashboard = () => {
     init();
   }, [router]);
 
-  const filteredSongs = allSongsList.filter((song) => 
-    (song.title || "").toLowerCase().includes(songSearchTerm.toLowerCase()) ||
-    (song.author || "").toLowerCase().includes(songSearchTerm.toLowerCase())
-  );
+  const filteredSongs = allSongsList.filter((song) => (song.title || "").toLowerCase().includes(songSearchTerm.toLowerCase()) || (song.author || "").toLowerCase().includes(songSearchTerm.toLowerCase()));
+  const filteredArtists = fullArtistsList.filter((artist) => (artist.originalName || artist.name || "").toLowerCase().includes(artistSearchTerm.toLowerCase()));
+  const filteredSearchLogs = allArtistsList.filter((log) => (log.artist_name || "").toLowerCase().includes(artistSearchTerm.toLowerCase()));
 
-  const filteredArtists = fullArtistsList.filter((artist) => 
-    (artist.originalName || artist.name || "").toLowerCase().includes(artistSearchTerm.toLowerCase())
-  );
+  // HANDLERS
+  const handleSyncMusic = async () => { if (!await confirm("Sync Music?", "SYNC")) return; setSyncing(true); try { const CLIENT_ID = '3501caaa'; let allTracks = []; const offsets = Array.from({ length: 5 }, (_, i) => i * 20); const fetchPromises = offsets.map(offset => fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=jsonpretty&limit=20&include=musicinfo&order=popularity_week&offset=${offset}`).then(res => res.json())); const responses = await Promise.all(fetchPromises); responses.forEach(data => { if (data.results) allTracks = [...allTracks, ...data.results]; }); if (allTracks.length > 0) { const songsToInsert = allTracks.map(track => ({ title: track.name, author: track.artist_name, song_url: track.audio, image_url: track.image, duration: track.duration, play_count: 0, })); const { error } = await supabase.from('songs').upsert(songsToInsert, { onConflict: 'song_url', ignoreDuplicates: true }); if (error) throw error; alert("Synced!", "success"); await fetchDashboardData(); } } catch (e) { alert(e.message, "error"); } finally { setSyncing(false); } };
+  const handleSyncArtists = async () => { if (!await confirm("Sync Artists?", "SYNC")) return; setSyncingArtists(true); try { const CLIENT_ID = '3501caaa'; const res = await fetch(`https://api.jamendo.com/v3.0/artists/?client_id=${CLIENT_ID}&format=jsonpretty&limit=50&order=popularity_total`); const data = await res.json(); if (data.results) { const artistsToInsert = data.results.map(artist => ({ name: artist.name, image_url: artist.image })); const { error } = await supabase.from('artists').upsert(artistsToInsert, { onConflict: 'name', ignoreDuplicates: true }); if (error) throw error; alert("Synced!", "success"); await fetchDashboardData(); } } catch (e) { alert(e.message, "error"); } finally { setSyncingArtists(false); } };
+  const handleResetArtists = async () => { if (!await confirm("Reset DB?", "CONFIRM")) return; setResetting(true); try { await supabase.rpc('reset_artists_data'); alert("Done", "success"); await fetchDashboardData(); } catch (e) { alert(e.message, "error"); } finally { setResetting(false); } };
+  const handleRestoreFollowed = async () => { if (!await confirm("Restore?", "CONFIRM")) return; setRestoring(true); try { await supabase.rpc('restore_followed_artists'); alert("Done", "success"); await fetchDashboardData(); } catch (e) { alert(e.message, "error"); } finally { setRestoring(false); } };
+  const handleCleanupSongs = async () => { if (!await confirm("Cleanup songs?", "CONFIRM")) return; setCleaning(true); try { await supabase.rpc('cleanup_duplicate_songs'); alert("Done", "success"); await fetchDashboardData(); } catch (e) { alert(e.message, "error"); } finally { setCleaning(false); } };
+  const handleCleanupArtists = async () => { if (!await confirm("Cleanup artists?", "CONFIRM")) return; setCleaning(true); try { await supabase.rpc('cleanup_duplicate_artists'); alert("Done", "success"); await fetchDashboardData(); } catch (e) { alert(e.message, "error"); } finally { setCleaning(false); } };
+  const handleDeleteUser = async (id) => { if(await confirm("Delete?", "CONFIRM")) { await supabase.from('profiles').delete().eq('id', id); fetchDashboardData(); } };
+  const handleDeleteSong = async (id) => { if(await confirm("Delete?", "CONFIRM")) { await supabase.from('songs').delete().eq('id', id); fetchDashboardData(); } };
+  const handleDeleteSearch = async (name) => { if(await confirm("Delete?", "CONFIRM")) { await supabase.from('artist_search_counts').delete().eq('artist_name', name); fetchDashboardData(); } };
+  const handleDeleteDbArtist = async (id) => { if (!id) return; if(await confirm("Delete?", "CONFIRM")) { await supabase.from('artists').delete().eq('id', id); fetchDashboardData(); } };
 
-  const filteredSearchLogs = allArtistsList.filter((log) => 
-    (log.artist_name || "").toLowerCase().includes(artistSearchTerm.toLowerCase())
-  );
-
-  // --- HANDLERS (Giữ nguyên logic) ---
-  const handleSyncMusic = async () => { if (!await confirm("Execute sync protocol?", "SYNC")) return; setSyncing(true); try { const CLIENT_ID = '3501caaa'; let allTracks = []; const offsets = Array.from({ length: 5 }, (_, i) => i * 20); const fetchPromises = offsets.map(offset => fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=jsonpretty&limit=20&include=musicinfo&order=popularity_week&offset=${offset}`).then(res => res.json())); const responses = await Promise.all(fetchPromises); responses.forEach(data => { if (data.results) allTracks = [...allTracks, ...data.results]; }); if (allTracks.length > 0) { const songsToInsert = allTracks.map(track => ({ title: track.name, author: track.artist_name, song_url: track.audio, image_url: track.image, duration: track.duration, play_count: 0, })); const { error } = await supabase.from('songs').upsert(songsToInsert, { onConflict: 'song_url', ignoreDuplicates: true }); if (error) throw error; alert(`Synced ${songsToInsert.length} tracks.`, "success"); await fetchDashboardData(); } } catch (error) { alert("Error: " + error.message, "error"); } finally { setSyncing(false); } };
-  const handleSyncArtists = async () => { if (!await confirm("Update top 50 artists?", "SYNC")) return; setSyncingArtists(true); try { const CLIENT_ID = '3501caaa'; const res = await fetch(`https://api.jamendo.com/v3.0/artists/?client_id=${CLIENT_ID}&format=jsonpretty&limit=50&order=popularity_total`); const data = await res.json(); if (data.results) { const artistsToInsert = data.results.map(artist => ({ name: artist.name, image_url: artist.image })); const { error } = await supabase.from('artists').upsert(artistsToInsert, { onConflict: 'name', ignoreDuplicates: true }); if (error) throw error; alert(`Synced ${artistsToInsert.length} artists.`, "success"); await fetchDashboardData(); } } catch (error) { alert("Error: " + error.message, "error"); } finally { setSyncingArtists(false); } };
-  const handleResetArtists = async () => { if (!await confirm("DANGER: Wipe Artist DB?", "RESET")) return; setResetting(true); try { const { error } = await supabase.rpc('reset_artists_data'); if (error) throw error; alert("Database wiped.", "success"); await fetchDashboardData(); } catch (error) { alert(error.message, "error"); } finally { setResetting(false); } };
-  const handleRestoreFollowed = async () => { if (!await confirm("Restore artists?", "RESTORE")) return; setRestoring(true); try { const { error } = await supabase.rpc('restore_followed_artists'); if (error) throw error; alert("Restored successfully!", "success"); await fetchDashboardData(); } catch (error) { alert(error.message, "error"); } finally { setRestoring(false); } };
-  const handleCleanupSongs = async () => { if (!await confirm("Remove duplicates?", "CLEANUP")) return; setCleaning(true); try { await supabase.rpc('cleanup_duplicate_songs'); alert("Done!", "success"); await fetchDashboardData(); } catch (e) { alert(e.message, "error"); } finally { setCleaning(false); } };
-  const handleCleanupArtists = async () => { if (!await confirm("Remove duplicates?", "CLEANUP")) return; setCleaning(true); try { await supabase.rpc('cleanup_duplicate_artists'); alert("Done!", "success"); await fetchDashboardData(); } catch (e) { alert(e.message, "error"); } finally { setCleaning(false); } };
-  const handleDeleteUser = async (id) => { if(await confirm("Delete user?", "DELETE")) { await supabase.from('profiles').delete().eq('id', id); fetchDashboardData(); } };
-  const handleDeleteSong = async (id) => { if(await confirm("Delete song?", "DELETE")) { await supabase.from('songs').delete().eq('id', id); fetchDashboardData(); } };
-  const handleDeleteSearch = async (name) => { if(await confirm("Delete log?", "DELETE")) { await supabase.from('artist_search_counts').delete().eq('artist_name', name); fetchDashboardData(); } };
-  const handleDeleteDbArtist = async (id) => { if (!id) return alert("Chưa Sync vào DB.", "warning"); if(await confirm("Delete Artist?", "DELETE")) { await supabase.from('artists').delete().eq('id', id); fetchDashboardData(); } };
-
-  if (loading) return <div className="h-full w-full flex flex-col items-center justify-center bg-neutral-100 dark:bg-neutral-900 text-emerald-600 dark:text-emerald-500 font-mono gap-4 transition-colors"><Loader2 className="animate-spin" size={40} /><p className="animate-pulse tracking-widest text-xs">INITIALIZING SYSTEM...</p></div>;
+  // --- QUAN TRỌNG: DÙNG SKELETON THAY VÌ LOADER CŨ ---
+  if (loading) return <AdminSkeleton />;
 
   return (
-    // SỬA: Light/Dark mode wrapper
     <div className="h-full w-full p-6 pb-[120px] overflow-y-auto bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-200 transition-colors duration-500">
       
-      {/* HEADER & TOOLBAR */}
+      {/* HEADER */}
       <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-neutral-300 dark:border-white/5 pb-6">
         <div>
-            <h1 className="text-3xl font-bold font-mono tracking-tighter text-neutral-900 dark:text-white drop-shadow-sm dark:drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">ADMIN_CONTROL</h1>
+            <h1 className="text-3xl font-bold font-mono tracking-tighter text-neutral-900 dark:text-white drop-shadow-sm dark:drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
+                <GlitchText text="Admin Dashboard" />
+            </h1>
             <p className="text-[10px] text-emerald-600 dark:text-emerald-500 tracking-[0.3em] font-mono mt-2 animate-pulse">:: ROOT_ACCESS_GRANTED ::</p>
         </div>
         
@@ -205,7 +222,7 @@ const AdminDashboard = () => {
                 {/* Top Streamed (Sửa limit trong fetchDashboardData) */}
                 <div className="bg-white/60 dark:bg-black/20 border border-neutral-200 dark:border-white/5 rounded-xl p-5">
                     <h4 className="text-neutral-900 dark:text-white font-mono text-sm mb-4 flex gap-2"><TrendingUp size={16} className="text-emerald-500"/> Top_Streamed_Tracks</h4>
-                    <div className="space-y-3">
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
                         {stats.topSongs.map((s,i)=>(
                             <div key={s.id} className="flex justify-between text-xs font-mono border-b border-neutral-200 dark:border-white/5 pb-2">
                                 <span className="truncate w-40 text-neutral-700 dark:text-neutral-300">{i+1}. {s.title}</span>
@@ -274,7 +291,7 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* VIEW 2: SONGS LIST */}
+      {/* VIEW 2: SONGS LIST (Giữ nguyên) */}
       {currentView === 'songs_list' && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
@@ -304,7 +321,7 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* VIEW 3: ARTISTS LOGS */}
+      {/* VIEW 3: ARTISTS LOGS (Giữ nguyên) */}
       {currentView === 'artists_list' && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex justify-between items-center mb-4">
@@ -326,7 +343,7 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* VIEW 4: DB ARTISTS LIST */}
+      {/* VIEW 4: DB ARTISTS LIST (Giữ nguyên) */}
       {currentView === 'db_artists_list' && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex justify-between items-center mb-4">
@@ -348,7 +365,7 @@ const AdminDashboard = () => {
                                         <div className="flex flex-col"><span className="text-neutral-800 dark:text-neutral-200 font-bold">{artist.originalName}</span>{!artist.inDB && <span className="text-[8px] text-red-500 dark:text-red-400">Sync Needed</span>}</div>
                                     </td>
                                     <td className="px-4 py-2"><span className="text-pink-600 dark:text-pink-500 font-bold">{artist.followers}</span></td>
-                                    <td className="px-4 py-2 text-right">{artist.id && <button onClick={() => handleDeleteDbArtist(artist.id)} className="hover:text-red-500"><Trash2 size={14}/></button>}</td>
+                                    <td className="px-4 py-2 text-right">{artist.id} && <button onClick={() => handleDeleteDbArtist(artist.id)} className="hover:text-red-500"><Trash2 size={14}/></button></td>
                                 </tr>
                             ))}
                         </tbody>

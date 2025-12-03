@@ -4,9 +4,9 @@ import { useEffect, useState, useRef } from "react";
 import { Howl } from "howler";
 import {
   Play, Pause, Rewind, FastForward, SkipBack, SkipForward,
-  Volume2, VolumeX, Shuffle, Repeat, Repeat1, AlignJustify, Plus
+  Volume2, VolumeX, Shuffle, Repeat, Repeat1, AlignJustify, Plus, X
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation"; // Added usePathname
 import usePlayer from "@/hooks/usePlayer";
 import useTrackStats from "@/hooks/useTrackStats";
 import LikeButton from "./LikeButton";
@@ -17,6 +17,7 @@ import { AudioVisualizer } from "./CyberComponents";
 const PlayerContent = ({ song, songUrl }) => {
   const player = usePlayer();
   const router = useRouter();
+  const pathname = usePathname(); // Get current route
 
   useTrackStats(song);
 
@@ -45,6 +46,7 @@ const PlayerContent = ({ song, songUrl }) => {
   const Icon = isPlaying ? Pause : Play;
   const VolumeIcon = volume === 0 ? VolumeX : Volume2;
 
+  // --- PLAYBACK LOGIC ---
   const onPlayNext = () => {
     if (player.ids.length === 0) return;
     const currentIndex = player.ids.findIndex((id) => id === player.activeId);
@@ -196,7 +198,14 @@ const PlayerContent = ({ song, songUrl }) => {
     return `${m}:${ss < 10 ? "0" + ss : ss}`;
   };
 
-  const openNowPlaying = () => router.push("/now-playing");
+  // Logic Toggle Icon NowPlaying
+  const toggleNowPlaying = () => {
+    if (pathname === "/now-playing") {
+      router.back(); // Nếu đang ở now-playing thì quay lại (hoặc push về home)
+    } else {
+      router.push("/now-playing");
+    }
+  };
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 h-full gap-x-6 items-center">
@@ -206,20 +215,33 @@ const PlayerContent = ({ song, songUrl }) => {
         </div>
       )}
 
+      {/* --- LEFT SECTION: Media Info + Actions --- */}
       <div className="flex w-full justify-start items-center">
-        <div className="flex items-center gap-x-3 w-auto max-w-[300px] -translate-y-1">
+        <div className="flex items-center gap-x-3 w-auto max-w-[300px] -translate-y-1.5">
           <MediaItem data={song} />
+          
           <LikeButton songId={song?.id} />
 
+          {/* UPDATED: Add to Playlist Button (Cyberpunk Style) */}
           <button
             onClick={() => {
             if (!song?.id) return;
             router.push(`/add-to-playlist?song_id=${song.id}`);
           }}
             disabled={!song}
-            className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-lg hover:scale-110 active:scale-95 transition-all"
+            className="
+              relative group flex items-center justify-center h-8 w-8 
+              border border-neutral-600 hover:border-emerald-500
+              bg-white/5 hover:bg-emerald-500/10
+              text-neutral-400 hover:text-emerald-500
+              rounded-md transition-all duration-300
+              disabled:opacity-50 disabled:cursor-not-allowed
+            "
+            title="Add to Playlist"
           >
-            <Plus size={16} />
+            <Plus size={18} />
+            {/* Glow Effect */}
+            <div className="absolute inset-0 bg-emerald-500/20 opacity-0 group-hover:opacity-100 blur-md transition-opacity" />
           </button>
 
           <div className="hidden sm:block ml-1">
@@ -228,6 +250,7 @@ const PlayerContent = ({ song, songUrl }) => {
         </div>
       </div>
 
+      {/* --- MOBILE CONTROLS --- */}
       <div className="flex md:hidden col-auto w-full justify-end items-center">
         <button
           onClick={handlePlay}
@@ -242,6 +265,7 @@ const PlayerContent = ({ song, songUrl }) => {
         </button>
       </div>
 
+      {/* --- CENTER SECTION: Player Controls --- */}
       <div className="hidden md:flex flex-col justify-center items-center w-full max-w-[722px] gap-y-1">
         <div className="flex items-center gap-x-4 translate-y-1">
           <button onClick={() => player.setIsShuffle(!player.isShuffle)} className={`transition ${player.isShuffle ? "text-emerald-600" : "text-neutral-400"}`}>
@@ -256,7 +280,7 @@ const PlayerContent = ({ song, songUrl }) => {
             <Rewind size={16} />
           </button>
 
-          <button onClick={handlePlay} className="flex items-center justify-center h-8 w-8 rounded-full bg-emerald-500 text-white hover:scale-110 transition">
+          <button onClick={handlePlay} className="flex items-center justify-center h-8 w-8 rounded-full bg-emerald-500 text-white hover:scale-110 transition shadow-[0_0_15px_rgba(16,185,129,0.4)]">
             {isLoading ? (
               <div className="w-4 h-4 border-2 border-white/50 border-t-transparent rounded-full animate-spin" />
             ) : (
@@ -281,24 +305,30 @@ const PlayerContent = ({ song, songUrl }) => {
         </div>
 
         <div className="w-full flex items-center gap-x-2 -translate-y-2">
-          <span className="text-[9px] min-w-[30px] text-right">{formatTime(seek)}</span>
+          <span className="text-[9px] font-mono min-w-[30px] text-right text-neutral-400">{formatTime(seek)}</span>
           <div className="flex-1">
             <Slider value={seek} max={duration || 100} onChange={handleSeekChange} onCommit={handleSeekCommit} />
           </div>
-          <span className="text-[9px] min-w-[30px]">{formatTime(duration)}</span>
+          <span className="text-[9px] font-mono min-w-[30px] text-neutral-400">{formatTime(duration)}</span>
         </div>
       </div>
 
-      <div className="hidden md:flex w-full justify-end pr-2">
+      {/* --- RIGHT SECTION: Volume & View Switcher --- */}
+      <div className="hidden md:flex w-full justify-end pr-2 pb-3">
         <div className="flex items-center gap-x-2 w-[150px]">
           <button onClick={toggleMute} className="text-neutral-400 hover:text-emerald-600">
-            <VolumeIcon size={18} />
+            <VolumeIcon size={20} />
           </button>
 
           <Slider value={volume} max={1} onChange={handleVolumeChange} />
 
-          <button onClick={openNowPlaying} className="text-neutral-400 hover:text-emerald-600 p-1 rounded-md">
-            <AlignJustify size={18} />
+          {/* UPDATED: Toggle Icon based on Pathname */}
+          <button 
+            onClick={toggleNowPlaying} 
+            className="text-neutral-400 hover:text-emerald-600 p-1 rounded-md transition-colors"
+            title={pathname === '/now-playing' ? "Close Player" : "Open Player"}
+          >
+            {pathname === '/now-playing' ? <X size={20} /> : <AlignJustify size={20} />}
           </button>
         </div>
       </div>

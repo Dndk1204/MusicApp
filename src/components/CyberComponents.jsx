@@ -4,16 +4,100 @@ import { useEffect, useState } from "react";
 
 // --- 1. GLITCH TEXT (Giữ nguyên, chỉ cần parent set màu chữ là được) ---
 export const GlitchText = ({ text, className = "" }) => {
-  const [isGlitching, setIsGlitching] = useState(false);
-  useEffect(() => {
-    const interval = setInterval(() => { setIsGlitching(true); setTimeout(() => setIsGlitching(false), 300); }, 3000);
-    return () => clearInterval(interval);
-  }, []);
+  // Cấu hình chung cho animation để code gọn hơn
+  const glitchTransition = {
+    duration: 3,
+    repeat: Infinity,
+    repeatType: "loop",
+    ease: "linear",
+    times: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 1], // Glitch dồn dập trong 25% thời gian đầu
+  };
+
   return (
-    <div className={`relative inline-block ${className}`}>
-      <span className="relative z-10 block">{text}</span>
-      {isGlitching && <motion.span className="absolute inset-0 z-20 block text-red-500 opacity-70 bg-transparent" style={{ clipPath: "inset(10% 0 60% 0)" }}>{text}</motion.span>}
-      {isGlitching && <motion.span className="absolute inset-0 z-20 block text-blue-500 opacity-70 bg-transparent" style={{ clipPath: "inset(50% 0 10% 0)" }}>{text}</motion.span>}
+    <div className={`relative inline-block group ${className}`}>
+      {/* LAYER CHÍNH (Màu gốc) 
+        Giữ nguyên hiển thị chính để người dùng đọc được chữ
+      */}
+      <span className="relative z-30 block">{text}</span>
+
+      {/* LAYER 1: CYAN (Xanh Lơ) 
+        Di chuyển: Ngang (Left/Right)
+      */}
+      <motion.span
+        className="absolute top-0 left-0 z-20 block text-cyan-400 opacity-70 mix-blend-screen bg-transparent pointer-events-none"
+        aria-hidden="true"
+        initial={{ opacity: 0, x: 0 }}
+        animate={{
+          opacity: [0, 1, 1, 0, 1, 0, 0], // Chớp tắt
+          x: [-2, 2, -3, 0, 3, 0, 0],     // Rung lắc ngang
+          y: [0, 1, -1, 0, 0, 0, 0],
+          clipPath: [
+            "inset(10% 0 80% 0)",
+            "inset(40% 0 20% 0)",
+            "inset(80% 0 5% 0)",
+            "inset(0 0 100% 0)",
+            "inset(10% 0 40% 0)",
+            "inset(0 0 100% 0)",
+            "inset(0 0 100% 0)"
+          ],
+        }}
+        transition={glitchTransition}
+      >
+        {text}
+      </motion.span>
+
+      {/* LAYER 2: MAGENTA (Hồng Tím) 
+        Di chuyển: Ngược chiều Cyan + Skew (Nghiêng)
+      */}
+      <motion.span
+        className="absolute top-0 left-0 z-20 block text-fuchsia-500 opacity-70 mix-blend-screen bg-transparent pointer-events-none"
+        aria-hidden="true"
+        initial={{ opacity: 0, x: 0 }}
+        animate={{
+          opacity: [0, 1, 1, 0, 1, 0, 0],
+          x: [2, -2, 3, 0, -3, 0, 0],    // Ngược với Cyan
+          y: [0, -1, 1, 0, 0, 0, 0],
+          skew: [0, 15, -10, 0, 5, 0, 0], // Tạo cảm giác kéo giãn
+          clipPath: [
+            "inset(60% 0 10% 0)",
+            "inset(20% 0 50% 0)",
+            "inset(10% 0 80% 0)",
+            "inset(0 0 100% 0)",
+            "inset(50% 0 20% 0)",
+            "inset(0 0 100% 0)",
+            "inset(0 0 100% 0)"
+          ],
+        }}
+        transition={{ ...glitchTransition, delay: 0.05 }} // Trễ 1 chút để không chồng khít lên Cyan
+      >
+        {text}
+      </motion.span>
+
+      {/* LAYER 3: YELLOW (Vàng Toxic) - NEW!
+        Di chuyển: Dọc (Up/Down) nhiều hơn - Tạo độ rung chiều dọc
+      */}
+      <motion.span
+        className="absolute top-0 left-0 z-20 block text-yellow-400 opacity-80 mix-blend-screen bg-transparent pointer-events-none"
+        aria-hidden="true"
+        initial={{ opacity: 0, x: 0 }}
+        animate={{
+          opacity: [0, 1, 0, 1, 0, 0, 0],
+          x: [0, 1, -1, 0, 0, 0, 0],     // Rung nhẹ ngang
+          y: [-2, 2, -3, 3, 0, 0, 0],    // Rung mạnh dọc
+          clipPath: [
+            "inset(20% 0 20% 0)",
+            "inset(80% 0 10% 0)",
+            "inset(0 0 90% 0)",
+            "inset(30% 0 30% 0)",
+            "inset(0 0 100% 0)",
+            "inset(0 0 100% 0)",
+            "inset(0 0 100% 0)"
+          ],
+        }}
+        transition={{ ...glitchTransition, delay: 0.1 }} // Trễ nhất
+      >
+        {text}
+      </motion.span>
     </div>
   );
 };

@@ -8,9 +8,10 @@ import Link from "next/link";
 import { DecoderText, CyberCard, GlitchText } from "@/components/CyberComponents"; 
 import FollowButton from '@/components/FollowButton';
 
-// --- PLAYLIST CARD ---
+// --- PLAYLIST CARD (ĐÃ SỬA ROUTING) ---
 const PlaylistCard = ({ playlist }) => (
-  <Link href={`/playlist/${encodeURIComponent(playlist.name)}`}>
+  // SỬA: Chuyển sang dùng ?id= để khớp với trang PlaylistPage
+  <Link href={`/playlist?id=${playlist.id}`}>
     <CyberCard className="group h-full p-3 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition cursor-pointer relative">
        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition translate-y-2 group-hover:translate-y-0 z-10">
           <div className="bg-emerald-500 p-2 rounded-full shadow-lg hover:scale-105 transition">
@@ -19,7 +20,12 @@ const PlaylistCard = ({ playlist }) => (
        </div>
        
        <div className="w-full aspect-square bg-gradient-to-br from-neutral-200 to-neutral-300 dark:from-neutral-800 dark:to-black rounded-lg mb-3 flex items-center justify-center shadow-md border border-neutral-300 dark:border-white/5 group-hover:border-emerald-500/30 transition">
-          <ListMusic size={32} className="text-neutral-500 group-hover:text-emerald-500 transition"/>
+            {/* Hiển thị ảnh cover nếu có, nếu không thì hiện icon */}
+            {playlist.cover_url ? (
+                <img src={playlist.cover_url} alt={playlist.name} className="w-full h-full object-cover rounded-lg" />
+            ) : (
+                <ListMusic size={32} className="text-neutral-500 group-hover:text-emerald-500 transition"/>
+            )}
        </div>
        
        <h3 className="font-bold text-sm text-neutral-900 dark:text-white font-mono truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition">
@@ -30,28 +36,21 @@ const PlaylistCard = ({ playlist }) => (
   </Link>
 );
 
-// --- ARTIST CARD (FIXED LAYOUT: Button sang phải) ---
+// --- ARTIST CARD (Giữ nguyên) ---
 const ArtistCard = ({ name, image, onUnfollow }) => (
-  // 1. Bỏ 'flex ...' ở CyberCard, chỉ giữ lại style nền và viền
   <CyberCard className="p-0 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition cursor-pointer group border border-transparent hover:border-emerald-500/30">
-     
-     {/* 2. Thêm div bọc bên trong với class flex để dàn ngang nội dung */}
      <div className="flex items-center justify-between gap-3 p-3 w-full">
-         
-         {/* Link Artist */}
-         <Link href={`/artist/${encodeURIComponent(name)}`} className="flex-1 flex items-center gap-3 min-w-0">
-            <div className="w-12 h-12 shrink-0 rounded-full bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 flex items-center justify-center overflow-hidden group-hover:border-emerald-500/50 transition">
-               {image ? (<img src={image} className="w-full h-full object-cover" alt={name}/>) : (<User size={24} className="text-neutral-500 group-hover:text-emerald-500 transition"/>)}
+         <Link href={`/artist/${encodeURIComponent(name)}`} className="flex-1 flex items-center gap-3 min-w-0 group/link">
+            <div className="w-12 h-12 shrink-0 rounded-full bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 flex items-center justify-center overflow-hidden group-hover/link:border-emerald-500/50 transition">
+               {image ? (<img src={image} className="w-full h-full object-cover" alt={name}/>) : (<User size={24} className="text-neutral-500 group-hover/link:text-emerald-500 transition"/>)}
             </div>
             <div className="flex-1 min-w-0">
-               <h3 className="font-bold text-sm text-neutral-900 dark:text-white font-mono group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition truncate">
+               <h3 className="font-bold text-sm text-neutral-900 dark:text-white font-mono group-hover/link:text-emerald-600 dark:group-hover/link:text-emerald-400 transition truncate">
                   {name}
                </h3>
                <p className="text-[10px] text-neutral-500 font-mono uppercase tracking-widest">Artist</p>
             </div>
          </Link>
-
-         {/* Nút Follow (Sẽ nằm bên phải nhờ flex và justify-between của div cha) */}
          <div className="shrink-0 ml-2 pointer-events-auto relative z-20">
             <FollowButton 
                 artistName={name} 
@@ -61,6 +60,37 @@ const ArtistCard = ({ name, image, onUnfollow }) => (
          </div>
      </div>
   </CyberCard>
+);
+
+// --- COMPONENT SKELETON ---
+const ProfileSkeleton = () => (
+    <div className="w-full h-full p-6 pb-[100px] animate-pulse">
+        {/* Header Skeleton */}
+        <div className="flex flex-col md:flex-row items-end gap-6 mb-8 pb-6 border-b border-neutral-300 dark:border-white/10">
+            <div className="w-32 h-32 rounded-full bg-neutral-300 dark:bg-neutral-800"></div>
+            <div className="flex-1 w-full">
+                <div className="h-4 w-32 bg-neutral-300 dark:bg-neutral-800 mb-4 rounded"></div>
+                <div className="h-12 w-64 bg-neutral-300 dark:bg-neutral-800 mb-4 rounded-md"></div>
+                <div className="flex gap-4">
+                    <div className="h-3 w-24 bg-neutral-300 dark:bg-neutral-800 rounded"></div>
+                    <div className="h-3 w-24 bg-neutral-300 dark:bg-neutral-800 rounded"></div>
+                </div>
+            </div>
+        </div>
+        
+        {/* Tabs Skeleton */}
+        <div className="flex gap-6 mb-6">
+            <div className="h-8 w-32 bg-neutral-300 dark:bg-neutral-800 rounded"></div>
+            <div className="h-8 w-32 bg-neutral-300 dark:bg-neutral-800 rounded"></div>
+        </div>
+
+        {/* Grid Skeleton */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {[1,2,3,4,5].map(i => (
+                <div key={i} className="aspect-square bg-neutral-300 dark:bg-neutral-800 rounded-xl"></div>
+            ))}
+        </div>
+    </div>
 );
 
 const ProfilePage = () => {
@@ -75,21 +105,26 @@ const ProfilePage = () => {
   useEffect(() => {
     const getData = async () => {
       try {
+        setLoading(true);
+        // await new Promise(r => setTimeout(r, 500)); // Test Skeleton
+
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) { router.push('/'); return; }
         
         const currentUser = session.user;
         setUser(currentUser);
 
-        // 1. Lấy Profile
         const { data: profileData } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
         setProfile(profileData);
 
-        // 2. Lấy Playlist
-        const { data: playlistData } = await supabase.from('playlists').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+        // Lấy thêm cover_url từ database để hiển thị đẹp hơn
+        const { data: playlistData } = await supabase
+            .from('playlists')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .order('created_at', { ascending: false });
         setPlaylists(playlistData || []);
 
-        // 3. Lấy Nghệ sĩ đã Follow
         const { data: followingData } = await supabase
             .from('following_artists')
             .select('artist_name, artist_image')
@@ -112,10 +147,9 @@ const ProfilePage = () => {
   };
 
   if (loading) return (
-    <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-neutral-100 dark:bg-black transition-colors">
-        <Loader2 className="animate-spin text-emerald-500" size={32} /> 
-        <p className="text-xs text-emerald-500 tracking-widest font-mono">LOADING_USER_DATA...</p>
-    </div>
+     <div className="w-full h-full bg-neutral-100 dark:bg-black transition-colors duration-500">
+        <ProfileSkeleton />
+     </div>
   );
 
   if (!user) return null; 
@@ -142,7 +176,7 @@ const ProfilePage = () => {
             </p>
             
             <h1 className="text-3xl md:text-5xl font-bold font-mono text-neutral-900 dark:text-white mb-3 tracking-tighter">
-                {profile?.full_name || "Music Listener"}
+                <GlitchText text={profile?.full_name || "USER_PROFILE"} />
             </h1>
             
             <div className="flex items-center gap-6 text-xs font-mono text-neutral-500 dark:text-neutral-400">

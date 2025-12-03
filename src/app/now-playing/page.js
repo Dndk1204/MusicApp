@@ -2,9 +2,45 @@
 
 import { useEffect, useState } from "react";
 import usePlayer from "@/hooks/usePlayer";
-import { supabase } from "@/lib/supabaseClient";
 import { User, Disc, Music, Mic2, Info, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { DecoderText, CyberCard } from "@/components/CyberComponents";
+
+// --- COMPONENT SKELETON ---
+const NowPlayingSkeleton = () => {
+  return (
+    <div className="w-full h-full grid grid-cols-1 lg:grid-cols-10 gap-6 p-4 pb-[100px] overflow-hidden bg-neutral-100 dark:bg-black animate-pulse transition-colors duration-500">
+        
+        {/* CỘT TRÁI: ĐĨA + INFO */}
+        <div className="lg:col-span-6 flex flex-col items-center justify-center relative">
+             {/* Đĩa nhạc */}
+             <div className="w-[250px] h-[250px] md:w-[450px] md:h-[450px] rounded-full bg-neutral-300 dark:bg-neutral-800/50 border-4 border-neutral-200 dark:border-white/5 shadow-2xl"></div>
+             
+             {/* Thông tin */}
+             <div className="absolute bottom-10 flex flex-col items-center w-full gap-4 z-10">
+                 <div className="h-10 w-3/4 md:w-1/2 bg-neutral-300 dark:bg-neutral-800 rounded-lg"></div>
+                 <div className="h-5 w-1/3 bg-neutral-200 dark:bg-neutral-900 rounded"></div>
+             </div>
+        </div>
+
+        {/* CỘT PHẢI: LYRICS BOX */}
+        <div className="lg:col-span-4 flex flex-col h-full bg-white/60 dark:bg-white/5 backdrop-blur-md border border-neutral-200 dark:border-white/10 rounded-xl overflow-hidden">
+             {/* Tabs */}
+             <div className="flex border-b border-neutral-200 dark:border-white/10 h-14">
+                 <div className="flex-1 bg-neutral-300/50 dark:bg-white/10 border-b-2 border-emerald-500/50"></div>
+                 <div className="flex-1"></div>
+             </div>
+
+             {/* Lines */}
+             <div className="flex-1 p-8 flex flex-col items-center justify-center gap-6 opacity-50">
+                 {[1,2,3,4,5,6].map(i => (
+                     <div key={i} className="h-4 w-2/3 bg-neutral-300 dark:bg-neutral-700 rounded-full"></div>
+                 ))}
+             </div>
+        </div>
+    </div>
+  )
+}
 
 const NowPlayingPage = () => {
   const player = usePlayer();
@@ -12,6 +48,8 @@ const NowPlayingPage = () => {
   const [song, setSong] = useState(null);
   const [activeTab, setActiveTab] = useState('lyrics'); 
   
+  // Thêm state loading riêng
+  const [loading, setLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -22,39 +60,52 @@ const NowPlayingPage = () => {
     if (!isMounted) return;
 
     const updateSong = async () => {
-        if (!player.activeId) {
-            return;
-        }
+        setLoading(true); // Bắt đầu loading
 
-        if (typeof window !== 'undefined' && window.__SONG_MAP__ && window.__SONG_MAP__[player.activeId]) {
-            const songData = window.__SONG_MAP__[player.activeId];
-            setSong(songData);
+        // Tạo một promise delay 1 giây để ép hiển thị Skeleton
+        const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
+
+        if (!player.activeId) {
+            await minDelay; // Vẫn đợi 1s cho mượt
+            setLoading(false);
             return;
         }
 
         try {
-            const CLIENT_ID = '3501caaa';
-            const res = await fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=jsonpretty&id=${player.activeId}&include=musicinfo+lyrics&audioformat=mp32`);
-            const data = await res.json();
-            if (data.results && data.results[0]) {
-                const track = data.results[0];
-                const newSong = {
-                    id: track.id,
-                    title: track.name,
-                    author: track.artist_name,
-                    song_path: track.audio,
-                    image_path: track.image || track.album_image,
-                    duration: track.duration, 
-                    lyrics: track.musicinfo?.lyrics || null,
-                    user_id: 'jamendo_api'
-                };
-                setSong(newSong);
-                if (typeof window !== 'undefined') {
-                    window.__SONG_MAP__ = { ...window.__SONG_MAP__, [newSong.id]: newSong };
+            // 1. Ưu tiên lấy từ Cache
+            if (typeof window !== 'undefined' && window.__SONG_MAP__ && window.__SONG_MAP__[player.activeId]) {
+                const songData = window.__SONG_MAP__[player.activeId];
+                setSong(songData);
+            } 
+            // 2. Fetch API nếu không có cache
+            else {
+                const CLIENT_ID = '3501caaa';
+                const res = await fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=jsonpretty&id=${player.activeId}&include=musicinfo+lyrics&audioformat=mp32`);
+                const data = await res.json();
+                if (data.results && data.results[0]) {
+                    const track = data.results[0];
+                    const newSong = {
+                        id: track.id,
+                        title: track.name,
+                        author: track.artist_name,
+                        song_path: track.audio,
+                        image_path: track.image || track.album_image,
+                        duration: track.duration, 
+                        lyrics: track.musicinfo?.lyrics || null,
+                        user_id: 'jamendo_api'
+                    };
+                    setSong(newSong);
+                    if (typeof window !== 'undefined') {
+                        window.__SONG_MAP__ = { ...window.__SONG_MAP__, [newSong.id]: newSong };
+                    }
                 }
             }
         } catch (error) {
             console.error("Error fetching song details:", error);
+        } finally {
+            // Đợi cho đủ thời gian delay rồi mới tắt loading
+            await minDelay;
+            setLoading(false);
         }
     };
 
@@ -64,19 +115,33 @@ const NowPlayingPage = () => {
 
   if (!isMounted) return null;
 
-  if (!song) return (
-    <div className="w-full h-full flex items-center justify-center text-neutral-500 font-mono gap-2 text-xs">
-        <Loader2 className="animate-spin" size={16} /> [WAITING_FOR_SIGNAL]...
-    </div>
-  );
+  // --- 1. TRẠNG THÁI LOADING (HIỆN SKELETON) ---
+  if (loading) return <NowPlayingSkeleton />;
 
+  // --- 2. TRẠNG THÁI IDLE (KHÔNG CÓ NHẠC) ---
+  if (!player.activeId || !song) {
+      return (
+        <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-neutral-100 dark:bg-black text-neutral-500 dark:text-neutral-400 font-mono transition-colors animate-in fade-in duration-500">
+            <Disc size={60} className="opacity-50 animate-spin-slow"/>
+            <p className="tracking-widest text-xs uppercase">[SYSTEM_IDLE: NO_TRACK_SELECTED]</p>
+            <button 
+                onClick={() => router.push('/')} 
+                className="text-emerald-600 dark:text-emerald-500 hover:underline text-xs border border-emerald-500/30 px-4 py-2 rounded-full hover:bg-emerald-500/10 transition"
+            >
+                RETURN_TO_BASE
+            </button>
+        </div>
+      );
+  }
+
+  // --- 3. GIAO DIỆN CHÍNH ---
   return (
-    <div className="w-full h-full grid grid-cols-1 lg:grid-cols-10 gap-6 p-4 pb-[100px] overflow-hidden animate-in fade-in duration-700"> {/* Giảm p-6 -> p-4 */}
+    <div className="w-full h-full grid grid-cols-1 lg:grid-cols-10 gap-6 p-4 pb-[100px] overflow-hidden animate-in fade-in duration-700 bg-neutral-100 dark:bg-black transition-colors">
       
       {/* --- CỘT TRÁI (60%) --- */}
       <div className="lg:col-span-6 flex flex-col items-center justify-center relative perspective-1000">
          
-         {/* ĐĨA THAN: Giảm size */}
+         {/* ĐĨA THAN */}
          <div key={song.id + "_disc"} className="relative w-[250px] h-[250px] md:w-[450px] md:h-[450px] flex items-center justify-center animate-[spin_10s_linear_infinite]">
             <div className="absolute inset-0 rounded-full shadow-2xl
                 bg-neutral-100 border-4 border-neutral-300
@@ -88,7 +153,7 @@ const NowPlayingPage = () => {
             <div className="absolute inset-0 rounded-full shadow-[0_0_100px_rgba(16,185,129,0.2)] opacity-50"></div>
          </div>
 
-         {/* COVER: Giảm size tương ứng */}
+         {/* COVER */}
          <div key={song.id + "_cover"} className="absolute z-10 w-[200px] h-[200px] md:w-[320px] md:h-[320px] flex items-center justify-center pl-8 animate-in zoom-in duration-500">
             <div className="relative w-full h-full filter drop-shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-transform duration-500 hover:scale-105">
                 <svg width="100%" height="100%" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -131,10 +196,10 @@ const NowPlayingPage = () => {
             </div>
          </div>
 
-         {/* INFO: Giảm text size */}
+         {/* INFO */}
          <div className="absolute bottom-4 left-0 right-0 text-center z-20">
             <h1 className="text-2xl md:text-4xl font-bold font-mono text-neutral-900 dark:text-white tracking-tighter drop-shadow-xl truncate px-10 transition-colors">
-                {song.title}
+                <DecoderText text={song.title} />
             </h1>
             <p className="text-base md:text-lg font-mono text-emerald-600 dark:text-emerald-400 mt-1 flex items-center justify-center gap-2 drop-shadow-md">
                 <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
@@ -171,7 +236,6 @@ const NowPlayingPage = () => {
                 song.lyrics ? (
                     <div className="text-center space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
                         {song.lyrics.split('\n').map((line, i) => (
-                            /* Giảm text size lyrics xuống text-sm */
                             <p key={i} className="text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:text-emerald-600 dark:hover:text-white transition-colors cursor-default leading-relaxed">
                                 {line}
                             </p>
