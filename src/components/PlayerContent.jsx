@@ -211,25 +211,11 @@ const PlayerContent = ({ song, songUrl }) => {
           <MediaItem data={song} />
           <LikeButton songId={song?.id} />
 
-          {/* FIXED: only send song_id, no JSON-encoded object */}
           <button
             onClick={() => {
-              const normalizedSong = {
-                title: song.title,
-                author: song.artistsNames ?? song.author ?? null,
-                song_url: song.streaming?.mp3 ?? song.song_url ?? null,
-                image_url: song.thumbnailM ?? song.image_url ?? null,
-                duration: song.duration ?? null,
-                play_count: null,
-                genre_id: null,
-                author_id: null
-              };
-
-              router.push(
-                "/add-to-playlist?song=" +
-                encodeURIComponent(JSON.stringify(normalizedSong))
-              );
-            }}
+            if (!song?.id) return;
+            router.push(`/add-to-playlist?song_id=${song.id}`);
+          }}
             disabled={!song}
             className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-lg hover:scale-110 active:scale-95 transition-all"
           >

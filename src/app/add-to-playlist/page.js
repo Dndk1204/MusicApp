@@ -9,22 +9,72 @@ export default function AddToPlaylistPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // --- Nhận object bài hát từ URL ---
-  const raw = searchParams.get("song");
+  const songId = searchParams.get("song_id");
 
-  let song = null;
-  try {
-    if (raw) song = JSON.parse(decodeURIComponent(raw));
-  } catch (e) {
-    console.error("Cannot decode song object", e);
-  }
-
+  const [song, setSong] = useState(null);
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [message, setMessage] = useState(null);
 
-  // --- Fetch playlists của user ---
+  /* -------------------------------------------------------
+     FETCH SONG
+  ------------------------------------------------------- */
+  useEffect(() => {
+    const fetchSong = async () => {
+      if (!songId) return;
+
+      // 1. Fetch từ database
+      const { data: dbSong, error } = await supabase
+        .from("songs")
+        .select("*")
+        .eq("id", songId)
+        .maybeSingle();
+
+      if (dbSong) {
+        setSong(dbSong);
+        return;
+      }
+
+      if (error) console.warn("Song not found in DB → calling API...");
+
+      // 2. Fetch API custom /api/get-song
+      const res = await fetch(`/api/get-song?id=${songId}`);
+      const { song: apiSong } = await res.json(); // 🟩 SỬA CHỖ NÀY
+
+      if (!apiSong) {
+        console.error("API returned no song!");
+        return;
+      }
+
+      // 3. upsert vào Supabase (map đúng field từ API)
+      const { data: inserted, error: insertErr } = await supabase
+        .from("songs")
+        .upsert({
+          id: apiSong.id,
+          title: apiSong.title,
+          author: apiSong.author,
+          duration: apiSong.duration,
+          image_url: apiSong.image_path, // 🟩 SỬA CHỖ NÀY
+          song_url: apiSong.song_path,   // 🟩 SỬA CHỖ NÀY
+        })
+        .select()
+        .single();
+
+      if (insertErr) {
+        console.error("Cannot insert song:", insertErr);
+        return;
+      }
+
+      setSong(inserted);
+    };
+
+    fetchSong();
+  }, [songId]);
+
+  /* -------------------------------------------------------
+     FETCH PLAYLISTS
+  ------------------------------------------------------- */
   useEffect(() => {
     const fetchPlaylists = async () => {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -45,53 +95,40 @@ export default function AddToPlaylistPage() {
     fetchPlaylists();
   }, []);
 
-  // --- HÀM ADD SONG ---
+  /* -------------------------------------------------------
+     ADD SONG TO PLAYLIST
+  ------------------------------------------------------- */
   const handleAdd = async (playlistId) => {
-    if (!song || !song.title) {
-        alert("Song object invalid!");
-        return;
+    if (!song || !song.id) {
+      alert("Song not loaded!");
+      return;
     }
 
     setAdding(true);
     setMessage(null);
 
-    // 1. Insert song vào bảng songs (KHÔNG gửi id)
-    const { data: insertedSong, error: songError } = await supabase
-        .from("songs")
-        .upsert({
-            title: song.title,
-            author: song.author || song.artist || "Unknown",
-            image_url: song.image || song.thumbnail || song.cover || null,
-            duration: Number(song.duration) || 0
-        })
-        .select()
-        .single();
+    const { error: playlistError } = await supabase
+      .from("playlist_songs")
+      .insert({
+        playlist_id: playlistId,
+        song_id: song.id,
+        added_at: new Date(),
+      });
 
-        if (songError) {
-            console.error("Lỗi insert vào songs:", songError);
-            setMessage({ type: "error", text: "Không thể lưu bài hát!" });
-            setAdding(false);
-            return;
-        }
+    if (playlistError) {
+      console.error("playlist err:", playlistError);
+      setMessage({ type: "error", text: "Không thể thêm bài vào playlist!" });
+    } else {
+      setMessage({ type: "success", text: "Đã thêm vào playlist!" });
+      router.back();
+    }
 
-        // 2. Insert vào playlist_songs
-        const { error: playlistError } = await supabase
-            .from("playlist_songs")
-            .insert({
-                playlist_id: playlistId,
-                song_id: insertedSong.id,
-                added_at: new Date(),
-            });
+    setAdding(false);
+  };
 
-        if (playlistError) {
-            console.error("playlist err:", playlistError);
-            setMessage({ type: "error", text: "Không thể thêm bài vào playlist!" });
-        } else {
-            setMessage({ type: "success", text: "Đã thêm vào playlist!" });
-        }
-
-        setAdding(false);
-    };
+  /* -------------------------------------------------------
+     UI
+  ------------------------------------------------------- */
 
   return (
     <div className="p-6 max-w-2xl mx-auto animate-in fade-in duration-500">
@@ -100,7 +137,7 @@ export default function AddToPlaylistPage() {
         Thêm bài hát vào playlist
       </h1>
 
-      {/* Hiển thị thông tin bài hát */}
+      {/* Song Info */}
       <div className="flex items-center gap-4 mb-6 p-4 rounded-xl bg-white/60 dark:bg-white/10 shadow-sm border border-neutral-200 dark:border-neutral-700">
         <div className="w-14 h-14 bg-neutral-300 dark:bg-neutral-700 rounded-lg overflow-hidden flex items-center justify-center">
           {song?.image_url ? (
@@ -111,8 +148,12 @@ export default function AddToPlaylistPage() {
         </div>
 
         <div>
-          <div className="font-semibold text-neutral-800 dark:text-neutral-200">{song?.title || "Unknown Song"}</div>
-          <div className="text-sm text-neutral-500">{song?.author || "Unknown Artist"}</div>
+          <div className="font-semibold text-neutral-800 dark:text-neutral-200">
+            {song?.title || "Unknown Song"}
+          </div>
+          <div className="text-sm text-neutral-500">
+            {song?.author || "Unknown Artist"}
+          </div>
         </div>
       </div>
 
@@ -129,8 +170,10 @@ export default function AddToPlaylistPage() {
         </div>
       )}
 
-      {/* DANH SÁCH PLAYLIST */}
-      <h2 className="text-md font-medium mb-3 text-neutral-700 dark:text-neutral-300">Chọn playlist:</h2>
+      {/* PLAYLIST LIST */}
+      <h2 className="text-md font-medium mb-3 text-neutral-700 dark:text-neutral-300">
+        Chọn playlist:
+      </h2>
 
       {loading ? (
         <div className="flex items-center gap-2 text-neutral-500">
@@ -155,7 +198,6 @@ export default function AddToPlaylistPage() {
         </div>
       )}
 
-      {/* BACK */}
       <button
         onClick={() => router.back()}
         className="mt-8 text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-white"
