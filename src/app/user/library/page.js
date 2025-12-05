@@ -8,17 +8,26 @@ import useUI from "@/hooks/useUI";
 import Link from "next/link";
 
 const MyUploadsPage = () => {
-  const [songs, setSongs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [songsUploads, setSongsUploads] = useState([]);
+  const [songsTuned, setSongsTuned] = useState([]);
+  const [loadingUploads, setLoadingUploads] = useState(true);
+  const [loadingTuned, setLoadingTuned] = useState(true);
   const [editingSong, setEditingSong] = useState(null);
   const [editForm, setEditForm] = useState({ title: '', author: '', isPublic: false });
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const { alert, confirm } = useUI();
+  const [activeTab, setActiveTab] = useState('uploads'); // 'uploads' or 'tuned'
 
   useEffect(() => {
     getMyUploads();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'tuned' && loadingTuned) {
+      getMyTunedSongs();
+    }
+  }, [activeTab]);
 
   const getMyUploads = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -35,8 +44,69 @@ const MyUploadsPage = () => {
       alert('Failed to load uploads', 'error');
     }
 
-    setSongs(data || []);
-    setLoading(false);
+    setSongsUploads(data || []);
+    setLoadingUploads(false);
+  };
+
+  const getMyTunedSongs = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Get user's playlist ids
+    const { data: playlists, error: playlistError } = await supabase
+      .from('playlists')
+      .select('id')
+      .eq('user_id', user.id);
+
+    if (playlistError) {
+      console.error('Error fetching playlists:', playlistError);
+      alert('Failed to load tuned songs', 'error');
+      setLoadingTuned(false);
+      return;
+    }
+
+    const playlistIds = playlists.map(p => p.id);
+    if (playlistIds.length === 0) {
+      setSongsTuned([]);
+      setLoadingTuned(false);
+      return;
+    }
+
+    // Get song ids from playlist_songs
+    const { data: playlistSongs, error: psError } = await supabase
+      .from('playlist_songs')
+      .select('song_id')
+      .in('playlist_id', playlistIds);
+
+    if (psError) {
+      console.error('Error fetching playlist songs:', psError);
+      alert('Failed to load tuned songs', 'error');
+      setLoadingTuned(false);
+      return;
+    }
+
+    const songIds = [...new Set(playlistSongs.map(ps => ps.song_id))];
+    if (songIds.length === 0) {
+      setSongsTuned([]);
+      setLoadingTuned(false);
+      return;
+    }
+
+    // Get songs that are in playlists but not uploaded by user
+    const { data: songs, error: songError } = await supabase
+      .from('songs')
+      .select('*')
+      .in('id', songIds)
+      .neq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (songError) {
+      console.error('Error fetching tuned songs:', songError);
+      alert('Failed to load tuned songs', 'error');
+    }
+
+    setSongsTuned(songs || []);
+    setLoadingTuned(false);
   };
 
   const handleDeleteSong = async (songId) => {
@@ -64,7 +134,7 @@ const MyUploadsPage = () => {
 
       if (error) throw error;
 
-      setSongs(songs.filter(song => song.id !== songId));
+      setSongsUploads(songsUploads.filter(song => song.id !== songId));
       alert('Song deleted successfully!', 'success');
     } catch (err) {
       alert('Failed to delete song', 'error');
@@ -90,7 +160,7 @@ const MyUploadsPage = () => {
 
       if (error) throw error;
 
-      setSongs(songs.map(song =>
+      setSongsUploads(songsUploads.map(song =>
         song.id === songId ? { ...song, is_public: newStatus } : song
       ));
     } catch (err) {
@@ -183,7 +253,7 @@ const MyUploadsPage = () => {
       }
 
       // Cập nhật state local bằng dữ liệu thật từ DB trả về (data[0])
-      setSongs(songs.map(song =>
+      setSongsUploads(songsUploads.map(song =>
         song.id === editingSong
           ? { ...song, ...data[0] }
           : song
@@ -200,48 +270,50 @@ const MyUploadsPage = () => {
     }
   };
 
-  const UserSongCard = ({ song, isEditing }) => (
+  const UserSongCard = ({ song, isEditing, isEditable }) => (
     <div className="group relative bg-neutral-100/50 dark:bg-black/40 border border-neutral-200 dark:border-white/5 p-4 rounded-xl hover:border-emerald-500/50 transition cursor-pointer overflow-hidden flex flex-col gap-3 shadow-sm hover:shadow-md">
        {/* Public/Private Badge */}
-       <div className="absolute top-2 right-2 z-20 flex gap-2">
-         {(isEditing ? editForm.isPublic : song.is_public) ? (
-           <div className="bg-green-500/90 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 font-mono">
-             <Globe size={12} />
-             Public
-           </div>
-         ) : (
-           <div className="bg-red-500/90 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 font-mono">
-             <Lock size={12} />
-             Private
-           </div>
-         )}
+       {isEditable && (
+         <div className="absolute top-2 right-2 z-20 flex gap-2">
+           {(isEditing ? editForm.isPublic : song.is_public) ? (
+             <div className="bg-green-500/90 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 font-mono">
+               <Globe size={12} />
+               Public
+             </div>
+           ) : (
+             <div className="bg-red-500/90 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 font-mono">
+               <Lock size={12} />
+               Private
+             </div>
+           )}
 
-         {/* Edit/Delete Buttons */}
-         {!isEditing && (
-            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                onClick={(e) => {
-                    e.stopPropagation();
-                    startEditing(song);
-                }}
-                className="bg-blue-500/90 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors"
-                title="Edit song"
-                >
-                <Edit2 size={14} />
-                </button>
-                <button
-                onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteSong(song.id);
-                }}
-                className="bg-red-500/90 hover:bg-red-600 text-white p-2 rounded-lg transition-colors"
-                title="Delete song"
-                >
-                <Trash2 size={14} />
-                </button>
-            </div>
-         )}
-       </div>
+           {/* Edit/Delete Buttons */}
+           {!isEditing && (
+              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                  onClick={(e) => {
+                      e.stopPropagation();
+                      startEditing(song);
+                  }}
+                  className="bg-blue-500/90 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors"
+                  title="Edit song"
+                  >
+                  <Edit2 size={14} />
+                  </button>
+                  <button
+                  onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteSong(song.id);
+                  }}
+                  className="bg-red-500/90 hover:bg-red-600 text-white p-2 rounded-lg transition-colors"
+                  title="Delete song"
+                  >
+                  <Trash2 size={14} />
+                  </button>
+              </div>
+           )}
+         </div>
+       )}
 
        {/* IMAGE */}
        <div className="relative w-full aspect-square bg-neutral-300 dark:bg-neutral-800 rounded-lg overflow-hidden shadow-lg">
@@ -367,11 +439,19 @@ const MyUploadsPage = () => {
     </div>
   );
 
+  const songs = activeTab === 'uploads' ? songsUploads : songsTuned;
+  const loading = activeTab === 'uploads' ? loadingUploads : loadingTuned;
+  const isEditable = activeTab === 'uploads';
+
   return (
      <div className="bg-neutral-900 rounded-lg h-full w-full overflow-hidden overflow-y-auto">
         <div className="flex flex-col gap-y-2 p-6 pb-2">
-            <h1 className="text-white text-3xl font-semibold">My Uploads</h1>
-            <p className="text-neutral-400 text-sm">Manage your uploaded songs</p>
+            <h1 className="text-white text-3xl font-semibold">My Music</h1>
+            <p className="text-neutral-400 text-sm">Manage your music collection</p>
+            <div className="flex gap-2 mt-4">
+                <button onClick={() => setActiveTab('uploads')} className={`px-4 py-2 rounded-lg font-semibold ${activeTab === 'uploads' ? 'bg-emerald-500 text-white' : 'bg-neutral-700 text-neutral-300'}`}>My Uploads</button>
+                <button onClick={() => setActiveTab('tuned')} className={`px-4 py-2 rounded-lg font-semibold ${activeTab === 'tuned' ? 'bg-emerald-500 text-white' : 'bg-neutral-700 text-neutral-300'}`}>Tuned Songs</button>
+            </div>
         </div>
         <div className="p-6">
             {loading ? (
@@ -381,17 +461,20 @@ const MyUploadsPage = () => {
             ) : (
                 songs.length > 0 ? (
                     <div>
-                        <div className="flex flex-wrap gap-x-4 gap-y-2 mb-6 text-xs text-neutral-500 font-mono">
-                            <span className="flex items-center gap-1"><Globe size={12} className="text-green-500"/> = Public</span>
-                            <span className="flex items-center gap-1"><Lock size={12} className="text-red-500"/> = Private</span>
-                            <span>• Hover cards to edit metadata, files, or visibility</span>
-                        </div>
+                        {activeTab === 'uploads' && (
+                            <div className="flex flex-wrap gap-x-4 gap-y-2 mb-6 text-xs text-neutral-500 font-mono">
+                                <span className="flex items-center gap-1"><Globe size={12} className="text-green-500"/> = Public</span>
+                                <span className="flex items-center gap-1"><Lock size={12} className="text-red-500"/> = Private</span>
+                                <span>• Hover cards to edit metadata, files, or visibility</span>
+                            </div>
+                        )}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                           {songs.map((song) => (
                             <UserSongCard
                               key={song.id}
                               song={song}
                               isEditing={editingSong === song.id}
+                              isEditable={isEditable}
                             />
                           ))}
                         </div>
@@ -399,14 +482,20 @@ const MyUploadsPage = () => {
                 ) : (
                     <div className="flex flex-col items-center justify-center text-neutral-500 py-20 gap-4">
                         <Music size={50} className="opacity-20"/>
-                        <p>You haven't uploaded any songs yet.</p>
-                        <Link
-                          href="/upload"
-                          className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-                        >
-                          <Upload size={16} />
-                          Upload Your First Song
-                        </Link>
+                        {activeTab === 'uploads' ? (
+                            <>
+                                <p>You haven't uploaded any songs yet.</p>
+                                <Link
+                                  href="/upload"
+                                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+                                >
+                                  <Upload size={16} />
+                                  Upload Your First Song
+                                </Link>
+                            </>
+                        ) : (
+                            <p>Your tuned songs (songs from your playlists) will appear here.</p>
+                        )}
                     </div>
                 )
             )}
