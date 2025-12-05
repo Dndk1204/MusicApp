@@ -40,7 +40,7 @@ const SongItem = ({ data, onClick }) => {
       <div className="relative aspect-square w-full h-full rounded-xl overflow-hidden shadow-inner z-10">
         <Image
           className="object-cover transition-transform duration-500 group-hover:scale-110"
-          src={imagePath || "/images/liked.png"}
+          src={imagePath}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           alt="Image"

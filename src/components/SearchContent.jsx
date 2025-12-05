@@ -3,7 +3,7 @@
 import { Play } from "lucide-react";
 import usePlayer from "@/hooks/usePlayer";
 import { useEffect } from "react";
-import Link from "next/link"; // <--- 1. Import Link
+import Link from "next/link"; 
 
 const SearchContent = ({ songs }) => {
   const player = usePlayer();
@@ -22,6 +22,15 @@ const SearchContent = ({ songs }) => {
     player.setIds(songs.map((song) => song.id));
   };
 
+  // Nếu không có bài hát nào
+  if (songs.length === 0) {
+    return (
+      <div className="flex flex-col gap-y-2 w-full px-6 text-neutral-400">
+        No songs found.
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in slide-in-from-bottom-4 duration-500">
       {songs.map((song, idx) => (
@@ -32,11 +41,13 @@ const SearchContent = ({ songs }) => {
         >
            {/* IMAGE */}
            <div className="relative w-full aspect-square bg-neutral-300 dark:bg-neutral-800 rounded-lg overflow-hidden shadow-lg group-hover:shadow-[0_0_20px_rgba(16,185,129,0.2)] transition duration-300">
-              <img 
-                src={song.image_path || '/images/music-placeholder.png'} 
+              <img
+                // ƯU TIÊN LOGIC CỦA LAYOUT 1: Hỗ trợ cả URL ngoài (API) và Path nội bộ (Upload)
+                src={song.image_url || song.image_path || '/images/music-placeholder.png'}
                 alt={song.title}
                 className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
               />
+              
               {/* Play Overlay */}
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300 backdrop-blur-[2px]">
                  <div className="bg-emerald-500 text-black p-3 rounded-full shadow-xl transform scale-50 group-hover:scale-100 transition duration-300">
@@ -54,11 +65,11 @@ const SearchContent = ({ songs }) => {
               <div className="text-xs text-neutral-500 dark:text-neutral-400 font-mono truncate uppercase tracking-wider flex items-center gap-2">
                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                  
-                 {/* --- 2. LINK NGHỆ SĨ --- */}
+                 {/* LINK NGHỆ SĨ */}
                  <Link 
-                    href={`/artist/${encodeURIComponent(song.author)}`}
-                    onClick={(e) => e.stopPropagation()} // Chặn sự kiện click lan ra ngoài (không phát nhạc)
-                    className="hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline transition-colors"
+                   href={`/artist/${encodeURIComponent(song.author)}`}
+                   onClick={(e) => e.stopPropagation()} // Chặn sự kiện click để không phát nhạc khi bấm vào tên ca sĩ
+                   className="hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline transition-colors"
                  >
                     {song.author}
                  </Link>

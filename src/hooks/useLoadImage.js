@@ -16,25 +16,41 @@ export const useLoadImage = (song) => {
       return;
     }
 
-    // Check if image_path is a full URL
-    if (song.image_path && song.image_path.startsWith('http')) {
-      setImageUrl(song.image_path);
+    // Determine which field contains the image reference
+    const imageField = song.image_path || song.image_url;
+
+    // Debug logging for community songs
+    if (song.user_id) {
+      console.log('Loading community song image:', {
+        title: song.title,
+        image_path: song.image_path,
+        image_url: song.image_url,
+        user_id: song.user_id,
+      });
+    }
+
+    // Check if image field is a full URL
+    if (imageField && imageField.startsWith('http')) {
+      console.log('Full URL found:', imageField);
+      setImageUrl(imageField);
       return;
     }
 
     // Get public URL from Supabase storage
-    if (song.image_path) {
+    if (imageField) {
       try {
         const { data } = supabaseClient.storage
           .from("images")
-          .getPublicUrl(song.image_path);
+          .getPublicUrl(imageField);
 
+        console.log('Supabase image URL:', data?.publicUrl);
         setImageUrl(data?.publicUrl || FALLBACK_IMAGE);
       } catch (err) {
-        console.warn('Failed to load image:', song.image_path, err);
+        console.warn('Failed to load image:', imageField, err);
         setImageUrl(FALLBACK_IMAGE);
       }
     } else {
+      console.log('No image field found, using fallback');
       setImageUrl(FALLBACK_IMAGE);
     }
   }, [song, supabaseClient]);
