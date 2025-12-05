@@ -1,7 +1,7 @@
 import getSongs from "@/app/actions/getSongs";
 import SongSection from "@/components/SongSection";
 import TrendingHero from "@/components/TrendingHero"; 
-import { Disc } from "lucide-react";
+import { Disc, UploadCloud, Globe } from "lucide-react"; // Import đủ icon từ Page 1
 import { GlitchText } from "@/components/CyberComponents";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
@@ -16,9 +16,9 @@ const formatNumber = (num) => {
   return num.toString();
 };
 
-// --- LOGIC: Lấy Top Artists (Đã sửa lỗi Next.js 15) ---
+// --- LOGIC 1: Lấy Top Artists (Dùng bản chuẩn của Page 2) ---
 const getTopArtists = async () => {
-  // SỬA LỖI: Await cookies() trước khi dùng
+  // SỬA LỖI: Await cookies() trước khi dùng (Fix Next.js 15)
   const cookieStore = await cookies();
   
   // Truyền vào dạng function trả về cookieStore đã await
@@ -83,9 +83,57 @@ const getTopArtists = async () => {
   }
 };
 
+// --- LOGIC 2: Lấy nhạc cộng đồng (Lấy từ Page 1) ---
+const getCommunityUploads = async () => {
+    const cookieStore = await cookies();
+    const supabase = createServerComponentClient({ cookies: () => cookieStore });
+
+    try {
+        // Kiểm tra field name có thể là is_public thay vì public
+        const { data, error } = await supabase
+            .from('songs')
+            .select('*')
+            .not('user_id', 'is', null) // Lọc những bài có người đăng (không phải null)
+            .eq('is_public', true)      // Thử lại với is_public
+            .order('created_at', { ascending: false }) // Mới nhất lên đầu
+            .limit(15);
+
+        let songsData = data;
+
+        if (error) {
+            console.error("Error checking is_public:", error);
+            // Nếu lỗi, thử với field public (fallback)
+            const { data: data2, error: error2 } = await supabase
+                .from('songs')
+                .select('*')
+                .not('user_id', 'is', null)
+                .eq('public', true)
+                .order('created_at', { ascending: false })
+                .limit(15);
+
+            if (error2) {
+                console.error("Error checking public:", error2);
+                throw error2;
+            }
+            songsData = data2;
+        }
+
+        // Ensure each song has an image_path, set to null if missing to trigger fallback
+        const processedSongs = (songsData || []).map(song => ({
+            ...song,
+            image_path: song.image_path || null
+        }));
+
+        return processedSongs;
+    } catch (error) {
+        console.error("Lỗi lấy nhạc cộng đồng:", error.message || error);
+        return [];
+    }
+};
+
 export default async function Home() {
   
-  // 1. Fetch Dữ liệu bài hát & Nghệ sĩ song song
+  // 1. Fetch Dữ liệu bài hát, Nghệ sĩ & Nhạc cộng đồng song song
   const [
     mostHeard, 
     discoveries, 
@@ -93,7 +141,8 @@ export default async function Home() {
     electronicSongs, 
     rockSongs, 
     indieSongs,
-    popularArtists 
+    popularArtists,
+    communityUploads // <--- Dữ liệu mới từ Page 1
   ] = await Promise.all([
     getSongs({ boost: 'popularity_month', limit: 10 }), 
     getSongs({ boost: 'buzzrate', limit: 15 }),        
@@ -101,7 +150,8 @@ export default async function Home() {
     getSongs({ tag: 'electronic', limit: 15 }),
     getSongs({ tag: 'rock', limit: 15 }),
     getSongs({ tag: 'indie', limit: 15 }),
-    getTopArtists() // Gọi hàm đã sửa
+    getTopArtists(), // Gọi hàm fix của Page 2
+    getCommunityUploads() // Gọi hàm mới của Page 1
   ]);
 
   const mostHeardSongs = mostHeard.songs || [];
@@ -110,6 +160,7 @@ export default async function Home() {
   const electronicTracks = electronicSongs.songs || [];
   const rockTracks = rockSongs.songs || [];
   const indieTracks = indieSongs.songs || [];
+  const communityTracks = communityUploads || []; // Dữ liệu cộng đồng
 
   return (
     <div className="h-full w-full p-4 pb-[100px] overflow-y-auto scroll-smooth">
@@ -120,7 +171,7 @@ export default async function Home() {
       {/* 2. CÁC SECTION KHÁC */}
       <div className="mt-8">
         <div className="mb-6 flex flex-col gap-1">
-             
+              
             <div className="flex items-center gap-2">
                 <Disc className="text-emerald-500 animate-spin-slow" size={24}/>
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tighter font-mono text-neutral-900 dark:text-white">
@@ -134,6 +185,21 @@ export default async function Home() {
         </div>
 
         <div className="flex flex-col gap-y-6"> 
+            
+            {/* --- SECTION MỚI: COMMUNITY UPLOADS (Từ Page 1) --- */}
+            {communityTracks.length > 0 && (
+                <SongSection 
+                    title={
+                        <span className="flex items-center gap-2">
+                            <Globe size={20} className="text-blue-500"/> Community Vibes
+                        </span>
+                    }
+                    songs={communityTracks} 
+                    moreLink="/search?type=user_uploads"
+                />
+            )}
+            {/* -------------------------------------------------- */}
+
             <SongSection 
                 title="Discoveries" 
                 songs={discoverySongs} 

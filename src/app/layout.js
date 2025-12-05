@@ -2,6 +2,7 @@ import { Space_Mono } from "next/font/google"; // Import font mới
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import AuthModal from "@/components/AuthModal";
+import UploadModal from "@/components/UploadModal"; // <--- Đã thêm lại từ Layout 1
 import Player from "@/components/Player";
 import SupabaseProvider from "@/providers/SupabaseProvider";
 import { ModalProvider } from "@/context/ModalContext";
@@ -22,7 +23,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* --- SCRIPT CHỐNG FLASH --- */}
+        {/* --- SCRIPT CHỐNG FLASH (Giữ lại version có comment chi tiết của Layout 2) --- */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -54,8 +55,13 @@ export default function RootLayout({ children }) {
               {children}
             </Sidebar>
             <Player />
+            
+            {/* --- CÁC MODAL PHẢI NẰM Ở ĐÂY --- */}
             <AuthModal />
+            <UploadModal /> {/* <--- Đảm bảo thành phần này xuất hiện */}
             <GlobalPopup />
+            {/* -------------------------------- */}
+            
           </ModalProvider>
         </SupabaseProvider>
       </body>

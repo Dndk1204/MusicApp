@@ -1,275 +1,168 @@
-"use client";
+import getSongs from "@/app/actions/getSongs";
+import SearchContent from "@/components/SearchContent";
+import { Search, Disc, Filter, X, Tag, UserCheck, Globe } from "lucide-react";
+import Link from "next/link";
+import qs from "query-string";
+import ArtistGrid from "@/components/ArtistGrid";
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
-import { useEffect, useState } from "react";
-import usePlayer from "@/hooks/usePlayer";
-import { User, Disc, Music, Mic2, Info, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { DecoderText, CyberCard } from "@/components/CyberComponents";
+export const revalidate = 0;
 
-// --- COMPONENT SKELETON ---
-const NowPlayingSkeleton = () => {
-  return (
-    <div className="w-full h-full grid grid-cols-1 lg:grid-cols-10 gap-6 p-4 pb-[100px] overflow-hidden bg-neutral-100 dark:bg-black animate-pulse transition-colors duration-500">
-        
-        {/* CỘT TRÁI: ĐĨA + INFO */}
-        <div className="lg:col-span-6 flex flex-col items-center justify-center relative">
-             {/* Đĩa nhạc */}
-             <div className="w-[250px] h-[250px] md:w-[450px] md:h-[450px] rounded-full bg-neutral-300 dark:bg-neutral-800/50 border-4 border-neutral-200 dark:border-white/5 shadow-2xl"></div>
-             
-             {/* Thông tin */}
-             <div className="absolute bottom-10 flex flex-col items-center w-full gap-4 z-10">
-                 <div className="h-10 w-3/4 md:w-1/2 bg-neutral-300 dark:bg-neutral-800 rounded-lg"></div>
-                 <div className="h-5 w-1/3 bg-neutral-200 dark:bg-neutral-900 rounded"></div>
-             </div>
-        </div>
+const GENRES = ["Pop", "Rock", "Electronic", "HipHop", "Jazz", "Indie", "Cinematic", "Chillout"];
 
-        {/* CỘT PHẢI: LYRICS BOX */}
-        <div className="lg:col-span-4 flex flex-col h-full bg-white/60 dark:bg-white/5 backdrop-blur-md border border-neutral-200 dark:border-white/10 rounded-xl overflow-hidden">
-             {/* Tabs */}
-             <div className="flex border-b border-neutral-200 dark:border-white/10 h-14">
-                 <div className="flex-1 bg-neutral-300/50 dark:bg-white/10 border-b-2 border-emerald-500/50"></div>
-                 <div className="flex-1"></div>
-             </div>
+const SearchPage = async ({ searchParams }) => {
+  const params = await searchParams;
 
-             {/* Lines */}
-             <div className="flex-1 p-8 flex flex-col items-center justify-center gap-6 opacity-50">
-                 {[1,2,3,4,5,6].map(i => (
-                     <div key={i} className="h-4 w-2/3 bg-neutral-300 dark:bg-neutral-700 rounded-full"></div>
-                 ))}
-             </div>
-        </div>
-    </div>
-  )
-}
+  let songs = [];
+  let artists = [];
 
-const NowPlayingPage = () => {
-  const player = usePlayer();
-  const router = useRouter();
-  const [song, setSong] = useState(null);
-  const [activeTab, setActiveTab] = useState('lyrics'); 
-  
-  // Thêm state loading riêng
-  const [loading, setLoading] = useState(true);
-  const [isMounted, setIsMounted] = useState(false);
+  // --- LOGIC TITLE THÔNG MINH ---
+  let pageTitle = "SEARCH_RESULTS";
+  let pageIcon = <Search className="text-emerald-500" size={40} />;
 
-  useEffect(() => {
-      setIsMounted(true);
-  }, []);
+  // Handle different search types
+  if (params.type === 'user_uploads') {
+      // Handle user uploads search
+      const cookieStore = await cookies();
+      const supabase = createServerComponentClient({ cookies: () => cookieStore });
 
-  useEffect(() => {
-    if (!isMounted) return;
+      try {
+          const { data, error } = await supabase
+              .from('songs')
+              .select('*')
+              .not('user_id', 'is', null)
+              .eq('is_public', true)
+              .order('created_at', { ascending: false })
+              .limit(50);
 
-    const updateSong = async () => {
-        setLoading(true); // Bắt đầu loading
+          if (error) {
+              console.error("Error fetching user uploads:", error);
+          }
+          songs = data || [];
+      } catch (err) {
+          console.error("User uploads search error:", err);
+          songs = [];
+      }
+      pageTitle = "COMMUNITY UPLOADS";
+      pageIcon = <Globe className="text-blue-500" size={40} />;
+  } else {
+      // Regular search using getSongs action
+      const result = await getSongs({
+          title: params.title,
+          tag: params.tag
+      });
+      songs = result.songs || [];
+      artists = result.artists || [];
 
-        // Tạo một promise delay 1 giây để ép hiển thị Skeleton
-        const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
-
-        if (!player.activeId) {
-            await minDelay; // Vẫn đợi 1s cho mượt
-            setLoading(false);
-            return;
-        }
-
-        try {
-            // 1. Ưu tiên lấy từ Cache
-            if (typeof window !== 'undefined' && window.__SONG_MAP__ && window.__SONG_MAP__[player.activeId]) {
-                const songData = window.__SONG_MAP__[player.activeId];
-                setSong(songData);
-            } 
-            // 2. Fetch API nếu không có cache
-            else {
-                const CLIENT_ID = '3501caaa';
-                const res = await fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=jsonpretty&id=${player.activeId}&include=musicinfo+lyrics&audioformat=mp32`);
-                const data = await res.json();
-                if (data.results && data.results[0]) {
-                    const track = data.results[0];
-                    const newSong = {
-                        id: track.id,
-                        title: track.name,
-                        author: track.artist_name,
-                        song_path: track.audio,
-                        image_path: track.image || track.album_image,
-                        duration: track.duration, 
-                        lyrics: track.musicinfo?.lyrics || null,
-                        user_id: 'jamendo_api'
-                    };
-                    setSong(newSong);
-                    if (typeof window !== 'undefined') {
-                        window.__SONG_MAP__ = { ...window.__SONG_MAP__, [newSong.id]: newSong };
-                    }
-                }
-            }
-        } catch (error) {
-            console.error("Error fetching song details:", error);
-        } finally {
-            // Đợi cho đủ thời gian delay rồi mới tắt loading
-            await minDelay;
-            setLoading(false);
-        }
-    };
-
-    updateSong();
-    
-  }, [player.activeId, isMounted]);
-
-  if (!isMounted) return null;
-
-  // --- 1. TRẠNG THÁI LOADING (HIỆN SKELETON) ---
-  if (loading) return <NowPlayingSkeleton />;
-
-  // --- 2. TRẠNG THÁI IDLE (KHÔNG CÓ NHẠC) ---
-  if (!player.activeId || !song) {
-      return (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-neutral-100 dark:bg-black text-neutral-500 dark:text-neutral-400 font-mono transition-colors animate-in fade-in duration-500">
-            <Disc size={60} className="opacity-50 animate-spin-slow"/>
-            <p className="tracking-widest text-xs uppercase">[SYSTEM_IDLE: NO_TRACK_SELECTED]</p>
-            <button 
-                onClick={() => router.push('/')} 
-                className="text-emerald-600 dark:text-emerald-500 hover:underline text-xs border border-emerald-500/30 px-4 py-2 rounded-full hover:bg-emerald-500/10 transition"
-            >
-                RETURN_TO_BASE
-            </button>
-        </div>
-      );
+      if (params.tag && !params.title) {
+          pageTitle = `${params.tag.toUpperCase()} SONGS`;
+          pageIcon = <Tag className="text-emerald-500" size={40} />;
+      } else if (params.title) {
+          pageTitle = `RESULTS FOR "${params.title.toUpperCase()}"`;
+      }
   }
 
-  // --- 3. GIAO DIỆN CHÍNH ---
   return (
-    <div className="w-full h-full grid grid-cols-1 lg:grid-cols-10 gap-6 p-4 pb-[100px] overflow-hidden animate-in fade-in duration-700 bg-neutral-100 dark:bg-black transition-colors">
+    <div className="flex flex-col w-full h-full p-6 pb-[120px] overflow-y-auto">
       
-      {/* --- CỘT TRÁI (60%) --- */}
-      <div className="lg:col-span-6 flex flex-col items-center justify-center relative perspective-1000">
-         
-         {/* ĐĨA THAN */}
-         <div key={song.id + "_disc"} className="relative w-[250px] h-[250px] md:w-[450px] md:h-[450px] flex items-center justify-center animate-[spin_10s_linear_infinite]">
-            <div className="absolute inset-0 rounded-full shadow-2xl
-                bg-neutral-100 border-4 border-neutral-300
-                bg-[repeating-radial-gradient(#f5f5f5,#f5f5f5_2px,#e5e5e5_3px,#e5e5e5_4px)]
-                dark:bg-black dark:border-neutral-800 
-                dark:bg-[repeating-radial-gradient(black,black_2px,#1a1a1a_3px,#1a1a1a_4px)]
-            "></div>
-            <div className="absolute w-16 h-16 rounded-full bg-neutral-200 dark:bg-neutral-900 border-2 border-neutral-300 dark:border-neutral-800 z-0"></div>
-            <div className="absolute inset-0 rounded-full shadow-[0_0_100px_rgba(16,185,129,0.2)] opacity-50"></div>
-         </div>
-
-         {/* COVER */}
-         <div key={song.id + "_cover"} className="absolute z-10 w-[200px] h-[200px] md:w-[320px] md:h-[320px] flex items-center justify-center pl-8 animate-in zoom-in duration-500">
-            <div className="relative w-full h-full filter drop-shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-transform duration-500 hover:scale-105">
-                <svg width="100%" height="100%" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <clipPath id="roundedPlayBtn">
-                            <path d="M 93.5 46.4 L 12.5 1.4 C 10.5 0.3 8 1.8 8 4.1 L 8 95.9 C 8 98.2 10.5 99.7 12.5 98.6 L 93.5 53.6 C 95.5 52.5 95.5 47.5 93.5 46.4 Z" />
-                        </clipPath>
-                        <linearGradient id="glassGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="rgba(0,0,0,0.4)" />
-                            <stop offset="50%" stopColor="transparent" />
-                            <stop offset="100%" stopColor="rgba(255,255,255,0.1)" />
-                        </linearGradient>
-                    </defs>
-
-                    {song.image_path ? (
-                        <image 
-                            href={song.image_path} 
-                            width="100%" 
-                            height="100%" 
-                            preserveAspectRatio="xMidYMid slice"
-                            clipPath="url(#roundedPlayBtn)" 
-                        />
-                    ) : (
-                        <g clipPath="url(#roundedPlayBtn)">
-                            <rect width="100%" height="100%" fill="#171717" />
-                            <foreignObject x="0" y="0" width="100%" height="100%">
-                                <div className="w-full h-full bg-neutral-200 dark:bg-neutral-900 flex items-center justify-center pl-4">
-                                    <Music size={60} className="text-emerald-500/50"/>
-                                </div>
-                            </foreignObject>
-                        </g>
-                    )}
-
-                    <path 
-                        d="M 93.5 46.4 L 12.5 1.4 C 10.5 0.3 8 1.8 8 4.1 L 8 95.9 C 8 98.2 10.5 99.7 12.5 98.6 L 93.5 53.6 C 95.5 52.5 95.5 47.5 93.5 46.4 Z"
-                        fill="url(#glassGradient)"
-                        className="pointer-events-none"
-                    />
-                </svg>
-            </div>
-         </div>
-
-         {/* INFO */}
-         <div className="absolute bottom-4 left-0 right-0 text-center z-20">
-            <h1 className="text-2xl md:text-4xl font-bold font-mono text-neutral-900 dark:text-white tracking-tighter drop-shadow-xl truncate px-10 transition-colors">
-                <DecoderText text={song.title} />
-            </h1>
-            <p className="text-base md:text-lg font-mono text-emerald-600 dark:text-emerald-400 mt-1 flex items-center justify-center gap-2 drop-shadow-md">
-                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                {song.author}
-            </p>
-         </div>
-      </div>
-
-      {/* --- CỘT PHẢI (40%) --- */}
-      <div className="lg:col-span-4 flex flex-col h-full bg-white/60 dark:bg-black/40 backdrop-blur-2xl border border-neutral-200 dark:border-white/10 rounded-xl overflow-hidden shadow-xl transition-colors duration-300">
-         <div className="flex border-b border-neutral-200 dark:border-white/10">
-            <button 
-                onClick={() => setActiveTab('lyrics')}
-                className={`flex-1 py-3 text-[10px] font-mono tracking-widest uppercase transition-colors flex items-center justify-center gap-1.5
-                    ${activeTab === 'lyrics' 
-                        ? 'bg-neutral-100 dark:bg-white/5 text-emerald-600 dark:text-emerald-500 font-bold border-b-2 border-emerald-500' 
-                        : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-white'}`}
-            >
-                <Mic2 size={14}/> LYRICS
-            </button>
-            <button 
-                onClick={() => setActiveTab('info')}
-                className={`flex-1 py-3 text-[10px] font-mono tracking-widest uppercase transition-colors flex items-center justify-center gap-1.5
-                    ${activeTab === 'info' 
-                        ? 'bg-neutral-100 dark:bg-white/5 text-emerald-600 dark:text-emerald-500 font-bold border-b-2 border-emerald-500' 
-                        : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-white'}`}
-            >
-                <Info size={14}/> CREDITS
-            </button>
-         </div>
-
-         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar relative">
-            {activeTab === 'lyrics' ? (
-                song.lyrics ? (
-                    <div className="text-center space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                        {song.lyrics.split('\n').map((line, i) => (
-                            <p key={i} className="text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:text-emerald-600 dark:hover:text-white transition-colors cursor-default leading-relaxed">
-                                {line}
-                            </p>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-neutral-400 dark:text-neutral-600 gap-3 opacity-70">
-                        <Disc size={30} className="animate-spin-slow"/>
-                        <p className="font-mono text-[10px] tracking-widest">[INSTRUMENTAL / NO_LYRICS]</p>
-                    </div>
-                )
-            ) : (
-                <div className="space-y-4 font-mono text-xs animate-in fade-in slide-in-from-bottom-2 duration-500">
-                    <div>
-                        <p className="text-[9px] text-emerald-600 dark:text-emerald-500 uppercase tracking-widest mb-0.5">Artist</p>
-                        <p className="text-neutral-800 dark:text-white text-base font-bold">{song.author}</p>
-                    </div>
-                    <div>
-                        <p className="text-[9px] text-emerald-600 dark:text-emerald-500 uppercase tracking-widest mb-0.5">Track Title</p>
-                        <p className="text-neutral-800 dark:text-white text-sm">{song.title}</p>
-                    </div>
-                    <div>
-                        <p className="text-[9px] text-emerald-600 dark:text-emerald-500 uppercase tracking-widest mb-0.5">Duration</p>
-                        <p className="text-neutral-600 dark:text-neutral-400">{song.duration || "N/A"}</p>
-                    </div>
-                    <div className="pt-4 border-t border-neutral-200 dark:border-white/10">
-                        <p className="text-[9px] text-neutral-400 text-center">:: METADATA_END ::</p>
-                    </div>
+      {/* HEADER */}
+      <div className="mb-6 flex flex-col gap-4">
+        
+        {/* Tiêu đề động */}
+        <h1 className="text-3xl md:text-5xl font-bold font-mono text-neutral-800 dark:text-white tracking-tighter flex items-center gap-3">
+            {pageIcon}
+            {pageTitle}
+        </h1>
+        
+        {/* Status Bar */}
+        <div className="flex flex-wrap items-center gap-2 text-sm font-mono text-neutral-500 dark:text-neutral-400">
+            {params.title && (
+                <div className="flex items-center gap-1 bg-neutral-200 dark:bg-white/10 px-3 py-1 rounded-full text-neutral-800 dark:text-white border border-neutral-300 dark:border-white/5">
+                    <span>Query: "{params.title}"</span>
+                    <Link href={qs.stringifyUrl({ url: '/search', query: { tag: params.tag } }, { skipNull: true })}>
+                        <X size={14} className="hover:text-red-500 cursor-pointer"/>
+                    </Link>
                 </div>
             )}
-         </div>
+            
+            {params.tag && (
+                <div className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500 text-emerald-600 dark:text-emerald-400 px-3 py-1 rounded-full">
+                    <span>Genre: #{params.tag}</span>
+                </div>
+            )}
+
+            {params.type === 'user_uploads' && (
+                <div className="flex items-center gap-1 bg-blue-500/10 border border-blue-500 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full">
+                    <span><Globe size={12} className="inline mr-1"/> Community Uploads (Public Only)</span>
+                </div>
+            )}
+
+            {!params.title && !params.tag && !params.type && <span>Displaying Top Trending</span>}
+            
+            <span className="ml-auto text-xs">FOUND: [{songs.length}]</span>
+        </div>
       </div>
+
+      {/* FILTER TAGS */}
+      <div className="mb-8 p-4 bg-white/60 dark:bg-black/20 rounded-xl border border-neutral-200 dark:border-white/5 backdrop-blur-md">
+        <div className="flex items-center gap-2 mb-3 text-xs font-mono text-neutral-500 dark:text-neutral-400 tracking-widest">
+            <Filter size={14}/>
+            <span>FILTER_BY_GENRE</span>
+        </div>
+        
+        <div className="flex flex-wrap gap-2">
+            {GENRES.map((genre) => {
+                const isSelected = params.tag === genre.toLowerCase();
+                let newQuery = { ...params };
+                if (isSelected) delete newQuery.tag;
+                else newQuery.tag = genre.toLowerCase();
+
+                const href = qs.stringifyUrl({
+                    url: '/search',
+                    query: newQuery
+                }, { skipNull: true, skipEmptyString: true });
+
+                return (
+                    <Link 
+                        key={genre}
+                        href={href} 
+                        className={`
+                            px-4 py-2 rounded-lg text-sm font-mono transition-all border
+                            ${isSelected 
+                                ? "bg-emerald-500 text-black border-emerald-500 font-bold shadow-[0_0_15px_rgba(16,185,129,0.4)] hover:bg-emerald-400" 
+                                : "bg-transparent text-neutral-600 dark:text-neutral-400 border-neutral-300 dark:border-white/10 hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400" 
+                            }
+                        `}
+                    >
+                        {isSelected ? `[#${genre}]` : `#${genre}`}
+                    </Link>
+                )
+            })}
+        </div>
+      </div>
+
+      {/* --- PHẦN ARTISTS FOUND (ĐÃ SỬA DÙNG ARTIST GRID) --- */}
+      {params.title && artists && artists.length > 0 && (
+          <ArtistGrid artists={artists} />
+      )}
+      
+      {/* CONTENT SONGS */}
+      {songs.length === 0 ? (
+         <div className="flex flex-col items-center justify-center py-20 opacity-70 font-mono gap-4 animate-in fade-in zoom-in duration-500 text-neutral-500 dark:text-neutral-400">
+            <div className="relative">
+                <Disc size={60} className="text-neutral-300 dark:text-neutral-700 animate-spin-slow"/>
+                <Search size={24} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-neutral-800 dark:text-white"/>
+            </div>
+            <p className="text-lg tracking-widest">[NO_DATA_MATCHED]</p>
+            <p className="text-xs">No tracks found combining these filters.</p>
+         </div>
+      ) : (
+         <SearchContent songs={songs} />
+      )}
+
     </div>
   );
 };
 
-export default NowPlayingPage;
+export default SearchPage;
