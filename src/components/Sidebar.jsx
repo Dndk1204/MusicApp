@@ -8,6 +8,8 @@ import Navbar from "./Navbar";
 import CreatePlaylistModal from "./CreatePlaylistModal";
 import useUI from "@/hooks/useUI";
 
+import usePlayer from "@/hooks/usePlayer";
+
 // =========================
 //     Skeleton Loader
 // =========================
@@ -37,6 +39,8 @@ const Sidebar = ({ children }) => {
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+
+  const player = usePlayer();
 
   // Lấy chữ cái đầu làm ảnh bìa mặc định
   const getFirstLetter = (name) => {
@@ -169,9 +173,55 @@ const Sidebar = ({ children }) => {
     }
   };
 
-  const handlePlayPlaylist = (e, playlistId) => {
+  const handlePlayPlaylist = async (e, playlistId) => {
     e.stopPropagation();
-    alert("Playing playlist...", "info", "PLAYER");
+
+    try {
+      // Lấy toàn bộ bài hát trong playlist
+      const { data: songsData, error } = await supabase
+        .from("playlist_songs")
+        .select(`
+          song_id,
+          songs (
+            id,
+            title,
+            author,
+            image_url,
+            song_url,
+            duration
+          )
+        `)
+        .eq("playlist_id", playlistId)
+        .order("added_at", { ascending: true });
+
+      if (error) throw error;
+
+      const songs = songsData
+        .map((item) => item.songs)
+        .filter(Boolean);
+
+      if (!songs.length) return;
+
+      // Normalize giống PlaylistPage
+      const normalize = (s) => ({
+        id: Number(s.id),
+        title: s.title ?? "",
+        author: s.author ?? "",
+        image_url: s.image_url ?? null,
+        song_url: s.song_url ?? null,
+        duration: s.duration ? Number(s.duration) : 0,
+        ...s,
+      });
+
+      const ids = songs.map((s) => Number(s.id));
+
+      player.setIds(ids);
+      player.setId(ids[0]);
+      player.setSongData(normalize(songs[0]));
+
+    } catch (err) {
+      console.error("Play playlist failed:", err);
+    }
   };
 
   // =========================
