@@ -77,29 +77,26 @@ const Sidebar = ({ children }) => {
   // =========================
   //       Realtime Setup
   // =========================
-    useEffect(() => {
+  useEffect(() => {
     let ch1 = null;
     let ch2 = null;
+    let authListener = null;
 
-    const init = async () => {
-      // Luôn fetch 1 lần để đảm bảo có dữ liệu
-      await fetchPlaylists();
-
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
-
-      if (!user) return;
+    const setupSubscriptions = async (userId) => {
+      // Cleanup existing channels
+      if (ch1) supabase.removeChannel(ch1);
+      if (ch2) supabase.removeChannel(ch2);
 
       // Realtime playlists
       ch1 = supabase
-        .channel("rt-playlists")
+        .channel(`rt-playlists-${userId}`)
         .on(
           "postgres_changes",
           {
             event: "*",
             schema: "public",
             table: "playlists",
-            filter: `user_id=eq.${user.id}`
+            filter: `user_id=eq.${userId}`
           },
           fetchPlaylists
         )
@@ -107,7 +104,7 @@ const Sidebar = ({ children }) => {
 
       // Realtime playlist_songs
       ch2 = supabase
-        .channel("rt-playlist-songs")
+        .channel(`rt-playlist-songs-${userId}`)
         .on(
           "postgres_changes",
           {
@@ -120,9 +117,39 @@ const Sidebar = ({ children }) => {
         .subscribe();
     };
 
+    const init = async () => {
+      // Luôn fetch 1 lần để đảm bảo có dữ liệu
+      await fetchPlaylists();
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
+
+      if (user) {
+        setupSubscriptions(user.id);
+      }
+
+      // Listen for auth state changes
+      authListener = supabase.auth.onAuthStateChange((event, session) => {
+        const user = session?.user;
+        if (event === 'SIGNED_IN' && user) {
+          // User signed in, setup subscriptions
+          fetchPlaylists(); // Fetch immediately after login
+          setupSubscriptions(user.id);
+        } else if (event === 'SIGNED_OUT') {
+          // User signed out, cleanup
+          if (ch1) supabase.removeChannel(ch1);
+          if (ch2) supabase.removeChannel(ch2);
+          ch1 = null;
+          ch2 = null;
+          setPlaylists([]);
+        }
+      });
+    };
+
     init();
 
     return () => {
+      if (authListener) authListener?.unsubscribe();
       if (ch1) supabase.removeChannel(ch1);
       if (ch2) supabase.removeChannel(ch2);
     };
