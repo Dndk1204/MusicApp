@@ -27,53 +27,46 @@ export default function PlaylistPage() {
   const player = usePlayer();
 
   /* ==========================================================
-   * PLAY PLAYLIST — dành cho Fetch API
+   * HÀM LẤY CHỮ CÁI ĐẦU
+   * ========================================================== */
+  const getFirstLetter = (name) => {
+    if (!name) return "?";
+    return name.trim()[0].toUpperCase();
+  };
+
+  /* ==========================================================
+   * PLAY PLAYLIST
    * ========================================================== */
   const handlePlayPlaylist = () => {
     if (!songs.length) return;
 
-    // Lấy danh sách ID (ép về number để tránh mismatch bigint/string)
     const ids = songs
       .map((item) => item.songs?.id)
-      .filter((x) => x !== undefined && x !== null)
+      .filter(Boolean)
       .map((x) => Number(x));
 
-    // danh sách bài đầy đủ
-    const list = songs
-      .map((item) => item.songs)
-      .filter((x) => x);
+    const list = songs.map((i) => i.songs).filter(Boolean);
 
-    if (ids.length === 0 || list.length === 0) return;
-
-    // Chuẩn hoá object song gửi vào player (đảm bảo các field Player cần)
     const normalize = (s) => ({
       id: Number(s.id),
       title: s.title ?? "",
       author: s.author ?? "",
       image_url: s.image_url ?? s.image_path ?? null,
       song_url: s.song_url ?? s.song_path ?? null,
-      duration: s.duration !== null && s.duration !== undefined ? Number(s.duration) : 0,
-      // giữ nguyên các field khác nếu cần
+      duration: s.duration ? Number(s.duration) : 0,
       ...s,
     });
 
-    // Set queue (number ids)
     player.setIds(ids);
-
-    // Set bài đầu tiên (number)
     player.setId(ids[0]);
-
-    // Gửi dữ liệu bài đầu tiên đã normalize
     player.setSongData(normalize(list[0]));
-
-    console.log("▶ PLAY PLAYLIST IDs:", ids);
   };
 
   /* ==========================================================
    * FORMAT TIME
    * ========================================================== */
   const formatDuration = (sec) => {
-    if (!sec && sec !== 0) return "--:--";
+    if (!sec) return "0:00";
     const m = Math.floor(sec / 60);
     const s = Math.floor(sec % 60);
     return `${m}:${s.toString().padStart(2, "0")}`;
@@ -84,6 +77,7 @@ export default function PlaylistPage() {
    * ========================================================== */
   const loadData = async () => {
     if (!id) return;
+
     setLoading(true);
 
     try {
@@ -116,34 +110,82 @@ export default function PlaylistPage() {
 
       setSongs(songsData || []);
     } catch (err) {
-      console.error("Load error:", err);
-      setPlaylist(null);
-      setSongs([]);
+      console.error("Error loading:", err);
     } finally {
       setLoading(false);
     }
   };
 
+  /* ==========================================================
+   * FETCH LẦN ĐẦU
+   * ========================================================== */
   useEffect(() => {
     loadData();
+  }, [id]);
+
+  /* ==========================================================
+   * REALTIME: playlist_songs (add/remove)
+   * ========================================================== */
+  useEffect(() => {
+    if (!id) return;
+
+    const channel = supabase
+      .channel(`playlist_songs_changes_${id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "playlist_songs",
+          filter: `playlist_id=eq.${id}`,
+        },
+        () => {
+          console.log("🔄 Realtime: playlist_songs updated");
+          loadData();
+        }
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [id]);
+
+  /* ==========================================================
+   * REALTIME: playlists (update name/description/cover)
+   * ========================================================== */
+  useEffect(() => {
+    if (!id) return;
+
+    const channel = supabase
+      .channel(`playlist_info_changes_${id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "playlists",
+          filter: `id=eq.${id}`,
+        },
+        (payload) => {
+          console.log("🔄 Realtime: playlist info updated", payload);
+          setPlaylist((prev) => ({ ...prev, ...payload.new }));
+        }
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
   }, [id]);
 
   /* ==========================================================
    * REMOVE SONG
    * ========================================================== */
   const handleRemoveSong = async (songId) => {
-    try {
-      await supabase
-        .from("playlist_songs")
-        .delete()
-        .eq("playlist_id", id)
-        .eq("song_id", songId);
+    await supabase
+      .from("playlist_songs")
+      .delete()
+      .eq("playlist_id", id)
+      .eq("song_id", songId);
 
-      loadData();
-    } catch (err) {
-      console.error("Remove error:", err);
-      alert("Không thể xoá bài hát!");
-    }
+    setConfirmDelete({ show: false, songId: null });
   };
 
   /* ==========================================================
@@ -170,13 +212,19 @@ export default function PlaylistPage() {
     <div className="text-white px-8 py-6">
       {/* HEADER */}
       <div className="flex items-end gap-6">
-        <div className="relative w-48 h-48">
-          <Image
-            src={playlist.cover_url || "/default_playlist.png"}
-            fill
-            alt="Playlist Cover"
-            className="object-cover rounded-lg shadow-lg"
-          />
+        <div className="relative w-48 h-48 rounded-lg overflow-hidden shadow-lg flex items-center justify-center bg-neutral-800">
+          {playlist.cover_url ? (
+            <Image
+              src={playlist.cover_url}
+              fill
+              alt="Playlist Cover"
+              className="object-cover"
+            />
+          ) : (
+            <span className="text-7xl font-bold opacity-80">
+              {getFirstLetter(playlist.name)}
+            </span>
+          )}
         </div>
 
         <div>
@@ -194,9 +242,7 @@ export default function PlaylistPage() {
 
           <p className="text-gray-400 text-sm">
             {songs.length} bài hát • Tạo{" "}
-            {playlist.created_at
-              ? new Date(playlist.created_at).toLocaleDateString("vi-VN")
-              : "--"}
+            {new Date(playlist.created_at).toLocaleDateString("vi-VN")}
           </p>
         </div>
       </div>
@@ -225,7 +271,7 @@ export default function PlaylistPage() {
         </button>
       </div>
 
-      {/* SONG TABLE */}
+      {/* SONG LIST */}
       <div className="mt-8">
         <table className="w-full text-left">
           <thead className="text-gray-400 uppercase text-xs border-b border-gray-700">
@@ -242,41 +288,32 @@ export default function PlaylistPage() {
               const song = s.songs;
               if (!song) return null;
 
-              // chuẩn hoá dữ liệu bài hát (gồm song_url và duration kiểu number)
               const normalized = {
                 id: Number(song.id),
                 title: song.title,
                 author: song.author,
-                image_url: song.image_url ?? null,
-                song_url: song.song_url ?? null,
-                duration:
-                  song.duration !== null && song.duration !== undefined
-                    ? Number(song.duration)
-                    : 0,
-                ...song,
+                image_url: song.image_url,
+                song_url: song.song_url,
+                duration: Number(song.duration || 0),
               };
 
               return (
                 <tr
                   key={song.id}
                   onClick={() => {
-                    // danh sách toàn bộ ID trong playlist (số)
                     const ids = songs
                       .map((item) => item.songs?.id)
-                      .filter((x) => x !== undefined && x !== null)
+                      .filter(Boolean)
                       .map((x) => Number(x));
 
-                    player.setIds(ids); // set queue
-                    player.setId(Number(song.id)); // set bài đang phát
-                    player.setSongData(normalized); // gửi toàn bộ dữ liệu chuẩn hoá
-
-                    console.log("▶ PLAY SONG:", normalized);
+                    player.setIds(ids);
+                    player.setId(Number(song.id));
+                    player.setSongData(normalized);
                   }}
                   className="hover:bg-white/10 transition cursor-pointer"
                 >
                   <td className="p-2">{index + 1}</td>
 
-                  {/* Title + Image */}
                   <td className="p-2 flex items-center gap-3">
                     <div className="relative w-10 h-10">
                       <Image
@@ -293,16 +330,11 @@ export default function PlaylistPage() {
 
                   <td className="p-2 pr-4 flex items-center justify-end gap-4">
                     <span className="text-gray-300 min-w-[50px] text-right">
-                      {formatDuration(
-                        song.duration !== null && song.duration !== undefined
-                          ? Number(song.duration)
-                          : 0
-                      )}
+                      {formatDuration(song.duration)}
                     </span>
 
                     <button
                       onClick={(e) => {
-                        // ngăn row onClick (play) khi nhấn delete
                         e.stopPropagation();
                         setConfirmDelete({ show: true, songId: song.id });
                       }}
@@ -324,20 +356,20 @@ export default function PlaylistPage() {
           playlistId={playlist.id}
           onClose={() => setShowAddSongModal(false)}
           onAdded={() => {
-            loadData();
             setShowAddSongModal(false);
+            // không reload, realtime tự cập nhật
           }}
         />
       )}
 
-      {/* EDIT MODAL */}
+      {/* EDIT PLAYLIST MODAL */}
       {showEditModal && (
         <EditPlaylistModal
           playlist={playlist}
           onClose={() => setShowEditModal(false)}
           onUpdated={() => {
-            loadData();
             setShowEditModal(false);
+            // realtime cập nhật playlist info
           }}
           onDeleted={() => router.push("/")}
         />
@@ -351,11 +383,7 @@ export default function PlaylistPage() {
               Xoá bài hát?
             </h2>
 
-            <p className="text-gray-300 mb-6">
-              Bạn chắc chắn muốn xoá bài hát này khỏi playlist?
-            </p>
-
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={() =>
                   setConfirmDelete({ show: false, songId: null })
@@ -366,10 +394,7 @@ export default function PlaylistPage() {
               </button>
 
               <button
-                onClick={async () => {
-                  await handleRemoveSong(confirmDelete.songId);
-                  setConfirmDelete({ show: false, songId: null });
-                }}
+                onClick={() => handleRemoveSong(confirmDelete.songId)}
                 className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold transition"
               >
                 Xoá

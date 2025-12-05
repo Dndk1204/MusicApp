@@ -22,6 +22,11 @@ const Player = () => {
      Reset player khi SIGNED_OUT
   ------------------------------------------------------ */
   useEffect(() => {
+    // Reset player every time page reloads
+    player.setId(null);
+    player.setIds([]);
+    setSong(null);
+
     setIsMounted(true);
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {

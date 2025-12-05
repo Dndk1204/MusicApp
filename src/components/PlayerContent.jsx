@@ -120,6 +120,8 @@ const PlayerContent = ({ song, songUrl }) => {
         setIsLoading(false);
         setError(null);
         newSound.volume(initialVol);
+        try { newSound.play(); } catch {}
+        setIsPlaying(true);
       },
       onloaderror: (id, err) => {
         console.error("Howler Error:", err);
@@ -138,8 +140,23 @@ const PlayerContent = ({ song, songUrl }) => {
 
   const handlePlay = () => {
     if (!sound) return;
-    !isPlaying ? sound.play() : sound.pause();
+    if (!isPlaying) {
+      sound.play();
+    } else {
+      sound.pause();
+    }
   };
+
+  useEffect(() => {
+  const handleBeforeUnload = () => {
+    // đảm bảo stop ngay trước khi trang unload
+    if (sound && typeof sound.pause === "function") {
+      try { sound.pause(); } catch {}
+    }
+  };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [sound]);
 
   const handleVolumeChange = (value) => {
     let v = parseFloat(value);
@@ -185,10 +202,6 @@ const PlayerContent = ({ song, songUrl }) => {
     if (sound) sound.seek(nv);
     isDraggingRef.current = false;
   };
-
-  useEffect(() => {
-    if (sound && !isLoading) sound.play();
-  }, [sound, isLoading]);
 
   const formatTime = (s) => {
     if (!s || isNaN(s)) return "0:00";
