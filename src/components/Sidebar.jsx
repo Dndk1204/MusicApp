@@ -233,9 +233,15 @@ const Sidebar = ({ children }) => {
 
       // 3. Đẩy vào Player
       const ids = songs.map((s) => Number(s.id));
+      // Cập nhật Song Map global nếu cần (để tránh fetch lại)
+      if (typeof window !== 'undefined') {
+           const songMap = {};
+           songs.forEach(s => songMap[s.id] = normalize(s));
+           window.__SONG_MAP__ = { ...window.__SONG_MAP__, ...songMap };
+      }
+
       player.setIds(ids);
       player.setId(ids[0]);
-      player.setSongData(normalize(songs[0]));
 
     } catch (err) {
       console.error("Play playlist failed:", err);
@@ -257,7 +263,7 @@ const Sidebar = ({ children }) => {
         {/* SIDEBAR */}
         <div className="hidden md:flex flex-col w-[240px] h-full pt-[74px] pb-4 ml-4 shrink-0 gap-y-3">
 
-          {/* PHẦN 1: USER LIBRARY & UPLOAD (TỪ SIDEBAR 1) */}
+          {/* PHẦN 1: USER LIBRARY & UPLOAD */}
           <div className="bg-white/60 dark:bg-black/60 backdrop-blur-3xl border border-neutral-200 dark:border-white/5 rounded-2xl p-3 shadow-sm">
              <div className="flex items-center gap-x-2 mb-3 pl-2 text-neutral-700 dark:text-neutral-400">
                 <Music size={20} />
@@ -289,7 +295,7 @@ const Sidebar = ({ children }) => {
              </div>
           </div>
 
-          {/* PHẦN 2: PLAYLISTS (TỪ SIDEBAR 2 - Giao diện đẹp hơn) */}
+          {/* PHẦN 2: PLAYLISTS */}
           <div className="flex flex-col flex-1 min-h-0 bg-white/60 dark:bg-black/60 backdrop-blur-3xl border border-neutral-200 dark:border-white/5 rounded-2xl p-3 shadow-sm overflow-hidden">
 
             {/* Header Library */}

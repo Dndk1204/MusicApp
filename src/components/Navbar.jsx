@@ -155,46 +155,34 @@ const Navbar = () => {
   return (
     <div className="
         w-full h-full 
-        flex items-center justify-between px-4 /* Giảm padding ngang từ 6 -> 4 */
+        flex items-center justify-between px-4
         bg-white/70 dark:bg-black/40 backdrop-blur-xl 
         border-b border-neutral-200 dark:border-white/5
         transition-colors duration-300
         hover:border-emerald-200 hover:shadow-[0_0_5px_rgba(16,185,129,0.2)]
     ">
       
-      {/* LEFT: LOGO - VOID THEME (LIGHT/DARK MODE SUPPORTED) */}
+      {/* LEFT: LOGO */}
       <div className="flex items-center gap-x-6">
         <div 
           className="hidden md:flex items-center gap-x-4 cursor-pointer group" 
           onClick={() => router.push('/')}
         >
-          {/* --- 1. THE PORTAL ICON --- */}
+          {/* THE PORTAL ICON */}
           <div className="relative w-10 h-10 bg-white dark:bg-black flex items-center justify-center overflow-hidden border border-neutral-200 dark:border-neutral-800 group-hover:border-emerald-500/50 transition-colors duration-500">
-              
-              {/* Deep Void Circle */}
               <div className="absolute w-full h-full rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.2)_0%,transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              
-              {/* Spinning Disc */}
               <Disc size={20} className="text-neutral-500 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-white animate-[spin_3s_linear_infinite] relative z-10 transition-colors duration-300" />
-              
-              {/* Glitch Lines (Thích ứng nền trắng/đen) */}
               <div className="absolute inset-0 bg-[linear-gradient(transparent_50%,white_50%)] dark:bg-[linear-gradient(transparent_50%,black_50%)] bg-[size:100%_2px] opacity-0 group-hover:opacity-20 pointer-events-none z-20"></div>
-              
-              {/* Góc vuông nhỏ */}
               <div className="absolute top-0 left-0 w-1 h-1 bg-neutral-900/20 dark:bg-white/50"></div>
               <div className="absolute bottom-0 right-0 w-1 h-1 bg-neutral-900/20 dark:bg-white/50"></div>
           </div>
 
-          {/* --- 2. VOID TYPOGRAPHY --- */}
+          {/* VOID TYPOGRAPHY */}
           <div className="flex flex-col items-start justify-center h-10">
-              
-              {/* Main Text */}
               <div className="relative">
                   <h1 className="text-2xl font-black font-mono text-neutral-900 dark:text-white tracking-[0.35em] leading-none group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300 pl-1">
                       VOID
                   </h1>
-                  
-                  {/* Glitch Shadow - Dùng mix-blend-multiply cho nền sáng để thấy màu */}
                   <h1 className="absolute top-0 left-0 text-2xl font-black font-mono text-red-500 tracking-[0.35em] leading-none opacity-0 group-hover:opacity-70 mix-blend-multiply dark:mix-blend-screen -translate-x-[2px] pointer-events-none select-none" aria-hidden="true">
                       VOID
                   </h1>
@@ -202,8 +190,6 @@ const Navbar = () => {
                       VOID
                   </h1>
               </div>
-
-              {/* Subtext */}
               <div className="flex items-center gap-2 overflow-hidden h-3">
                   <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
                   <span className="text-[9px] font-mono text-neutral-500 tracking-widest uppercase group-hover:text-emerald-600 dark:group-hover:text-emerald-500/70 transition-colors">
@@ -215,10 +201,8 @@ const Navbar = () => {
       </div>
 
       {/* CENTER: SEARCH BAR */}
-      <div className="flex-1 max-w-[500px] mx-4"> {/* Max width nhỏ hơn 600 -> 500 */}
+      <div className="flex-1 max-w-[500px] mx-4"> 
         <div className="relative group w-full">
-            
-            {/* INPUT */}
             <input 
                 type="text"
                 placeholder="Search songs, artists..."
@@ -240,53 +224,63 @@ const Navbar = () => {
                   focus:shadow-[0_0_20px_rgba(16,185,129,0.5)]
                 "
             />
-            
-            {/* CỤM NÚT BÊN PHẢI */}
             <div className="absolute inset-y-0 right-1 flex items-center gap-1">
                 <button 
                     onClick={() => setShowAdvancedSearch(true)}
                     className="p-1.5 rounded-full text-neutral-500 hover:text-emerald-500 hover:bg-neutral-200 dark:hover:bg-white/10 transition"
                     title="Advanced Filter"
                 >
-                    <SlidersHorizontal size={14} /> {/* Icon nhỏ 14 */}
+                    <SlidersHorizontal size={14} /> 
                 </button>
-
                 <div className="w-[1px] h-3 bg-neutral-400 dark:bg-white/10"></div>
-
                 <button 
                     onClick={handleSearchClick}
                     className="p-1.5 rounded-full text-neutral-500 hover:text-emerald-500 hover:bg-neutral-200 dark:hover:bg-white/10 transition"
                     title="Search"
                 >
-                    <Search size={14} /> {/* Icon nhỏ 14 */}
+                    <Search size={14} /> 
                 </button>
             </div>
-
         </div>
       </div>
 
-      {/* RIGHT: PROFILE & MENU */}
+      {/* RIGHT: PROFILE & MENU - FIXED AVATAR */}
       <div className="flex items-center gap-x-4 relative" ref={menuRef}>
           <button 
             onClick={() => setShowMenu(!showMenu)} 
             className="
+              relative
               rounded-full p-[2px] 
-              overflow-hidden h-10 w-10 /* Avatar nhỏ lại 8 (32px) */
+              overflow-hidden h-10 w-10
               flex items-center justify-center 
               bg-neutral-100 dark:bg-black/50 
               shadow-sm
-              border border-emerald-500/30
+              border-2 border-emerald-500/30
               transition-all duration-300
               hover:border-emerald-500
               hover:shadow-[0_0_15px_rgba(16,185,129,0.5)]
-              hover:scale-105
+              group
             "
           >
-            {user && avatarUrl ? (
-               <img src={avatarUrl} alt="Avatar" className="object-cover w-full h-full rounded-full" />
-            ) : (
-               <User className="text-emerald-500 p-1" size={20}/>
-            )}
+            {/* Inner container: Giữ nguyên vị trí, không scale container này */}
+            <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-transparent">
+                {user && avatarUrl ? (
+                   /* Scale trực tiếp ảnh */
+                   <img 
+                     src={avatarUrl} 
+                     alt="Avatar" 
+                     className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110" 
+                   />
+                ) : (
+                   /* Scale trực tiếp icon */
+                   <div className="w-full h-full flex items-center justify-center">
+                       <User 
+                         className="text-emerald-500 transition-transform duration-300 group-hover:scale-110" 
+                         size={18} // Tăng size lên 20 nhìn cho cân đối với khung 40px
+                       />
+                   </div>
+                )}
+            </div>
           </button>
 
           {/* DROPDOWN MENU */}
@@ -300,11 +294,11 @@ const Navbar = () => {
                   </div>
                   
                   <div onClick={() => { router.push('/profile'); setShowMenu(false); }} className="px-4 py-2.5 text-xs text-neutral-700 dark:text-neutral-300 hover:bg-emerald-500/10 dark:hover:bg-white/5 hover:text-emerald-600 dark:hover:text-white cursor-pointer flex items-center gap-x-3 font-mono transition-colors">
-                    <User size={16} /> Hồ sơ của tôi
+                    <User size={16} /> My Profile
                   </div>
 
                   <div onClick={() => { router.push('/account'); setShowMenu(false); }} className="px-4 py-2.5 text-xs text-neutral-700 dark:text-neutral-300 hover:bg-emerald-500/10 dark:hover:bg-white/5 hover:text-emerald-600 dark:hover:text-white cursor-pointer flex items-center gap-x-3 font-mono transition-colors">
-                    <Settings size={16} /> Chỉnh sửa hồ sơ
+                    <Settings size={16} /> Edit Profile
                   </div>
 
                   {isAdmin && (
@@ -316,7 +310,7 @@ const Navbar = () => {
                   <div onClick={toggleTheme} className="px-4 py-2.5 text-xs text-neutral-700 dark:text-neutral-300 hover:bg-emerald-500/10 dark:hover:bg-white/5 hover:text-emerald-600 dark:hover:text-white cursor-pointer flex items-center justify-between font-mono group transition-colors">
                     <div className="flex items-center gap-x-3">
                         {theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
-                        <span>Giao diện: {theme === 'dark' ? 'Tối' : 'Sáng'}</span>
+                        <span>Theme: {theme === 'dark' ? 'Dark' : 'Light'}</span>
                     </div>
                     <div className={`w-8 h-4 rounded-full relative transition-colors ${theme === 'dark' ? 'bg-emerald-500' : 'bg-neutral-400'}`}>
                         <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${theme === 'dark' ? 'left-4.5' : 'left-0.5'}`} style={{ left: theme === 'dark' ? '18px' : '2px' }}></div>
@@ -326,16 +320,16 @@ const Navbar = () => {
                   <div className="border-t border-neutral-200 dark:border-white/5 my-1 mx-4"></div>
 
                   <div onClick={handleLogout} className="px-4 py-2.5 text-xs text-red-500 hover:bg-red-500/10 cursor-pointer flex items-center gap-x-3 font-mono transition-colors">
-                    <LogOut size={16} /> Đăng xuất
+                    <LogOut size={16} /> Sign Out
                   </div>
                 </>
               ) : (
                 <>
                    <div onClick={() => openModal('login')} className="px-4 py-2.5 text-xs text-neutral-800 dark:text-white hover:bg-emerald-500/10 dark:hover:bg-white/5 cursor-pointer flex items-center gap-x-3 font-mono transition-colors">
-                    <LogIn size={16} /> Đăng nhập
+                    <LogIn size={16} /> Sign In
                   </div>
                    <div onClick={() => openModal('register')} className="px-4 py-2.5 text-xs text-neutral-800 dark:text-white hover:bg-emerald-500/10 dark:hover:bg-white/5 cursor-pointer flex items-center gap-x-3 font-mono transition-colors">
-                    <UserPlus size={16} /> Đăng ký
+                    <UserPlus size={16} /> Sign Up
                   </div>
                 </>
               )}

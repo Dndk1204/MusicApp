@@ -11,7 +11,7 @@ const GlobalPopup = () => {
     switch (popup.type) {
       case 'error':
         return { 
-            icon: <AlertTriangle size={24} />, // Giảm 32 -> 24
+            icon: <AlertTriangle size={24} />, 
             color: 'text-red-600 dark:text-red-500', 
             border: 'border-red-200 dark:border-red-500/50', 
             bgIcon: 'bg-red-100 dark:bg-red-500/10',
@@ -60,15 +60,14 @@ const GlobalPopup = () => {
             className="absolute inset-0 bg-black/60 dark:bg-neutral-900/80 backdrop-blur-sm"
           />
 
-          {/* Popup Content Compact */}
+          {/* Popup Content Compact - SQUARE CORNERS */}
           <motion.div
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            /* Giảm max-w-md -> max-w-sm, p-6 -> p-4 */
             className={`
-                relative w-full max-w-sm p-5 rounded-xl shadow-2xl
-                bg-white border
+                relative w-full max-w-sm p-5 shadow-2xl
+                bg-white border rounded-none /* Vuông góc */
                 dark:bg-neutral-900/95 
                 ${styles.border}
                 backdrop-blur-xl overflow-hidden
@@ -78,35 +77,35 @@ const GlobalPopup = () => {
              <div className={`absolute top-0 left-0 w-full h-1 ${styles.bgDecor} animate-pulse`}></div>
 
              <div className="flex gap-3">
-                {/* Icon Circle: Compact */}
-                <div className={`p-2 rounded-full h-fit ${styles.bgIcon} ${styles.color}`}>
+                {/* Icon Box: Square */}
+                <div className={`p-2 h-fit rounded-none ${styles.bgIcon} ${styles.color}`}>
                     {styles.icon}
                 </div>
 
                 <div className="flex-1">
-                    {/* Title: Text base */}
+                    {/* Title */}
                     <h3 className={`text-base font-bold font-mono tracking-wide mb-1 ${styles.color}`}>
                         {popup.title || "SYSTEM_MESSAGE"}
                     </h3>
                     
-                    {/* Message: Text xs */}
+                    {/* Message */}
                     <p className="text-xs text-neutral-600 dark:text-neutral-300 font-mono leading-relaxed mb-4">
                         {popup.message}
                     </p>
 
-                    {/* Actions Buttons: Compact */}
+                    {/* Actions Buttons: Square */}
                     <div className="flex justify-end gap-2">
                         {popup.type === 'confirm' ? (
                             <>
                                 <button 
                                     onClick={closePopup}
-                                    className="px-3 py-1.5 rounded-md border border-neutral-300 dark:border-neutral-600 text-neutral-600 dark:text-neutral-400 font-mono text-[10px] hover:bg-neutral-100 dark:hover:bg-white/10 transition"
+                                    className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-600 text-neutral-600 dark:text-neutral-400 font-mono text-[10px] hover:bg-neutral-100 dark:hover:bg-white/10 transition rounded-none"
                                 >
                                     CANCEL
                                 </button>
                                 <button 
                                     onClick={confirmAction}
-                                    className="px-4 py-1.5 rounded-md bg-yellow-500 text-black font-bold font-mono text-[10px] hover:bg-yellow-400 transition shadow-lg hover:shadow-yellow-500/20"
+                                    className="px-4 py-1.5 bg-yellow-500 text-black font-bold font-mono text-[10px] hover:bg-yellow-400 transition shadow-lg hover:shadow-yellow-500/20 rounded-none"
                                 >
                                     CONFIRM
                                 </button>
@@ -114,7 +113,7 @@ const GlobalPopup = () => {
                         ) : (
                             <button 
                                 onClick={closePopup}
-                                className={`px-4 py-1.5 rounded-md font-bold font-mono text-[10px] text-white dark:text-black transition shadow-lg ${
+                                className={`px-4 py-1.5 font-bold font-mono text-[10px] text-white dark:text-black transition shadow-lg rounded-none ${
                                     popup.type === 'error' ? 'bg-red-600 dark:bg-red-500 hover:bg-red-500 dark:hover:bg-red-400' : 
                                     popup.type === 'success' ? 'bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-500 dark:hover:bg-emerald-400' :
                                     'bg-blue-600 dark:bg-blue-500 hover:bg-blue-500 dark:hover:bg-blue-400'

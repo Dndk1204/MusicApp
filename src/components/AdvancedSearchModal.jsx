@@ -2,18 +2,22 @@
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom"; 
-import { X, Search, Sliders } from "lucide-react";
+import { X, Search, Sliders, RotateCcw, Tag, User, Type, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import qs from "query-string";
+// Import Cyber Components
+import { GlitchText, GlitchButton } from "@/components/CyberComponents";
 
 const AdvancedSearchModal = ({ onClose, currentSearch }) => {
   const router = useRouter();
+  
+  // State
   const [title, setTitle] = useState(currentSearch || "");
   const [artist, setArtist] = useState("");
   const [tag, setTag] = useState("");
-  
   const [mounted, setMounted] = useState(false);
 
+  // Mount & Lock Scroll
   useEffect(() => {
     setMounted(true);
     document.body.style.overflow = 'hidden';
@@ -22,123 +26,210 @@ const AdvancedSearchModal = ({ onClose, currentSearch }) => {
     };
   }, []);
 
+  // Handlers
   const handleSearch = () => {
     const query = {};
-    if (title) query.title = title;
+    if (title.trim()) query.title = title.trim();
     if (tag) query.tag = tag;
     
-    if (artist && !title) {
-        query.title = artist;
-    } else if (artist && title) {
-        query.title = `${title} ${artist}`;
+    if (artist.trim() && !title.trim()) {
+        query.title = artist.trim();
+    } else if (artist.trim() && title.trim()) {
+        query.title = `${title.trim()} ${artist.trim()}`;
     }
 
     const url = qs.stringifyUrl({ 
         url: '/search', 
         query: query 
-    }, { skipEmptyString: true });
+    }, { skipEmptyString: true, skipNull: true });
 
     router.push(url);
     onClose();
   };
 
+  const handleReset = () => {
+    setTitle("");
+    setArtist("");
+    setTag("");
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+        handleSearch();
+    }
+  };
+
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[99999] flex items-start justify-center pt-24 p-4">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
       
       {/* BACKDROP */}
       <div 
-        className="absolute inset-0 bg-gradient-to-b from-neutral-900/95 via-neutral-900/80 to-neutral-900/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm animate-in fade-in duration-300"
         onClick={onClose}
       />
 
-      {/* MODAL CONTENT COMPACT */}
+      {/* MODAL CONTAINER */}
       <div 
         className="
           relative z-10 
-          w-full max-w-sm
-          bg-white dark:bg-neutral-900 
-          border border-neutral-200 dark:border-white/10 
-          rounded-xl shadow-2xl 
+          w-full max-w-md
+          /* Light Mode Colors */
+          bg-white border-neutral-300 shadow-2xl
+          /* Dark Mode Colors */
+          dark:bg-neutral-900 dark:border-emerald-500/30 dark:shadow-[0_0_50px_rgba(16,185,129,0.15)]
+          
+          border rounded-none md:rounded-xl
           flex flex-col 
-          max-h-[80vh]
-          animate-in slide-in-from-top-10 duration-300
           overflow-hidden
+          animate-in zoom-in-95 duration-300
         "
         onClick={(e) => e.stopPropagation()} 
       >
-          
+          {/* Decoration Corners (Chỉ hiện ở Dark Mode hoặc giữ màu xanh ở cả 2 mode) */}
+          <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-emerald-500 pointer-events-none z-30"></div>
+          <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-emerald-500 pointer-events-none z-30"></div>
+          <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-emerald-500 pointer-events-none z-30"></div>
+          <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-emerald-500 pointer-events-none z-30"></div>
+
           {/* HEADER */}
-          {/* Giảm padding p-6 -> p-4 */}
-          <div className="flex items-center justify-between p-4 border-b border-neutral-200 dark:border-white/5 bg-white/50 dark:bg-neutral-900/50 shrink-0">
-             <div className="flex items-center gap-2 text-emerald-500">
-                 <Sliders size={18}/> {/* Giảm icon 24 -> 18 */}
-                 <h2 className="text-base font-bold font-mono tracking-tighter">ADVANCED SEARCH</h2> {/* text-xl -> text-base */}
-             </div>
-             
-             <button 
-                 onClick={onClose} 
-                 className="text-neutral-400 hover:text-red-500 transition hover:rotate-90 duration-300 p-1.5 rounded-full hover:bg-neutral-100 dark:hover:bg-white/5"
-             >
-                 <X size={18} />
-             </button>
+          <div className="flex items-center justify-between p-5 border-b border-neutral-200 dark:border-white/10 bg-neutral-50 dark:bg-white/5 relative">
+              {/* Decor Line */}
+              <div className="absolute top-0 left-0 h-0.5 w-full bg-gradient-to-r from-transparent via-emerald-500 to-transparent"></div>
+              
+              <div className="flex items-center gap-3">
+                  <Sliders size={20} className="text-emerald-600 dark:text-emerald-500 animate-pulse"/>
+                  <h2 className="text-lg font-bold font-mono tracking-widest text-neutral-900 dark:text-white uppercase">
+                      <GlitchText text="ADVANCED_FILTER" />
+                  </h2>
+              </div>
+              
+              <button 
+                  onClick={onClose} 
+                  className="text-neutral-500 hover:text-red-500 transition hover:rotate-90 duration-300"
+              >
+                  <X size={20} />
+              </button>
           </div>
 
           {/* BODY */}
-          {/* Giảm padding p-6 -> p-4, space-y-5 -> space-y-3 */}
-          <div className="p-4 overflow-y-auto custom-scrollbar space-y-3 font-mono text-xs">
-             
-             <div className="flex flex-col gap-1.5">
-                 <label className="text-neutral-500 dark:text-neutral-400 text-[10px] uppercase tracking-widest font-bold">Song Title</label>
-                 <input 
-                     value={title} 
-                     onChange={(e) => setTitle(e.target.value)} 
-                     placeholder="e.g. Shape of You"
-                     autoFocus
-                     /* Giảm padding p-3 -> p-2.5 */
-                     className="p-2.5 rounded-md bg-neutral-100 dark:bg-black/40 border border-neutral-200 dark:border-white/10 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-neutral-900 dark:text-white transition"
-                 />
-             </div>
+          <div className="p-6 bg-white dark:bg-black/40 space-y-5">
+              
+              {/* Input: Song Title */}
+              <div className="space-y-1.5 group">
+                  <label className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-mono text-emerald-700 dark:text-emerald-600 font-bold group-focus-within:text-emerald-500 transition-colors">
+                      <Type size={12}/> Target_Keyword / Title
+                  </label>
+                  <input 
+                      value={title} 
+                      onChange={(e) => setTitle(e.target.value)} 
+                      onKeyDown={handleKeyDown}
+                      placeholder="ENTER_TRACK_NAME..."
+                      autoFocus
+                      className="
+                        w-full p-3 rounded text-sm font-mono transition-all shadow-inner outline-none
+                        /* Light Mode */
+                        bg-neutral-100 border border-neutral-300 text-neutral-900 placeholder-neutral-500
+                        focus:border-emerald-500 focus:bg-white
+                        /* Dark Mode */
+                        dark:bg-black/50 dark:border-white/10 dark:text-white dark:placeholder-neutral-600
+                        dark:focus:border-emerald-500 dark:focus:bg-emerald-500/5
+                      "
+                  />
+              </div>
 
-             <div className="flex flex-col gap-1.5">
-                 <label className="text-neutral-500 dark:text-neutral-400 text-[10px] uppercase tracking-widest font-bold">Artist Name</label>
-                 <input 
-                     value={artist} 
-                     onChange={(e) => setArtist(e.target.value)} 
-                     placeholder="e.g. Ed Sheeran"
-                     className="p-2.5 rounded-md bg-neutral-100 dark:bg-black/40 border border-neutral-200 dark:border-white/10 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-neutral-900 dark:text-white transition"
-                 />
-             </div>
+              {/* Input: Artist */}
+              <div className="space-y-1.5 group">
+                  <label className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-mono text-neutral-600 dark:text-neutral-500 font-bold group-focus-within:text-neutral-900 dark:group-focus-within:text-white transition-colors">
+                      <User size={12}/> Artist_Identity
+                  </label>
+                  <input 
+                      value={artist} 
+                      onChange={(e) => setArtist(e.target.value)} 
+                      onKeyDown={handleKeyDown}
+                      placeholder="ENTER_ARTIST_NAME..."
+                      className="
+                        w-full p-3 rounded text-sm font-mono transition-all shadow-inner outline-none
+                        /* Light Mode */
+                        bg-neutral-100 border border-neutral-300 text-neutral-900 placeholder-neutral-500
+                        focus:border-emerald-500 focus:bg-white
+                        /* Dark Mode */
+                        dark:bg-black/50 dark:border-white/10 dark:text-white dark:placeholder-neutral-600
+                        dark:focus:border-emerald-500 dark:focus:bg-emerald-500/5
+                      "
+                  />
+              </div>
 
-             <div className="flex flex-col gap-1.5">
-                 <label className="text-neutral-500 dark:text-neutral-400 text-[10px] uppercase tracking-widest font-bold">Genre / Tag</label>
-                 <select 
-                     value={tag} 
-                     onChange={(e) => setTag(e.target.value)} 
-                     className="p-2.5 rounded-md bg-neutral-100 dark:bg-black/40 border border-neutral-200 dark:border-white/10 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-neutral-900 dark:text-white transition cursor-pointer appearance-none"
-                 >
-                     <option value="">All Genres</option>
-                     <option value="pop">Pop</option>
-                     <option value="rock">Rock</option>
-                     <option value="electronic">Electronic</option>
-                     <option value="hiphop">HipHop</option>
-                     <option value="jazz">Jazz</option>
-                     <option value="indie">Indie</option>
-                     <option value="classical">Classical</option>
-                     <option value="soundtrack">Soundtrack</option>
-                 </select>
-             </div>
+              {/* Select: Genre */}
+              <div className="space-y-1.5 group">
+                  <label className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-mono text-neutral-600 dark:text-neutral-500 font-bold group-focus-within:text-neutral-900 dark:group-focus-within:text-white transition-colors">
+                      <Tag size={12}/> Genre_Classification
+                  </label>
+                  <div className="relative">
+                      <select 
+                          value={tag} 
+                          onChange={(e) => setTag(e.target.value)} 
+                          onKeyDown={handleKeyDown}
+                          className="
+                            w-full p-3 rounded text-sm font-mono transition-all shadow-inner outline-none appearance-none cursor-pointer
+                            /* Light Mode */
+                            bg-neutral-100 border border-neutral-300 text-neutral-900 
+                            focus:border-emerald-500 focus:bg-white
+                            /* Dark Mode */
+                            dark:bg-black/50 dark:border-white/10 dark:text-white 
+                            dark:focus:border-emerald-500 dark:focus:bg-emerald-500/5
+                          "
+                      >
+                          {/* Options có màu nền riêng để tránh bị trong suốt */}
+                          <option value="" className="bg-white text-neutral-500 dark:bg-neutral-900 dark:text-gray-400">[ALL_GENRES]</option>
+                          <option value="pop" className="bg-white text-black dark:bg-neutral-900 dark:text-white">POP</option>
+                          <option value="rock" className="bg-white text-black dark:bg-neutral-900 dark:text-white">ROCK</option>
+                          <option value="electronic" className="bg-white text-black dark:bg-neutral-900 dark:text-white">ELECTRONIC</option>
+                          <option value="hiphop" className="bg-white text-black dark:bg-neutral-900 dark:text-white">HIPHOP</option>
+                          <option value="jazz" className="bg-white text-black dark:bg-neutral-900 dark:text-white">JAZZ</option>
+                          <option value="indie" className="bg-white text-black dark:bg-neutral-900 dark:text-white">INDIE</option>
+                          <option value="classical" className="bg-white text-black dark:bg-neutral-900 dark:text-white">CLASSICAL</option>
+                          <option value="soundtrack" className="bg-white text-black dark:bg-neutral-900 dark:text-white">SOUNDTRACK</option>
+                      </select>
+                      {/* Custom Arrow */}
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-500">
+                          <Sliders size={12} className="rotate-90"/>
+                      </div>
+                  </div>
+              </div>
 
-             <div className="pt-3 pb-1">
-                 <button 
-                     onClick={handleSearch} 
-                     className="w-full bg-emerald-500 hover:bg-emerald-400 text-white dark:text-black font-bold py-2.5 rounded-md flex items-center justify-center gap-2 transition shadow-lg hover:shadow-emerald-500/20 active:scale-95"
-                 >
-                     <Search size={14} strokeWidth={3}/> 
-                     SEARCH NOW
-                 </button>
-             </div>
+              {/* Footer Actions */}
+              <div className="pt-4 flex gap-3">
+                  
+                  {/* RESET BUTTON -> GLITCH STYLE (RED) */}
+                  <GlitchButton 
+                      onClick={handleReset}
+                      className="flex-1 py-3 text-[10px]"
+                  >
+                      <span className="flex items-center gap-2">
+                         <RotateCcw size={14}/> SYSTEM_RESET
+                      </span>
+                  </GlitchButton>
+
+                  {/* EXECUTE BUTTON -> SOLID GREEN STYLE */}
+                  <button 
+                      onClick={handleSearch} 
+                      className="
+                        flex-[2] py-3 rounded-none md:rounded-sm
+                        bg-emerald-500 hover:bg-emerald-400 
+                        text-white dark:text-black font-bold font-mono text-xs uppercase tracking-widest
+                        flex items-center justify-center gap-2
+                        shadow-[0_0_20px_rgba(16,185,129,0.4)]
+                        hover:shadow-[0_0_30px_rgba(16,185,129,0.6)]
+                        transition-all duration-200 active:scale-95
+                        border border-emerald-600 dark:border-emerald-400
+                      "
+                  >
+                      <Search size={16} strokeWidth={3}/> EXECUTE
+                      <ArrowRight size={16} />
+                  </button>
+              </div>
 
           </div>
       </div>
