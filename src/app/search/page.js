@@ -95,6 +95,12 @@ const SearchPage = async ({ searchParams }) => {
             {params.type === 'user_uploads' && (
                 <div className="flex items-center gap-1 bg-blue-500/10 border border-blue-500 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full">
                     <span><Globe size={12} className="inline mr-1"/> Community Uploads (Public Only)</span>
+                    <Link href={qs.stringifyUrl({ 
+                        url: '/search', 
+                        query: { ...params, type: null }
+                    }, { skipNull: true })}>
+                        <X size={14} className="hover:text-red-500 cursor-pointer ml-1"/>
+                    </Link>
                 </div>
             )}
 

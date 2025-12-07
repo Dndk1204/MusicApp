@@ -47,7 +47,7 @@ const SongItem = ({ data, onClick }) => {
         />
         
         <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-[1px]">
-            <div className="bg-emerald-500 p-3 rounded-full shadow-xl transform scale-75 group-hover:scale-100 transition-transform duration-300">
+            <div className="bg-emerald-500 translate-x-7 translate-y-7 p-2 rounded-full shadow-xl transform scale-75 group-hover:scale-100 transition-transform duration-300">
                 <Play size={24} fill="black" className="text-black ml-1" />
             </div>
         </div>
@@ -55,13 +55,9 @@ const SongItem = ({ data, onClick }) => {
 
       {/* 3. THÔNG TIN */}
       <div className="flex flex-col items-start w-full pt-3 gap-y-1 z-10 relative">
-        <Link 
-            href="/now-playing"
-            onClick={(e) => e.stopPropagation()} 
-            className="font-bold font-mono truncate w-full text-sm text-neutral-800 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-500 transition-colors hover:underline"
-        >
+        <p className="font-bold font-mono truncate w-full text-sm text-neutral-800 dark:text-white transition-colors">
             {data.title}
-        </Link>
+        </p>
 
         <p className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 w-full truncate pb-1 flex items-center gap-1 uppercase tracking-wider">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
