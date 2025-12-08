@@ -75,7 +75,6 @@ const PlayerContent = ({ song, songUrl }) => {
       if (sessionSaved) {
           const s = JSON.parse(sessionSaved);
           setBass(s.bass || 0); setMid(s.mid || 0); setTreble(s.treble || 0);
-          if (s.volume !== undefined) handleVolumeChange(s.volume / 100, false);
           return;
       }
       if (session?.user) {
@@ -86,7 +85,6 @@ const PlayerContent = ({ song, songUrl }) => {
         if (songData?.settings) {
            const s = songData.settings;
            setBass(s.bass || 0); setMid(s.mid || 0); setTreble(s.treble || 0);
-           if (s.volume !== undefined) handleVolumeChange(s.volume / 100, false);
            return;
         }
         const { data: profileData } = await supabase
@@ -103,15 +101,14 @@ const PlayerContent = ({ song, songUrl }) => {
   useEffect(() => {
     if (!userId) return;
     const channel = supabase.channel('realtime-player')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'user_song_settings', filter: `user_id=eq.${userId}` }, 
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'user_song_settings', filter: `user_id=eq.${userId}` },
         (payload) => {
             if (song?.id && String(payload.new.song_id) === String(song.id)) {
                 const s = payload.new.settings;
                 if(s.bass !== undefined) setBass(s.bass);
                 if(s.mid !== undefined) setMid(s.mid);
                 if(s.treble !== undefined) setTreble(s.treble);
-                if(s.volume !== undefined) handleVolumeChange(s.volume / 100, false);
             }
         }
       ).subscribe();

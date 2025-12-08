@@ -85,7 +85,7 @@ const Player = () => {
 
         const CLIENT_ID = "3501caaa";
         const res = await fetch(
-          `https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=json&id=${jamendoId}&audioformat=mp32`
+          `https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=json&id=${jamendoId}&audioformat=mp31`
         );
         const json = await res.json();
 

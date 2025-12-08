@@ -15,7 +15,7 @@ const getSongsByTitle = async (title) => {
 
     // URL tìm kiếm theo tên bài hát (namesearch)
     // namesearch giúp tìm gần đúng tên bài hát
-    const url = `https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=jsonpretty&limit=20&namesearch=${encodeURIComponent(cleanTitle)}&include=musicinfo&audioformat=mp32`;
+    const url = `https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=jsonpretty&limit=20&namesearch=${encodeURIComponent(cleanTitle)}&include=musicinfo&audioformat=mp31`;
     
     const response = await fetch(url);
 
@@ -38,7 +38,7 @@ const getSongsByTitle = async (title) => {
         console.warn(">>> Namesearch trả về 0. Đang thử tìm theo Artist...");
         
         // Đổi sang tìm theo artist_name
-        const artistUrl = `https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=jsonpretty&limit=20&artist_name=${encodeURIComponent(cleanTitle)}&include=musicinfo&audioformat=mp32`;
+        const artistUrl = `https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=jsonpretty&limit=20&artist_name=${encodeURIComponent(cleanTitle)}&include=musicinfo&audioformat=mp31`;
         
         const artistRes = await fetch(artistUrl);
         

@@ -1,7 +1,7 @@
 const getAlbumTracks = async (albumId) => {
   const CLIENT_ID = '3501caaa';
   try {
-    const url = `https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=jsonpretty&album_id=${albumId}&include=musicinfo&audioformat=mp32`;
+    const url = `https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=jsonpretty&album_id=${albumId}&include=musicinfo&audioformat=mp31`;
     const res = await fetch(url);
     const data = await res.json();
     
