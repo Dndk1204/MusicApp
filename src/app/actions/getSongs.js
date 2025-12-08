@@ -13,10 +13,10 @@ const formatDuration = (seconds) => {
 const getSongs = async ({ title, artist, tag, boost, limit = 20 } = {}) => {
   
   const baseParams = {
-    limit: limit, 
+    limit: limit,
     format: "jsonpretty",
     include: "musicinfo+lyrics",
-    audioformat: "mp32",
+    audioformat: "mp31",
   };
 
   if (tag) baseParams.tags = tag;

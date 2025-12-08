@@ -82,7 +82,43 @@ const useAudioFilters = () => {
     };
   };
 
-  return { initAudioNodes, setBass, setMid, setTreble, getSettings };
+  // --- 4. VISUAL BEAT ANALYSIS ---
+  // Tạo AnalyserNode để visualize spectrum
+  const initAnalyzer = useCallback(() => {
+    if (!Howler.ctx || !Howler.masterGain || Howler._analyzer) return;
+
+    try {
+      const ctx = Howler.ctx;
+      const analyzer = ctx.createAnalyser();
+      analyzer.fftSize = 2048; // Độ phân giải spectrum, phổ biến: 256/512/1024/2048/4096
+      analyzer.smoothingTimeConstant = 0.8; // Mượt hơn
+
+      // Kết nối: ... -> Treble -> Analyzer -> Output
+      // Đảm bảo Analyzer nằm sau EQ nodes
+      if (Howler._eqNodes?.treble) {
+        Howler._eqNodes.treble.disconnect();
+        Howler._eqNodes.treble.connect(analyzer);
+        analyzer.connect(ctx.destination);
+      }
+
+      // Lưu trữ
+      Howler._analyzer = analyzer;
+      console.log("🎵 Spectrum Analyzer Connected!");
+    } catch (err) {
+      console.error("❌ Init Analyzer Failed:", err);
+    }
+  }, []);
+
+  // Lấy spectrum data
+  const getFrequencyData = () => {
+    if (!Howler._analyzer) return null;
+    const bufferLength = Howler._analyzer.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    Howler._analyzer.getByteFrequencyData(dataArray);
+    return dataArray;
+  };
+
+  return { initAudioNodes, setBass, setMid, setTreble, getSettings, initAnalyzer, getFrequencyData };
 };
 
 export default useAudioFilters;

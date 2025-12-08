@@ -14,7 +14,7 @@ export async function GET(req) {
 
     const CLIENT_ID = "3501caaa"; // thay bằng client thật
 
-    const apiUrl = `https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=jsonpretty&id=${id}&include=musicinfo+lyrics&audioformat=mp32`;
+    const apiUrl = `https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=jsonpretty&id=${id}&include=musicinfo+lyrics&audioformat=mp31`;
 
     const res = await fetch(apiUrl);
 

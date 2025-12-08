@@ -10,7 +10,7 @@ const getSongsByTag = async (tag) => {
     // --- CẤU TRÚC URL TÌM THEO TAG ---
     // tags: Tìm chính xác từ khóa trong danh sách tag của bài hát
     // boost=popularity_month: Ưu tiên bài hot trong tháng
-    const url = `https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=jsonpretty&limit=20&tags=${encodeURIComponent(tag)}&include=musicinfo&audioformat=mp32&boost=popularity_month`;
+    const url = `https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=jsonpretty&limit=20&tags=${encodeURIComponent(tag)}&include=musicinfo&audioformat=mp31&boost=popularity_month`;
     
     const response = await fetch(url);
 
