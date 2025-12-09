@@ -242,11 +242,11 @@ const UploadModal = () => {
                         <span className="text-[10px] font-mono text-center truncate w-full px-2 text-neutral-400 group-hover:text-white">
                             {songFile ? songFile.name : "SELECT_AUDIO_FILE"}
                         </span>
-                        <input 
-                            type="file" 
-                            accept=".mp3,audio/*" 
-                            disabled={isLoading} 
-                            onChange={(e) => setSongFile(e.target.files[0])}
+                        <input
+                            type="file"
+                            accept=".mp3,audio/*"
+                            disabled={isLoading}
+                            onChange={handleSongFileChange}
                             className="absolute inset-0 opacity-0 cursor-pointer"
                             required
                         />
