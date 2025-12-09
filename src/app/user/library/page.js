@@ -8,6 +8,24 @@ import Link from "next/link";
 import useUploadModal from "@/hooks/useUploadModal";
 import { GlitchText, HoloButton, GlitchButton } from "@/components/CyberComponents";
 
+// Function to extract audio duration
+const extractAudioDuration = (file) => {
+  return new Promise((resolve) => {
+    const audio = new Audio();
+    audio.preload = 'metadata';
+
+    audio.onloadedmetadata = () => {
+      resolve(audio.duration);
+    };
+
+    audio.onerror = () => {
+      resolve(0); // Return 0 if can't extract duration
+    };
+
+    audio.src = URL.createObjectURL(file);
+  });
+};
+
 // --- SKELETON COMPONENT (Loading effect) ---
 const ContentSkeleton = () => {
   return (
@@ -55,6 +73,7 @@ const MyUploadsPage = () => {
   const [editForm, setEditForm] = useState({ title: '', author: '', isPublic: false });
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [newDuration, setNewDuration] = useState(0);
 
   // UI State
   const [activeTab, setActiveTab] = useState('uploads');
@@ -151,6 +170,24 @@ const MyUploadsPage = () => {
     setLoadingTuned(false);
   };
 
+  // Handle selected file change for editing
+  const handleSelectedFileChange = async (e) => {
+    const file = e.target.files[0];
+    setSelectedFile(file);
+
+    if (file) {
+      try {
+        const duration = await extractAudioDuration(file);
+        setNewDuration(Math.floor(duration));
+      } catch (error) {
+        console.error("Error extracting duration:", error);
+        setNewDuration(0);
+      }
+    } else {
+      setNewDuration(0);
+    }
+  };
+
   const handleDeleteSong = async (songId) => {
     const isConfirmed = await confirm(
       "WARNING: This action will permanently delete the song from the database.",
@@ -209,6 +246,11 @@ const MyUploadsPage = () => {
         author: editForm.author?.trim() || 'Unknown',
         is_public: Boolean(editForm.isPublic)
       };
+
+      // Handle duration if audio file is replaced
+      if (selectedFile && newDuration > 0) {
+        updateData.duration = newDuration;
+      }
 
       // Handle Uploads
       if (selectedFile || selectedImage) {
@@ -393,7 +435,7 @@ const MyUploadsPage = () => {
                 <span className="text-[10px] font-mono text-neutral-500 truncate">
                     {selectedFile ? selectedFile.name : "REPLACE_AUDIO_FILE..."}
                 </span>
-                <input type="file" accept="audio/*" className="hidden" onChange={(e) => setSelectedFile(e.target.files[0])} />
+                <input type="file" accept="audio/*" className="hidden" onChange={handleSelectedFileChange} />
              </label>
 
              {/* Action Buttons */}

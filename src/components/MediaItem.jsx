@@ -2,7 +2,15 @@
 
 import Image from "next/image";
 import useLoadImage from "@/hooks/useLoadImage";
-import Link from "next/link"; 
+import Link from "next/link";
+
+const formatDuration = (sec) => {
+  if (!sec || sec === "--:--") return "";
+  if (typeof sec === 'string') return sec; // Already formatted from Jamendo
+  const s = Math.floor(Number(sec) % 60);
+  const m = Math.floor(Number(sec) / 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+};
 
 const MediaItem = ({ data, onClick }) => {
   const imageUrl = useLoadImage(data);
@@ -43,16 +51,21 @@ const MediaItem = ({ data, onClick }) => {
         </Link>
         
         {/* 3. TÊN NGHỆ SĨ: text-xs */}
-        <Link 
+        <Link
             href={`/artist/${encodeURIComponent(data.author)}`}
             className="
                 text-xs truncate cursor-pointer hover:underline transition font-mono
-                text-neutral-500 hover:text-neutral-900 
+                text-neutral-500 hover:text-neutral-900
                 dark:text-neutral-400 dark:hover:text-white
             "
         >
             {data.author}
         </Link>
+        {formatDuration(data.duration) && (
+          <span className="text-[10px] text-neutral-400 dark:text-neutral-600 font-mono truncate uppercase">
+            {formatDuration(data.duration)}
+          </span>
+        )}
       </div>
     </div>
   );

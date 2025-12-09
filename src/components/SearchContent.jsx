@@ -3,7 +3,15 @@
 import { Play } from "lucide-react";
 import usePlayer from "@/hooks/usePlayer";
 import { useEffect } from "react";
-import Link from "next/link"; 
+import Link from "next/link";
+
+const formatDuration = (sec) => {
+  if (!sec || sec === "--:--") return "";
+  if (typeof sec === 'string') return sec; // Already formatted from Jamendo
+  const s = Math.floor(Number(sec) % 60);
+  const m = Math.floor(Number(sec) / 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+};
 
 const SearchContent = ({ songs }) => {
   const player = usePlayer();
@@ -62,17 +70,22 @@ const SearchContent = ({ songs }) => {
                 {song.title}
               </h3>
               
-              <div className="text-xs text-neutral-500 dark:text-neutral-400 font-mono truncate uppercase tracking-wider flex items-center gap-2">
-                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                 
-                 {/* LINK NGHỆ SĨ */}
-                 <Link 
-                   href={`/artist/${encodeURIComponent(song.author)}`}
-                   onClick={(e) => e.stopPropagation()} // Chặn sự kiện click để không phát nhạc khi bấm vào tên ca sĩ
-                   className="hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline transition-colors"
-                 >
-                    {song.author}
-                 </Link>
+              <div className="text-xs text-neutral-500 dark:text-neutral-400 font-mono uppercase tracking-wider flex items-center justify-between w-full">
+                 <div className="flex items-center gap-2 truncate">
+                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+
+                   {/* LINK NGHỆ SĨ */}
+                   <Link
+                     href={`/artist/${encodeURIComponent(song.author)}`}
+                     onClick={(e) => e.stopPropagation()} // Chặn sự kiện click để không phát nhạc khi bấm vào tên ca sĩ
+                     className="hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline transition-colors truncate"
+                   >
+                      {song.author}
+                   </Link>
+                 </div>
+                 {formatDuration(song.duration) && (
+                   <span className="shrink-0">{formatDuration(song.duration)}</span>
+                 )}
 
               </div>
            </div>

@@ -1,4 +1,3 @@
-import { Space_Mono } from "next/font/google"; // Import font mới
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import AuthModal from "@/components/AuthModal";
@@ -8,12 +7,6 @@ import SupabaseProvider from "@/providers/SupabaseProvider";
 import { ModalProvider } from "@/context/ModalContext";
 import GlobalPopup from "@/components/GlobalPopup";
 import AuthWrapper from "@/components/AuthWrapper";
-
-// Cấu hình font Monospace
-const font = Space_Mono({ 
-  weight: ['400', '700'],
-  subsets: ["latin"] 
-});
 
 export const metadata = {
   title: "V O I D - Music App",
@@ -49,7 +42,7 @@ export default function RootLayout({ children }) {
           }}
         />
       </head>
-      <body className={font.className}>
+      <body>
         <SupabaseProvider>
           <ModalProvider>
             <AuthWrapper>

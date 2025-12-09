@@ -4,7 +4,15 @@ import Image from "next/image";
 import useLoadImage from "@/hooks/useLoadImage";
 import { Play } from "lucide-react";
 import Link from "next/link";
-import { ScanlineOverlay } from "./CyberComponents"; 
+import { ScanlineOverlay } from "./CyberComponents";
+
+const formatDuration = (sec) => {
+  if (!sec || sec === "--:--") return "";
+  if (typeof sec === 'string') return sec; // Already formatted from Jamendo
+  const s = Math.floor(Number(sec) % 60);
+  const m = Math.floor(Number(sec) / 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+};
 
 const SongItem = ({ data, onClick }) => {
   const imagePath = useLoadImage(data);
@@ -59,16 +67,21 @@ const SongItem = ({ data, onClick }) => {
             {data.title}
         </p>
 
-        <p className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 w-full truncate pb-1 flex items-center gap-1 uppercase tracking-wider">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
-          <Link 
-            href={`/artist/${encodeURIComponent(data.author)}`}
-            onClick={(e) => e.stopPropagation()} 
-            className="hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline transition-colors"
-          >
-            {data.author}
-          </Link>
-        </p>
+        <div className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 w-full pb-1 flex items-center justify-between uppercase tracking-wider">
+          <div className="flex items-center gap-1 truncate">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+            <Link
+              href={`/artist/${encodeURIComponent(data.author)}`}
+              onClick={(e) => e.stopPropagation()}
+              className="hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline transition-colors truncate"
+            >
+              {data.author}
+            </Link>
+          </div>
+          {formatDuration(data.duration) && (
+            <span className="shrink-0">{formatDuration(data.duration)}</span>
+          )}
+        </div>
       </div>
     </div>
   );
