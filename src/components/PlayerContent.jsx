@@ -26,9 +26,7 @@ const PlayerContent = ({ song, songUrl }) => {
   const router = useRouter();
   const pathname = usePathname();
 
-  // 1. Kích hoạt Audio Filter Global
   const { initAudioNodes, setBass, setMid, setTreble } = useAudioFilters();
-
   useTrackStats(song);
 
   // --- LOCAL STATE ---
@@ -49,7 +47,6 @@ const PlayerContent = ({ song, songUrl }) => {
 
   const clampVolume = (val) => Math.max(0, Math.min(1, val));
 
-  // --- 0. LẤY USER ID ---
   useEffect(() => {
     const getUser = async () => {
       const { data } = await supabase.auth.getSession();
@@ -58,7 +55,6 @@ const PlayerContent = ({ song, songUrl }) => {
     getUser();
   }, []);
 
-  // --- 1. VOLUME ---
   useEffect(() => {
     if (player.volume !== undefined && Math.abs(player.volume - volume) > 0.01) {
         setVolume(player.volume);
@@ -66,7 +62,6 @@ const PlayerContent = ({ song, songUrl }) => {
     }
   }, [player.volume]);
 
-  // --- 2. LOAD SETTINGS ---
   const loadSongSettings = useCallback(async (songId) => {
     if (!songId) return;
     try {
@@ -97,7 +92,6 @@ const PlayerContent = ({ song, songUrl }) => {
     } catch (err) { console.error("Load Settings:", err); }
   }, [setBass, setMid, setTreble]);
 
-  // --- 3. REALTIME ---
   useEffect(() => {
     if (!userId) return;
     const channel = supabase.channel('realtime-player')
@@ -115,7 +109,6 @@ const PlayerContent = ({ song, songUrl }) => {
     return () => { supabase.removeChannel(channel); };
   }, [userId, song?.id]);
 
-  // --- 4. PLAYBACK ---
   const onPlayNext = useCallback(() => {
     const { ids, activeId, isShuffle, setId, repeatMode } = playerRef.current;
     if (ids.length === 0) return;
@@ -142,7 +135,6 @@ const PlayerContent = ({ song, songUrl }) => {
     else if (sound) { sound.seek(0); setSeek(0); }
   }, [sound]);
 
-  // --- 5. HOWLER ---
   useEffect(() => {
     if (sound) sound.unload();
     setIsLoading(true); setSeek(0); setError(null);
@@ -152,7 +144,7 @@ const PlayerContent = ({ song, songUrl }) => {
 
     const newSound = new Howl({
       src: [songUrl], format: ["mp3", "mpeg"], volume: initialVol,
-      html5: false, // FALSE for EQ
+      html5: false, 
       preload: "metadata", autoplay: true,
       loop: playerRef.current.repeatMode === 2, 
       onplay: () => {
@@ -176,7 +168,6 @@ const PlayerContent = ({ song, songUrl }) => {
 
     setSound(newSound);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); newSound.unload(); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [songUrl]); 
 
   useEffect(() => { if (sound) sound.loop(player.repeatMode === 2); }, [player.repeatMode, sound]);
@@ -198,7 +189,6 @@ const PlayerContent = ({ song, songUrl }) => {
   const Icon = isPlaying ? Pause : Play;
   const VolumeIcon = volume === 0 ? VolumeX : Volume2;
 
-  // --- HÀM TOGGLE ĐƯỢC THÊM TẠI ĐÂY ---
   const toggleNowPlaying = () => {
     if (pathname === '/now-playing') {
       router.back();
@@ -207,7 +197,6 @@ const PlayerContent = ({ song, songUrl }) => {
     }
   };
 
-  // Nút Save Tuned Song
   const onSaveTunedSong = async () => {
     if (!userId || !song) return;
     try {
@@ -246,11 +235,11 @@ const PlayerContent = ({ song, songUrl }) => {
   };
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 h-full gap-x-6 items-center">
-      {error && <div className="absolute -top-12 bg-red-500 text-white text-xs py-1 px-3 rounded z-50">Error</div>}
+    <div className="grid grid-cols-2 md:grid-cols-3 h-full gap-x-6 items-center bg-white dark:bg-black border-t border-neutral-300 dark:border-white/10 px-4">
+      {error && <div className="absolute -top-12 bg-red-500 text-white text-xs py-1 px-3 rounded-none z-50 font-mono">Error</div>}
       
       {/* LEFT: Media Info + Actions */}
-      <div className="flex w-[20em] justify-start items-center gap-3 mb-2.5">
+      <div className="flex w-full md:w-[20em] justify-start items-center gap-2 -translate-y-2">
         <MediaItem data={song} />
         <LikeButton songId={song?.id} />
         
@@ -258,10 +247,10 @@ const PlayerContent = ({ song, songUrl }) => {
         <button 
             onClick={onSaveTunedSong} 
             disabled={!song} 
-            className="text-neutral-400 hover:text-green-500 transition hover:scale-110" 
+            className="text-neutral-400 hover:text-green-500 transition p-1.5 border border-transparent hover:border-green-500/50" 
             title="Save as Tuned Song"
         >
-            <Save size={20}/>
+            <Save size={18}/>
         </button>
         
         {/* Nút Add Playlist */}
@@ -280,75 +269,95 @@ const PlayerContent = ({ song, songUrl }) => {
             }} 
             disabled={!song} 
             className="
-                group relative flex items-center justify-center w-8 h-8 rounded-full 
-                border border-neutral-600 hover:border-emerald-500 
-                bg-white/5 hover:bg-emerald-500/10 
+                group relative flex items-center justify-center w-7 h-7 rounded-none
+                border border-neutral-400 dark:border-neutral-600 hover:border-emerald-500 
+                bg-transparent hover:bg-emerald-500/10 
                 text-neutral-400 hover:text-emerald-500 
-                transition-all duration-300
+                transition-all duration-200
             "
             title="Add to Playlist"
         >
-            <Plus size={18} />
-             <div className="absolute inset-0 rounded-full bg-emerald-500/20 opacity-0 group-hover:opacity-100 blur-md transition-opacity pointer-events-none" />
+            <Plus size={16} />
         </button>
 
-        <div className="hidden sm:block ml-1"><AudioVisualizer isPlaying={isPlaying}/></div>
+        <div className="  sm:block ml-2 border-l border-neutral-600 pl-3 h-8 flex items-center">
+            <AudioVisualizer isPlaying={isPlaying}/>
+        </div>
       </div>
 
       {/* CENTER: CONTROLS */}
       <div className="hidden md:flex flex-col items-center w-full max-w-[722px] gap-y-1">
-        <div className="flex items-center gap-x-4 translate-y-1.5">
-          <button onClick={() => player.setIsShuffle(!player.isShuffle)} className={`transition ${player.isShuffle ? "text-emerald-500" : "text-neutral-400 hover:text-white"}`} title="Shuffle"><Shuffle size={16}/></button>
+        <div className="flex items-center gap-x-6 translate-y-1">
+          <button onClick={() => player.setIsShuffle(!player.isShuffle)} className={`transition p-1 ${player.isShuffle ? "text-emerald-500" : "text-neutral-400 hover:text-white"}`} title="Shuffle"><Shuffle size={16}/></button>
           
-          <button onClick={onPlayPrevious} className="text-neutral-400 hover:text-white transition hover:scale-110"><SkipBack size={20}/></button>
+          <button onClick={onPlayPrevious} className="text-neutral-400 hover:text-white transition hover:scale-110 p-1"><SkipBack size={20}/></button>
           
-          <button onClick={() => { if(sound) sound.seek(Math.max(0, seek - 5)); }} className="text-neutral-400 hover:text-white transition hover:scale-110">
+          <button onClick={() => { if(sound) sound.seek(Math.max(0, seek - 5)); }} className="text-neutral-400 hover:text-white transition hover:scale-110 p-1">
              <Rewind size={18}/>
           </button>
           
+          {/* Main Play Button - Tech Style */}
           <button 
             onClick={handlePlay} 
             disabled={!sound || isLoading} 
-            className="flex items-center justify-center h-8 w-8 rounded-full bg-emerald-400 text-black hover:scale-110 transition shadow-[0_0_15px_rgba(255,255,255,0.3)] hover:shadow-[0_0_20px_rgba(16,185,129,0.5)]"
+            className="
+                flex items-center justify-center h-10 w-10 
+                bg-neutral-900 dark:bg-emerald-400 text-white dark:text-black 
+                hover:bg-emerald-500 hover:text-black dark:hover:bg-emerald-500
+                transition-all duration-200 rounded-none border border-neutral-500 dark:border-transparent
+                shadow-[0_0_10px_rgba(0,0,0,0.2)] hover:shadow-[0_0_15px_rgba(16,185,129,0.6)]
+            "
           >
-             {isLoading ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"/> : <Icon size={20} fill="currentColor"/>}
+             {isLoading ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"/> : <Icon size={20} fill="currentColor"/>}
           </button>
 
-          <button onClick={() => { if(sound) sound.seek(Math.min(duration, seek + 5)); }} className="text-neutral-400 hover:text-white transition hover:scale-110">
+          <button onClick={() => { if(sound) sound.seek(Math.min(duration, seek + 5)); }} className="text-neutral-400 hover:text-white transition hover:scale-110 p-1">
              <FastForward size={18}/>
           </button>
 
-          <button onClick={onPlayNext} className="text-neutral-400 hover:text-white transition hover:scale-110"><SkipForward size={20}/></button>
+          <button onClick={onPlayNext} className="text-neutral-400 hover:text-white transition hover:scale-110 p-1"><SkipForward size={20}/></button>
           
-          <button onClick={() => player.setRepeatMode((player.repeatMode+1)%3)} className={`transition ${player.repeatMode!==0 ? "text-emerald-500" : "text-neutral-400 hover:text-white"}`} title="Repeat">
+          <button onClick={() => player.setRepeatMode((player.repeatMode+1)%3)} className={`transition p-1 ${player.repeatMode!==0 ? "text-emerald-500" : "text-neutral-400 hover:text-white"}`} title="Repeat">
              {player.repeatMode===2 ? <Repeat1 size={16}/> : <Repeat size={16}/>}
           </button>
         </div>
         
-        <div className="w-full flex items-center gap-2 -translate-y-2">
-            <span className="text-xs font-mono text-neutral-400 w-10 text-right">{formatTime(seek)}</span>
-            <div className="flex-1"><Slider value={seek} max={duration || 100} onCommit={handleSeekCommit} onChange={handleSeekChange}/></div>
-            <span className="text-xs font-mono text-neutral-400 w-10">{formatTime(duration)}</span>
+        {/* Progress Bar - Cyber Style */}
+        <div className="w-full flex items-center gap-3 -translate-y-3">
+            <span className="text-[10px] font-mono text-neutral-500 w-10 text-right">{formatTime(seek)}</span>
+            <div className="flex-1 h-full flex items-center">
+                <Slider value={seek} max={duration || 100} onCommit={handleSeekCommit} onChange={handleSeekChange}/>
+            </div>
+            <span className="text-[10px] font-mono text-neutral-500 w-10">{formatTime(duration)}</span>
         </div>
       </div>
 
       {/* RIGHT: Volume & View Switcher */}
-      <div className="hidden md:flex justify-end pr-2 gap-2 w-full items-center -translate-y-1.5">
-         <button onClick={toggleMute}><VolumeIcon size={20} className="text-neutral-400 hover:text-emerald-500 transition"/></button>
-         <div className="w-[100px]"><Slider value={volume} max={1} step={0.01} onChange={(v) => handleVolumeChange(v)}/></div>
+      <div className="hidden md:flex justify-end pr-2 gap-4 w-full items-center -translate-y-[0.7rem]">
+         <div className="flex items-center gap-2 border border-neutral-300 dark:border-white/10 px-2 py-1 bg-neutral-100 dark:bg-white/5">
+             <button onClick={toggleMute}><VolumeIcon size={18} className="text-neutral-400 hover:text-emerald-500 transition"/></button>
+             <div className="w-[80px]"><Slider value={volume} max={1} step={0.01} onChange={(v) => handleVolumeChange(v)}/></div>
+         </div>
          
          <button 
             onClick={toggleNowPlaying} 
-            className={`p-1 rounded-md transition-colors hover:bg-white/10 ${pathname==='/now-playing' ? "text-emerald-500" : "text-neutral-400 hover:text-white"}`}
+            className={`
+                p-2 border border-transparent hover:border-emerald-500 transition-all rounded-none
+                ${pathname==='/now-playing' ? "text-emerald-500 border-emerald-500/50 bg-emerald-500/10" : "text-neutral-400 hover:text-white hover:bg-white/5"}
+            `}
             title={pathname==='/now-playing' ? "Close Player" : "Open Player"}
          >
             {pathname === '/now-playing' ? <X size={20}/> : <AlignJustify size={20}/>}
          </button>
       </div>
 
-      {/* MOBILE */}
+      {/* MOBILE PLAY BUTTON */}
       <div className="flex md:hidden col-auto justify-end items-center">
-        <button onClick={handlePlay} disabled={!sound || isLoading} className="h-8 w-8 bg-white text-black rounded-full flex items-center justify-center shadow-lg">
+        <button 
+            onClick={handlePlay} 
+            disabled={!sound || isLoading} 
+            className="h-10 w-10 bg-white text-black flex items-center justify-center shadow-lg active:scale-95 transition"
+        >
            {isLoading ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"/> : <Icon size={20} fill="currentColor"/>}
         </button>
       </div>

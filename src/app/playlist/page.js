@@ -4,13 +4,13 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
-import { Loader2, Play, Edit2, Plus, Trash2, Clock, Music2 } from "lucide-react";
+import { Loader2, Play, Edit2, Plus, Trash2, Clock, Music2, ArrowLeft } from "lucide-react";
 import AddSongModal from "@/components/AddSongModal";
 import EditPlaylistModal from "@/components/EditPlaylistModal";
 import usePlayer from "@/hooks/usePlayer";
 // IMPORT HOOK UI & COMPONENTS
 import useUI from "@/hooks/useUI"; 
-import { GlitchText, CyberCard, HoloButton, ScanlineOverlay } from "@/components/CyberComponents";
+import { GlitchText, CyberCard, HoloButton, ScanlineOverlay, HorizontalGlitchText } from "@/components/CyberComponents";
 
 // --- SKELETON LOADER COMPONENT ---
 const PlaylistSkeleton = () => {
@@ -18,33 +18,33 @@ const PlaylistSkeleton = () => {
     <div className="w-full h-screen bg-neutral-100 dark:bg-black p-6 overflow-hidden animate-pulse">
         {/* Header Skeleton */}
         <div className="flex flex-col md:flex-row items-end gap-8 mb-10 mt-10">
-            <div className="w-52 h-52 md:w-64 md:h-64 rounded-xl bg-neutral-300 dark:bg-white/10 shrink-0"></div>
+            <div className="w-52 h-52 md:w-64 md:h-64 bg-neutral-300 dark:bg-white/10 shrink-0 border border-neutral-400 dark:border-white/20"></div>
             <div className="flex-1 w-full space-y-4 pb-2">
-                <div className="h-4 w-32 bg-neutral-300 dark:bg-white/10 rounded"></div>
-                <div className="h-12 w-3/4 bg-neutral-300 dark:bg-white/10 rounded"></div>
-                <div className="h-4 w-1/2 bg-neutral-300 dark:bg-white/10 rounded"></div>
-                <div className="h-4 w-48 bg-neutral-300 dark:bg-white/10 rounded mt-auto"></div>
+                <div className="h-4 w-32 bg-neutral-300 dark:bg-white/10"></div>
+                <div className="h-12 w-3/4 bg-neutral-300 dark:bg-white/10"></div>
+                <div className="h-4 w-1/2 bg-neutral-300 dark:bg-white/10"></div>
+                <div className="h-4 w-48 bg-neutral-300 dark:bg-white/10 mt-auto"></div>
             </div>
         </div>
 
         {/* Actions Skeleton */}
         <div className="flex gap-4 mb-10">
-            <div className="h-10 w-32 bg-neutral-300 dark:bg-white/10 rounded-full"></div>
-            <div className="h-10 w-32 bg-neutral-300 dark:bg-white/10 rounded-full"></div>
-            <div className="h-10 w-32 bg-neutral-300 dark:bg-white/10 rounded-full"></div>
+            <div className="h-10 w-32 bg-neutral-300 dark:bg-white/10"></div>
+            <div className="h-10 w-32 bg-neutral-300 dark:bg-white/10"></div>
+            <div className="h-10 w-32 bg-neutral-300 dark:bg-white/10"></div>
         </div>
 
         {/* List Skeleton */}
         <div className="space-y-4">
             {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="flex items-center gap-4 p-4 border border-neutral-200 dark:border-white/5 rounded-xl">
-                    <div className="w-8 h-8 rounded bg-neutral-300 dark:bg-white/10"></div>
-                    <div className="w-10 h-10 rounded bg-neutral-300 dark:bg-white/10"></div>
+                <div key={i} className="flex items-center gap-4 p-4 border border-neutral-200 dark:border-white/5">
+                    <div className="w-8 h-8 bg-neutral-300 dark:bg-white/10"></div>
+                    <div className="w-10 h-10 bg-neutral-300 dark:bg-white/10"></div>
                     <div className="flex-1 space-y-2">
-                        <div className="h-4 w-48 bg-neutral-300 dark:bg-white/10 rounded"></div>
-                        <div className="h-3 w-24 bg-neutral-300 dark:bg-white/10 rounded"></div>
+                        <div className="h-4 w-48 bg-neutral-300 dark:bg-white/10"></div>
+                        <div className="h-3 w-24 bg-neutral-300 dark:bg-white/10"></div>
                     </div>
-                    <div className="w-12 h-4 bg-neutral-300 dark:bg-white/10 rounded"></div>
+                    <div className="w-12 h-4 bg-neutral-300 dark:bg-white/10"></div>
                 </div>
             ))}
         </div>
@@ -66,8 +66,8 @@ export default function PlaylistPage() {
   const [showEditModal, setShowEditModal] = useState(false);
 
   /* ==========================================================
-     FETCH DATA
-   ========================================================== */
+      FETCH DATA
+    ========================================================== */
   const loadData = async () => {
     if (!id) return;
     setLoading(true);
@@ -94,7 +94,6 @@ export default function PlaylistPage() {
       console.error("Error loading:", err);
       alert("Failed to load playlist data.", "error", "LOAD_ERROR");
     } finally {
-      // Giữ loading một chút để tránh giật
       setTimeout(() => setLoading(false), 500);
     }
   };
@@ -102,8 +101,8 @@ export default function PlaylistPage() {
   useEffect(() => { loadData(); }, [id]);
 
   /* ==========================================================
-     REALTIME UPDATES
-   ========================================================== */
+      REALTIME UPDATES
+    ========================================================== */
   useEffect(() => {
     if (!id) return;
     const channel = supabase.channel(`playlist_room_${id}`)
@@ -114,8 +113,8 @@ export default function PlaylistPage() {
   }, [id]);
 
   /* ==========================================================
-     HANDLERS
-   ========================================================== */
+      HANDLERS
+    ========================================================== */
   const formatDuration = (sec) => {
     if (!sec) return "--:--";
     const m = Math.floor(sec / 60);
@@ -138,7 +137,7 @@ export default function PlaylistPage() {
     });
     player.setIds(ids);
     player.setId(ids[0]);
-    player.setSongData(normalize(list[0]));
+    // player.setSongData(normalize(list[0])); // Player hook thường tự handle việc này khi id thay đổi
   };
 
   const handleRemoveSong = async (songId) => {
@@ -150,17 +149,17 @@ export default function PlaylistPage() {
   };
 
   /* ==========================================================
-     RENDERING
-   ========================================================== */
+      RENDERING
+    ========================================================== */
   if (loading) {
     return <PlaylistSkeleton />;
   }
 
   if (!playlist) {
     return (
-      <div className="w-full h-screen bg-neutral-100 dark:bg-black flex flex-col items-center justify-center gap-4 text-red-500">
-        <h1 className="text-4xl font-mono font-bold">ERROR 404</h1>
-        <p className="font-mono tracking-widest">PLAYLIST_NOT_FOUND</p>
+      <div className="w-full h-screen bg-neutral-100 dark:bg-black flex flex-col items-center justify-center gap-4 text-red-500 font-mono">
+        <h1 className="text-4xl font-bold">ERROR 404</h1>
+        <p className="tracking-widest">PLAYLIST_NOT_FOUND</p>
         <HoloButton className="px-4 hover:!bg-emerald-400 hover:!text-white" onClick={() => router.push('/')}>RETURN_HOME</HoloButton>
       </div>
     );
@@ -174,34 +173,36 @@ export default function PlaylistPage() {
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row items-end gap-8 mb-10 relative z-10 animate-in slide-in-from-bottom-5 duration-700">
         
-        {/* Cover Image Wrapper */}
-        <CyberCard className="p-1 rounded-2xl shadow-2xl shadow-emerald-500/10 shrink-0">
-            <div className="relative w-52 h-52 md:w-64 md:h-64 rounded-xl overflow-hidden group bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center">
+        {/* Cover Image Wrapper (CyberCard + Scanline) */}
+        <CyberCard className="p-0 rounded-none shadow-2xl shadow-emerald-500/10 shrink-0 border border-neutral-300 dark:border-white/10">
+            <div className="relative w-52 h-52 md:w-64 md:h-64 overflow-hidden group bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center">
                 {playlist.cover_url ? (
                     <Image
                         src={playlist.cover_url}
                         fill
                         alt="Playlist Cover"
-                        className="object-cover transition-transform duration-700 group-hover:scale-110"
+                        className="object-cover transition-transform duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0"
                     />
                 ) : (
                     <span className="text-6xl font-bold opacity-30 font-mono">{playlist.name?.[0]}</span>
                 )}
-                <div className="absolute inset-0 bg-emerald-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                
+                <ScanlineOverlay />
+                <div className="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
             </div>
         </CyberCard>
 
         {/* Info */}
         <div className="flex flex-col gap-2 flex-1 pb-2 w-full">
           <div className="flex items-center gap-2 mb-1">
-             <span className="w-2 h-2 bg-emerald-500 animate-pulse rounded-full"></span>
-             <p className="uppercase text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 tracking-[0.3em]">
+              <span className="w-2 h-2 bg-emerald-500 animate-pulse rounded-none"></span>
+              <p className="uppercase text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 tracking-[0.3em]">
                 PRIVATE_PLAYLIST
             </p>
           </div>
           
           <h1 className="text-3xl md:text-5xl font-black font-mono tracking-tight mb-2 uppercase break-words line-clamp-2">
-            <GlitchText text={playlist.name} />
+            <HorizontalGlitchText text={playlist.name} />
           </h1>
 
           {playlist.description && (
@@ -218,7 +219,7 @@ export default function PlaylistPage() {
         </div>
       </div>
 
-      {/* ACTION BUTTONS */}
+      {/* ACTION BUTTONS (HoloButton) */}
       <div className="flex flex-wrap gap-4 mb-10 z-20 relative">
         <HoloButton 
             onClick={handlePlayPlaylist} 
@@ -227,20 +228,20 @@ export default function PlaylistPage() {
           <Play size={18} fill="currentColor" className="mr-2" /> PLAY_ALL
         </HoloButton>
 
-        <HoloButton onClick={() => setShowAddSongModal(true)} className="px-6 border-cyan-500/30 hover:border-cyan-400">
+        <HoloButton onClick={() => setShowAddSongModal(true)} className="px-6 border-cyan-500/30 text-cyan-600 dark:text-cyan-400 hover:border-cyan-400">
           <Plus size={18} className="mr-2" /> ADD_TRACK
         </HoloButton>
 
-        <HoloButton onClick={() => setShowEditModal(true)} className="px-6 border-amber-500/30 text-emerald-600 dark:text-amber-400 hover:border-amber-400">
+        <HoloButton onClick={() => setShowEditModal(true)} className="px-6 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:border-amber-400">
           <Edit2 size={18} className="mr-2" /> EDIT_INFO
         </HoloButton>
       </div>
 
-      {/* SONG LIST TABLE */}
-      <CyberCard className="p-0 overflow-hidden bg-white/50 dark:bg-white/5 backdrop-blur-md rounded-xl border-neutral-200 dark:border-white/10">
+      {/* SONG LIST TABLE (CyberCard) */}
+      <CyberCard className="p-0 overflow-hidden bg-white/50 dark:bg-white/5 backdrop-blur-md rounded-none border-neutral-200 dark:border-white/10">
         <div className="overflow-x-auto">
             <table className="w-full text-left font-mono text-sm">
-            <thead className="bg-neutral-200/50 dark:bg-black/40 text-neutral-500 dark:text-neutral-400 uppercase text-[10px] tracking-widest">
+            <thead className="bg-neutral-200/50 dark:bg-black/40 text-neutral-500 dark:text-neutral-400 uppercase text-[10px] tracking-widest border-b border-neutral-300 dark:border-white/10">
                 <tr>
                 <th className="p-4 w-12 text-center">#</th>
                 <th className="p-4">Track_Title</th>
@@ -271,7 +272,7 @@ export default function PlaylistPage() {
                         });
                         player.setIds(ids);
                         player.setId(Number(song.id));
-                        player.setSongData(normalize(song));
+                        // player.setSongData(normalize(song));
                     }}
                     // Sử dụng group/song để tránh conflict hover
                     className="group/song hover:bg-emerald-500/10 transition-colors duration-200 cursor-pointer"
@@ -282,19 +283,19 @@ export default function PlaylistPage() {
 
                     <td className="p-4">
                         <div className="flex items-center gap-4">
-                            <div className="relative w-10 h-10 shrink-0 overflow-hidden rounded border border-neutral-300 dark:border-white/10 group-hover/song:border-emerald-500 transition-colors bg-neutral-200 dark:bg-black">
+                            <div className="relative w-10 h-10 shrink-0 overflow-hidden rounded-none border border-neutral-300 dark:border-white/10 group-hover/song:border-emerald-500 transition-colors bg-neutral-200 dark:bg-black">
                                 <Image
                                 src={song.image_url || "/default_song.jpg"}
                                 fill
                                 alt={song.title}
-                                className="object-cover group-hover/song:scale-110 transition-transform duration-500"
+                                className="object-cover group-hover/song:scale-110 transition-transform duration-500 grayscale group-hover/song:grayscale-0"
                                 />
                                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/song:opacity-100 transition-opacity">
                                     <Play size={16} fill="white" className="text-white"/>
                                 </div>
                             </div>
                             <div className="flex flex-col min-w-0">
-                                <span className="font-bold text-neutral-800 dark:text-white group-hover/song:text-emerald-500 transition-colors truncate max-w-[150px] md:max-w-xs">
+                                <span className="font-bold text-neutral-800 dark:text-white group-hover/song:text-emerald-500 transition-colors truncate max-w-[150px] md:max-w-xs uppercase">
                                     {song.title}
                                 </span>
                                 <span className="text-xs text-neutral-500 md:hidden truncate">{song.author}</span>
@@ -313,10 +314,9 @@ export default function PlaylistPage() {
                     <td className="p-4 text-center">
                         <button
                         onClick={(e) => { e.stopPropagation(); handleRemoveSong(song.id); }}
-                        // Fix hover opacity cho nút trash
                         className="
-                             p-2 rounded hover:bg-red-500/20 text-neutral-400 hover:text-red-500 transition-all 
-                             opacity-0 group-hover/song:opacity-100 focus:opacity-100
+                             p-2 rounded-none hover:bg-red-500/20 text-neutral-400 hover:text-red-500 transition-all 
+                             group-hover/song:opacity-100 focus:opacity-100
                         "
                         title="Remove Track"
                         >
@@ -329,7 +329,7 @@ export default function PlaylistPage() {
                 
                 {songs.length === 0 && (
                     <tr>
-                        <td colSpan="5" className="p-12 text-center text-neutral-400 italic font-mono">
+                        <td colSpan="5" className="p-12 text-center text-neutral-400 italic font-mono border-t border-dashed border-neutral-300 dark:border-white/10">
                             [EMPTY_DATA] No tracks added yet.
                         </td>
                     </tr>

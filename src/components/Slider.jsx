@@ -2,14 +2,12 @@
 
 import * as RadixSlider from "@radix-ui/react-slider";
 
-// Thêm prop `onCommit` và `disabled` vào đây
 const Slider = ({ value = 0, max = 1, onChange, onCommit, disabled }) => {
   
   const handleChange = (newValue) => {
     onChange?.(newValue[0]);
   };
 
-  // --- FIX: Hàm xử lý khi thả chuột ra ---
   const handleCommit = (newValue) => {
     onCommit?.(newValue[0]);
   };
@@ -25,45 +23,48 @@ const Slider = ({ value = 0, max = 1, onChange, onCommit, disabled }) => {
       defaultValue={[0]}
       value={[value]}
       onValueChange={handleChange}
-      onValueCommit={handleCommit} // <--- QUAN TRỌNG NHẤT: Gắn sự kiện thả tay
+      onValueCommit={handleCommit}
       max={max}
       step={step}
       disabled={disabled}
       aria-label="Slider"
     >
-      {/* TRACK: Thanh nền */}
+      {/* TRACK: Thanh nền (Vuông vức, màu tối) */}
       <RadixSlider.Track 
         className="
-          relative grow rounded-full h-[4px] 
-          bg-neutral-400/50 dark:bg-neutral-800
-          transition-all group-hover:h-[6px]
+          relative grow rounded-none h-[2px] 
+          bg-neutral-300 dark:bg-neutral-800
+          group-hover:h-[4px] transition-all duration-300
+          border-x border-neutral-400 dark:border-white/20
         "
       >
-        {/* RANGE: Phần đã chạy */}
+        {/* RANGE: Phần đã chạy (Màu Emerald, phát sáng nhẹ) */}
         <RadixSlider.Range 
           className="
-            absolute rounded-full h-full 
-            bg-emerald-500 group-hover:bg-emerald-400
+            absolute rounded-none h-full 
+            bg-emerald-600 dark:bg-emerald-500 
+            group-hover:bg-emerald-400
             transition-colors
+            shadow-[0_0_10px_rgba(16,185,129,0.5)]
           " 
         />
       </RadixSlider.Track>
       
-      {/* THUMB: Cục tròn để kéo */}
-      {/* Ẩn đi nếu đang disabled (đang loading) */}
+      {/* THUMB: Cục vuông để kéo (Tech Style) */}
       {!disabled && (
         <RadixSlider.Thumb 
             className="
             block w-3 h-3 
-            bg-white 
-            rounded-full 
-            shadow-[0_2px_5px_rgba(0,0,0,0.5)] 
+            rounded-none /* Vuông góc */
+            bg-neutral-900 dark:bg-white 
+            border border-emerald-500 
+            shadow-[0_0_10px_rgba(16,185,129,0.8)] 
             
-            /* Hover vào thanh slider thì cục này to ra */
+            /* Hover Effect */
             transition-transform duration-200
             group-hover:scale-125
             
-            focus:outline-none focus:ring-0
+            focus:outline-none focus:ring-1 focus:ring-emerald-500
             cursor-grab active:cursor-grabbing
             " 
             aria-label="Thumb"
