@@ -3,7 +3,9 @@
 import SongItem from "@/components/SongItem";
 import usePlayer from "@/hooks/usePlayer";
 import Link from "next/link"; 
-import { ArrowRight } from "lucide-react"; 
+import { ArrowRight, ChevronRight } from "lucide-react"; 
+// Import Cyber Components
+import { GlitchText, CyberCard } from "@/components/CyberComponents";
 
 const SongSection = ({ title, songs, moreLink }) => {
   const player = usePlayer();
@@ -22,28 +24,28 @@ const SongSection = ({ title, songs, moreLink }) => {
   if (!songs || songs.length === 0) return null;
 
   return (
-    <div className="mb-8"> {/* Giảm mb-12 -> mb-8 */}
+    <div className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
+      {/* SECTION HEADER */}
       {title && (
-        <div className="flex items-center justify-between mb-3"> {/* Giảm mb-4 -> mb-3 */}
+        <div className="flex items-center justify-between mb-4 border-b border-neutral-300 dark:border-white/10 pb-2">
            <div className="flex items-center gap-2">
-              <div className="w-1 h-5 bg-emerald-500 rounded-full"></div> {/* Giảm h-6 -> h-5 */}
-              {/* Giảm text-xl -> text-lg */}
-              <h2 className="text-lg font-bold font-mono tracking-tighter text-neutral-800 dark:text-white uppercase">
-                  {title}
+              <div className="w-1.5 h-1.5 bg-emerald-500 animate-pulse"></div>
+              <h2 className="text-lg font-bold font-mono tracking-tighter text-neutral-900 dark:text-white uppercase flex items-center gap-2">
+                  <GlitchText text={title} />
               </h2>
            </div>
            
            {moreLink && (
-               <Link href={moreLink} className="text-[10px] font-mono text-neutral-500 hover:text-emerald-500 transition hidden sm:block">
-                   VIEW_ALL {'>'}
+               <Link href={moreLink} className="group flex items-center gap-1 text-[10px] font-mono font-bold tracking-widest text-neutral-500 dark:text-neutral-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors uppercase">
+                   VIEW_ALL <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform"/>
                </Link>
            )}
         </div>
       )}
 
-      {/* Grid bài hát: Đồng bộ với trang chủ (lên tới 10 cột) */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-3">
+      {/* Grid bài hát */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
         
         {songs.map((item) => (
           <SongItem 
@@ -53,28 +55,31 @@ const SongSection = ({ title, songs, moreLink }) => {
           />
         ))}
 
-        {/* Thẻ Xem Thêm (Thu nhỏ lại) */}
+        {/* THẺ XEM THÊM (Fixed Vertical Center) */}
         {moreLink && (
-            <Link href={moreLink} className="
-                group relative flex flex-col items-center justify-center 
-                rounded-md overflow-hidden cursor-pointer transition-all duration-300 p-2
-                bg-neutral-200/30 dark:bg-neutral-900/40
-                border border-white/60 dark:border-white/5
-                backdrop-blur-xl
-                shadow-sm dark:shadow-none
-                hover:bg-white/60 dark:hover:bg-neutral-800/60
-                hover:border-emerald-500/50
-                hover:shadow-[0_8px_32px_0_rgba(16,185,129,0.2)]
-                hover:-translate-y-1
-            ">
-                <div className="w-full aspect-square rounded-md bg-neutral-300/50 dark:bg-white/5 flex flex-col items-center justify-center gap-2 transition-colors group-hover:bg-emerald-500/20">
-                    <div className="p-2 rounded-full bg-white dark:bg-black group-hover:scale-110 transition duration-300 border border-neutral-200 dark:border-white/10 group-hover:border-emerald-500">
-                        <ArrowRight size={18} className="text-neutral-600 dark:text-white group-hover:text-emerald-500"/> {/* Size 24 -> 18 */}
+            <Link href={moreLink} className="block relative h-full min-h-[200px]"> {/* Set min-h để bằng với các thẻ bài hát */}
+                <CyberCard 
+                    className="
+                        group w-full h-full p-0
+                        bg-neutral-200/50 dark:bg-white/5 
+                        border border-dashed border-neutral-400 dark:border-white/20 
+                        hover:border-emerald-500 hover:border-solid hover:bg-emerald-500/10 
+                        transition-all duration-300 cursor-pointer rounded-none
+                        relative
+                    "
+                >
+                    {/* DÙNG ABSOLUTE INSET-0 ĐỂ CĂN GIỮA TUYỆT ĐỐI */}
+                    <div className="absolute inset-0 translate-y-[7rem] flex flex-col items-center justify-center p-4 z-10">
+                        <div className="w-12 h-12 flex items-center justify-center border border-neutral-400 dark:border-white/20 bg-white dark:bg-black group-hover:border-emerald-500 group-hover:text-emerald-500 transition-colors duration-300 relative overflow-hidden shrink-0">
+                            <div className="absolute inset-0 bg-emerald-500 opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                            <ArrowRight size={20} className="text-neutral-600 dark:text-white group-hover:text-emerald-500 group-hover:translate-x-1 transition-transform duration-300"/>
+                        </div>
+                        
+                        <span className="mt-3 text-[10px] font-mono font-bold tracking-[0.2em] text-neutral-500 dark:text-neutral-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 uppercase text-center">
+                            VIEW_ARCHIVE
+                        </span>
                     </div>
-                    <span className="text-[9px] font-mono font-bold tracking-widest text-neutral-600 dark:text-neutral-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
-                        VIEW_ALL
-                    </span>
-                </div>
+                </CyberCard>
             </Link>
         )}
 

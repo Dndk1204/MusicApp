@@ -1,14 +1,14 @@
 import getSongs from "@/app/actions/getSongs";
 import SongSection from "@/components/SongSection";
 import TrendingHero from "@/components/TrendingHero"; 
-import { Disc, UploadCloud, Globe } from "lucide-react"; // Import đủ icon từ Page 1
-import { GlitchText } from "@/components/CyberComponents";
+import { Disc, Globe, Sparkles, Zap, Radio, Headphones } from "lucide-react"; 
+import { VerticalGlitchText } from "@/components/CyberComponents";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
 export const revalidate = 0; 
 
-// --- HELPER: Format số (VD: 1500 -> 1.5K) ---
+// --- HELPER: Format số ---
 const formatNumber = (num) => {
   if (!num) return "0";
   if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
@@ -16,31 +16,20 @@ const formatNumber = (num) => {
   return num.toString();
 };
 
-// --- LOGIC 1: Lấy Top Artists (Dùng bản chuẩn của Page 2) ---
+// --- LOGIC 1: Lấy Top Artists ---
 const getTopArtists = async () => {
-  // SỬA LỖI: Await cookies() trước khi dùng (Fix Next.js 15)
   const cookieStore = await cookies();
   
-  // Truyền vào dạng function trả về cookieStore đã await
   const supabase = createServerComponentClient({ 
     cookies: () => cookieStore 
   });
 
   try {
-    // 1. Lấy dữ liệu Follow (Tính Followers)
-    const { data: follows } = await supabase
-      .from('following_artists')
-      .select('artist_name, artist_image');
+    const { data: follows } = await supabase.from('following_artists').select('artist_name, artist_image');
+    const { data: searches } = await supabase.from('artist_search_counts').select('artist_name, search_count');
 
-    // 2. Lấy dữ liệu Search (Tính Popularity/Plays)
-    const { data: searches } = await supabase
-      .from('artist_search_counts')
-      .select('artist_name, search_count');
-
-    // 3. Tổng hợp dữ liệu (Aggregation)
     const stats = {};
 
-    // Đếm Followers
     if (follows) {
       follows.forEach(item => {
         const key = item.artist_name.trim(); 
@@ -52,7 +41,6 @@ const getTopArtists = async () => {
       });
     }
 
-    // Đếm Searches
     if (searches) {
       searches.forEach(item => {
         const key = item.artist_name.trim();
@@ -63,7 +51,6 @@ const getTopArtists = async () => {
       });
     }
 
-    // 4. Sắp xếp & Format (Top 5 Followed)
     const topArtists = Object.values(stats)
       .sort((a, b) => b.followers - a.followers)
       .slice(0, 5)
@@ -83,33 +70,31 @@ const getTopArtists = async () => {
   }
 };
 
-// --- LOGIC 2: Lấy nhạc cộng đồng (Lấy từ Page 1) ---
+// --- LOGIC 2: Lấy nhạc cộng đồng ---
 const getCommunityUploads = async () => {
     const cookieStore = await cookies();
     const supabase = createServerComponentClient({ cookies: () => cookieStore });
 
     try {
-        // Kiểm tra field name có thể là is_public thay vì public
         const { data, error } = await supabase
             .from('songs')
             .select('*')
-            .not('user_id', 'is', null) // Lọc những bài có người đăng (không phải null)
-            .eq('is_public', true)      // Thử lại với is_public
-            .order('created_at', { ascending: false }) // Mới nhất lên đầu
-            .limit(15);
+            .not('user_id', 'is', null) 
+            .eq('is_public', true)      
+            .order('created_at', { ascending: false }) 
+            .limit(11);
 
         let songsData = data;
 
         if (error) {
             console.error("Error checking is_public:", error);
-            // Nếu lỗi, thử với field public (fallback)
             const { data: data2, error: error2 } = await supabase
                 .from('songs')
                 .select('*')
                 .not('user_id', 'is', null)
                 .eq('public', true)
                 .order('created_at', { ascending: false })
-                .limit(15);
+                .limit(11);
 
             if (error2) {
                 console.error("Error checking public:", error2);
@@ -118,10 +103,9 @@ const getCommunityUploads = async () => {
             songsData = data2;
         }
 
-        // Ensure each song has an image_path, set to null if missing to trigger fallback
         const processedSongs = (songsData || []).map(song => ({
             ...song,
-            image_path: song.image_path || null
+            image_path: song.image_url || song.image_path || null
         }));
 
         return processedSongs;
@@ -133,7 +117,6 @@ const getCommunityUploads = async () => {
 
 export default async function Home() {
   
-  // 1. Fetch Dữ liệu bài hát, Nghệ sĩ & Nhạc cộng đồng song song
   const [
     mostHeard, 
     discoveries, 
@@ -142,16 +125,16 @@ export default async function Home() {
     rockSongs, 
     indieSongs,
     popularArtists,
-    communityUploads // <--- Dữ liệu mới từ Page 1
+    communityUploads 
   ] = await Promise.all([
     getSongs({ boost: 'popularity_month', limit: 10 }), 
-    getSongs({ boost: 'buzzrate', limit: 15 }),        
-    getSongs({ tag: 'pop', limit: 15 }),
-    getSongs({ tag: 'electronic', limit: 15 }),
-    getSongs({ tag: 'rock', limit: 15 }),
-    getSongs({ tag: 'indie', limit: 15 }),
-    getTopArtists(), // Gọi hàm fix của Page 2
-    getCommunityUploads() // Gọi hàm mới của Page 1
+    getSongs({ boost: 'buzzrate', limit: 11 }),        
+    getSongs({ tag: 'pop', limit: 11 }),
+    getSongs({ tag: 'electronic', limit: 11 }),
+    getSongs({ tag: 'rock', limit: 11 }),
+    getSongs({ tag: 'indie', limit: 11 }),
+    getTopArtists(), 
+    getCommunityUploads() 
   ]);
 
   const mostHeardSongs = mostHeard.songs || [];
@@ -160,81 +143,101 @@ export default async function Home() {
   const electronicTracks = electronicSongs.songs || [];
   const rockTracks = rockSongs.songs || [];
   const indieTracks = indieSongs.songs || [];
-  const communityTracks = communityUploads || []; // Dữ liệu cộng đồng
+  const communityTracks = communityUploads || []; 
 
   return (
-    <div className="h-full w-full p-4 pb-[100px] overflow-y-auto scroll-smooth">
+    <div className="h-full w-full p-4 pb-[100px] overflow-y-auto scroll-smooth bg-neutral-100 dark:bg-black transition-colors duration-500">
       
       {/* 1. HERO */}
       <TrendingHero songs={mostHeardSongs} artists={popularArtists} />
 
       {/* 2. CÁC SECTION KHÁC */}
-      <div className="mt-8">
-        <div className="mb-6 flex flex-col gap-1">
-              
-            <div className="flex items-center gap-2">
-                <Disc className="text-emerald-500 animate-spin-slow" size={24}/>
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tighter font-mono text-neutral-900 dark:text-white">
-                    <GlitchText text="MUSIC_DASHBOARD" />
+      <div className="mt-8 px-2">
+        
+        {/* Main Title */}
+        <div className="mb-10 flex flex-col gap-1 border-l-4 border-emerald-500 pl-4 py-2">
+            <div className="flex items-center gap-3">
+                <Disc className="text-emerald-500 animate-[spin_10s_linear_infinite]" size={28}/>
+                <h1 className="text-3xl md:text-4xl font-black tracking-tighter font-mono text-neutral-900 dark:text-white uppercase">
+                    <VerticalGlitchText text="MUSIC_DASHBOARD" />
                 </h1>
             </div>
             
-            <p className="text-neutral-500 dark:text-neutral-400 text-[10px] tracking-[0.3em] font-mono pl-8">
-               :: EXPLORE_THE_SOUND ::
+            <p className="text-neutral-500 dark:text-neutral-400 text-[10px] tracking-[0.4em] font-mono uppercase">
+               :: EXPLORE_THE_SOUND_MATRIX ::
             </p>
         </div>
 
-        <div className="flex flex-col gap-y-6"> 
+        <div className="flex flex-col gap-y-8"> 
             
-            {/* --- SECTION MỚI: COMMUNITY UPLOADS (Từ Page 1) --- */}
+            {/* --- SECTION MỚI: COMMUNITY UPLOADS --- */}
             {communityTracks.length > 0 && (
                 <SongSection 
                     title={
                         <span className="flex items-center gap-2">
-                            <Globe size={20} className="text-blue-500"/> Community Vibes
+                            <Globe size={18} className="text-blue-500"/> Community Vibes
                         </span>
                     }
                     songs={communityTracks} 
                     moreLink="/search?type=user_uploads"
                 />
             )}
-            {/* -------------------------------------------------- */}
-
+            
             <SongSection 
-                title="Discoveries" 
+                title={
+                    <span className="flex items-center gap-2">
+                        <Sparkles size={18} className="text-yellow-500"/> Discoveries
+                    </span>
+                }
                 songs={discoverySongs} 
                 moreLink="/search" 
             />
             
             <SongSection 
-                title="Pop Hits" 
+                title={
+                    <span className="flex items-center gap-2">
+                         <Radio size={18} className="text-pink-500"/> Pop Hits
+                    </span>
+                }
                 songs={popTracks} 
                 moreLink="/search?tag=pop" 
             />
             
             <SongSection 
-                title="Electronic Vibes" 
+                title={
+                    <span className="flex items-center gap-2">
+                        <Zap size={18} className="text-purple-500"/> Electronic Vibes
+                    </span>
+                }
                 songs={electronicTracks} 
                 moreLink="/search?tag=electronic" 
             />
             
             <SongSection 
-                title="Rock Anthems" 
+                title={
+                    <span className="flex items-center gap-2">
+                        <Disc size={18} className="text-red-500"/> Rock Anthems
+                    </span>
+                }
                 songs={rockTracks} 
                 moreLink="/search?tag=rock" 
             />
 
             <SongSection 
-                title="Indie Corner" 
+                title={
+                    <span className="flex items-center gap-2">
+                        <Headphones size={18} className="text-orange-500"/> Indie Corner
+                    </span>
+                }
                 songs={indieTracks} 
                 moreLink="/search?tag=indie" 
             />
         </div>
       </div>
 
-      <div className="mt-8 py-6 border-t border-neutral-200 dark:border-white/5 text-center">
-         <p className="text-[10px] font-mono text-neutral-400 dark:text-neutral-600">
-            Powered by Jamendo API • V O I D
+      <div className="mt-12 py-8 border-t border-neutral-300 dark:border-white/10 text-center bg-neutral-200/50 dark:bg-white/5 rounded-none mx-2 mb-4">
+         <p className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 uppercase tracking-widest">
+            System Online • Powered by Jamendo API • V O I D
          </p>
       </div>
 

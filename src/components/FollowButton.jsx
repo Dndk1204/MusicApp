@@ -2,15 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { Heart, Check, Loader2 } from "lucide-react";
+import { Heart, Check, Loader2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+// Import HoloButton để tái sử dụng style nếu muốn, hoặc dùng class trực tiếp
+import { HoloButton } from "@/components/CyberComponents";
 
 const FollowButton = ({ artistName, artistImage, onFollowChange }) => {
   const router = useRouter();
   const [isFollowing, setIsFollowing] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // 1. Kiểm tra xem user hiện tại có đang follow artist này không
+  // 1. Kiểm tra trạng thái Follow
   useEffect(() => {
     const checkFollowStatus = async () => {
       try {
@@ -24,7 +26,7 @@ const FollowButton = ({ artistName, artistImage, onFollowChange }) => {
           .from('following_artists')
           .select('*')
           .eq('user_id', session.user.id)
-          .eq('artist_name', artistName) // So khớp tên nghệ sĩ
+          .eq('artist_name', artistName)
           .single();
 
         if (data) setIsFollowing(true);
@@ -39,23 +41,22 @@ const FollowButton = ({ artistName, artistImage, onFollowChange }) => {
   }, [artistName]);
 
   const handleFollow = async (e) => {
-    e.preventDefault(); // Chặn chuyển trang nếu nút đặt trong thẻ Link
+    e.preventDefault(); 
     e.stopPropagation();
 
-    // Check login
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-        alert("Vui lòng đăng nhập để theo dõi nghệ sĩ!");
+        alert("ACCESS DENIED: PLEASE LOGIN TO FOLLOW");
         return;
     }
 
-    // Optimistic UI (Đổi trạng thái ngay lập tức cho mượt)
+    // Optimistic UI
     const previousState = isFollowing;
     setIsFollowing(!isFollowing);
 
     try {
         if (previousState) {
-            // Đang follow -> Bấm để Unfollow
+            // Unfollow
             const { error } = await supabase
                 .from('following_artists')
                 .delete()
@@ -63,9 +64,9 @@ const FollowButton = ({ artistName, artistImage, onFollowChange }) => {
                 .eq('artist_name', artistName);
             
             if (error) throw error;
-            if (onFollowChange) onFollowChange(false); // Callback cập nhật UI cha
+            if (onFollowChange) onFollowChange(false); 
         } else {
-            // Chưa follow -> Bấm để Follow
+            // Follow
             const { error } = await supabase
                 .from('following_artists')
                 .insert({
@@ -79,34 +80,44 @@ const FollowButton = ({ artistName, artistImage, onFollowChange }) => {
         }
         router.refresh();
     } catch (error) {
-        console.error("Lỗi follow:", error);
-        setIsFollowing(previousState); // Hoàn tác nếu lỗi
-        alert("Có lỗi xảy ra, vui lòng thử lại.");
+        console.error("Follow Error:", error);
+        setIsFollowing(previousState); 
+        alert("SYSTEM ERROR: ACTION FAILED");
     }
   };
 
-  if (loading) return <div className="w-20 h-8 bg-neutral-800/50 rounded-full animate-pulse" />;
+  if (loading) return (
+    <div className="w-24 h-8 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 animate-pulse rounded-none" />
+  );
 
   return (
     <button
       onClick={handleFollow}
       className={`
-        flex items-center gap-2 px-4 py-1.5 rounded-full font-mono text-xs font-bold transition-all duration-300 z-20
+        relative group flex items-center justify-center gap-2 px-4 py-1.5 
+        font-mono text-[10px] font-bold tracking-widest uppercase transition-all duration-200 z-20 rounded-none border
+        
         ${isFollowing 
-            ? 'bg-transparent border border-emerald-500 text-emerald-500 hover:bg-red-500/10 hover:border-red-500 hover:text-red-500 group' 
-            : 'bg-emerald-500 text-black border border-emerald-500 hover:scale-105 shadow-[0_0_15px_rgba(16,185,129,0.4)]'
+            ? 'bg-emerald-500 text-black border-emerald-500 hover:bg-red-500 hover:!text-white hover:border-red-500' 
+            : 'bg-transparent text-emerald-600 dark:text-emerald-400 border-emerald-500 hover:bg-emerald-500 hover:!text-white'
         }
       `}
     >
       {isFollowing ? (
         <>
-            <Check size={14} className="group-hover:hidden" /> 
-            <span className="group-hover:hidden">FOLLOWING</span>
-            <span className="hidden group-hover:inline">UNFOLLOW</span>
+            {/* Trạng thái bình thường: CHECK + FOLLOWING */}
+            <span className="flex items-center gap-2 group-hover:hidden">
+                <Check size={12} strokeWidth={3} /> FOLLOWING
+            </span>
+
+            {/* Trạng thái Hover: X + UNFOLLOW */}
+            <span className="hidden group-hover:flex items-center gap-2">
+                <X size={12} strokeWidth={3} /> UNFOLLOW
+            </span>
         </>
       ) : (
         <>
-            <Heart size={14} fill="currentColor" /> 
+            <Heart size={12} fill={isFollowing ? "currentColor" : "none"} /> 
             <span>FOLLOW</span>
         </>
       )}

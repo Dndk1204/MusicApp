@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import useUploadModal from "@/hooks/useUploadModal";
 import useUI from "@/hooks/useUI";
-import { X, UploadCloud, Lock, Globe, Loader2, Music, Image as ImageIcon, FileAudio } from "lucide-react";
+import { X, UploadCloud, Lock, Globe, Loader2, Image as ImageIcon, FileAudio, Music, FileType } from "lucide-react";
 // Import Cyber Components
-import { GlitchText, HoloButton, GlitchButton, CyberCard } from "@/components/CyberComponents";
+import { GlitchText, CyberButton, CyberCard } from "@/components/CyberComponents";
 
-// Hàm xử lý tên file an toàn
+// Function to handle safe filenames
 const sanitizeString = (str) => {
   if (!str) return "";
   return str
@@ -22,17 +22,15 @@ const sanitizeString = (str) => {
 
 const UploadModal = () => {
   const { isOpen, onClose } = useUploadModal();
-  const { alert: showAlert } = useUI(); // Chỉ lấy alert, không cần ToastComponent riêng nếu useUI đã handle global
+  const { alert: showAlert } = useUI();
   
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Wrapper functions
   const success = (msg) => showAlert(msg, 'success', 'SUCCESS');
   const error = (msg) => showAlert(msg, 'error', 'ERROR');
 
-  // Form State
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [isPublic, setIsPublic] = useState("true");
@@ -40,7 +38,6 @@ const UploadModal = () => {
   const [imageFile, setImageFile] = useState(null);
   const [songDuration, setSongDuration] = useState(0);
 
-  // Reset form
   useEffect(() => {
     if (!isOpen) {
       setTitle("");
@@ -53,7 +50,6 @@ const UploadModal = () => {
     }
   }, [isOpen]);
 
-  // Check Admin
   useEffect(() => {
     const checkUser = async () => {
         const { data: { user } } = await supabase.auth.getSession();
@@ -64,6 +60,38 @@ const UploadModal = () => {
     };
     if(isOpen) checkUser();
   }, [isOpen]);
+
+  // Extract duration helper
+  const extractAudioDuration = (file) => {
+    return new Promise((resolve) => {
+      const audio = new Audio();
+      audio.preload = 'metadata';
+      audio.onloadedmetadata = () => {
+        resolve(audio.duration);
+      };
+      audio.onerror = () => {
+        resolve(0);
+      };
+      audio.src = URL.createObjectURL(file);
+    });
+  };
+
+  const handleSongFileChange = async (e) => {
+    const file = e.target.files[0];
+    setSongFile(file);
+
+    if (file) {
+      try {
+        const duration = await extractAudioDuration(file);
+        setSongDuration(Math.floor(duration));
+      } catch (error) {
+        console.error("Error extracting duration:", error);
+        setSongDuration(0);
+      }
+    } else {
+      setSongDuration(0);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -103,7 +131,6 @@ const UploadModal = () => {
       
       if (imageError) throw new Error("Image upload failed: " + imageError.message);
 
-      // Get Public URLs
       const { data: songUrlData } = supabase.storage.from('songs').getPublicUrl(songData.path);
       const { data: imageUrlData } = supabase.storage.from('images').getPublicUrl(imageData.path);
 
@@ -136,94 +163,89 @@ const UploadModal = () => {
     }
   }
 
-  // Function to extract audio duration
-  const extractAudioDuration = (file) => {
-    return new Promise((resolve) => {
-      const audio = new Audio();
-      audio.preload = 'metadata';
-
-      audio.onloadedmetadata = () => {
-        resolve(audio.duration);
-      };
-
-      audio.onerror = () => {
-        resolve(0); // Return 0 if can't extract duration
-      };
-
-      audio.src = URL.createObjectURL(file);
-    });
-  };
-
-  // Handle song file selection
-  const handleSongFileChange = async (e) => {
-    const file = e.target.files[0];
-    setSongFile(file);
-
-    if (file) {
-      try {
-        const duration = await extractAudioDuration(file);
-        setSongDuration(Math.floor(duration)); // Store as integer seconds
-      } catch (error) {
-        console.error("Error extracting duration:", error);
-        setSongDuration(0);
-      }
-    } else {
-      setSongDuration(0);
-    }
-  };
-
-  // Nếu modal không mở thì không render gì cả
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex justify-center items-center p-4 font-sans animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[9999] flex justify-center items-center p-4 font-sans animate-in fade-in duration-300">
       
-      {/* CARD CONTAINER */}
-      <CyberCard className="w-full max-w-lg p-0 overflow-hidden bg-neutral-900 border-emerald-500/30 shadow-[0_0_50px_rgba(16,185,129,0.15)] relative">
-        
+      {/* BACKDROP */}
+      <div className="absolute inset-0 bg-neutral-900/90 backdrop-blur-sm" onClick={onClose} />
+
+      {/* CARD CONTAINER (CYBER STYLE) */}
+      <div className="
+          w-full max-w-lg overflow-hidden relative
+          bg-white dark:bg-black 
+          border-2 border-neutral-400 dark:border-white/20 
+          shadow-[0_0_50px_rgba(0,0,0,0.5)] dark:shadow-[0_0_50px_rgba(16,185,129,0.15)]
+          rounded-none
+      ">
+        {/* Decoration Corners */}
+        <div className="absolute top-0 left-0 w-3 h-3 border-t-4 border-l-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
+        <div className="absolute top-0 right-0 w-3 h-3 border-t-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
+        <div className="absolute bottom-0 left-0 w-3 h-3 border-b-4 border-l-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
+        <div className="absolute bottom-0 right-0 w-3 h-3 border-b-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
+
         {/* Header */}
-        <div className="bg-white/5 border-b border-white/10 p-5 flex justify-between items-center relative">
-            <div className="absolute top-0 left-0 h-0.5 w-full bg-gradient-to-r from-transparent via-emerald-500 to-transparent"></div>
+        <div className="p-5 flex justify-between items-center relative border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-neutral-900">
+            <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-transparent via-emerald-500 to-transparent"></div>
             
             <div>
-                <h2 className="text-xl font-bold font-mono text-white flex items-center gap-2 uppercase tracking-widest">
+                <h2 className="text-xl font-bold font-mono flex items-center gap-2 uppercase tracking-widest text-neutral-900 dark:text-white">
                     <GlitchText text={isAdmin ? "ADMIN_UPLOAD" : "UPLOAD_MODULE"} />
                 </h2>
-                <p className="text-[10px] font-mono text-emerald-500 tracking-[0.2em] uppercase mt-1">
+                <p className="text-[10px] font-mono tracking-[0.2em] uppercase mt-1 text-emerald-600 dark:text-emerald-500">
                     {isAdmin ? ":: SYSTEM_OVERRIDE_ENABLED ::" : ":: USER_CONTRIBUTION ::"}
                 </p>
             </div>
 
-            <button onClick={onClose} className="text-neutral-400 hover:text-red-500 transition hover:rotate-90 duration-300">
+            <button onClick={onClose} className="text-neutral-500 hover:text-red-600 dark:text-neutral-400 dark:hover:text-red-500 transition hover:rotate-90 duration-300">
                 <X size={24}/>
             </button>
         </div>
 
         {/* Body */}
-        <div className="p-6 md:p-8 bg-black/40">
+        <div className="p-6 md:p-8 bg-neutral-50 dark:bg-black/80">
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                 
                 {/* Inputs */}
                 <div className="space-y-4">
                     <div className="group relative">
-                        <label className="text-[10px] font-mono text-emerald-600 uppercase mb-1 block group-focus-within:animate-pulse">Track_Title</label>
+                        <label className="text-[10px] font-mono uppercase mb-1 block group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-500 text-neutral-600 dark:text-neutral-500 font-bold transition-colors">
+                            <Music size={12} className="inline mr-1"/> Track_Title
+                        </label>
                         <input 
                             disabled={isLoading} 
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             placeholder="ENTER_TITLE..." 
-                            className="w-full bg-black/50 border border-white/10 rounded p-3 text-white text-sm font-mono focus:border-emerald-500 focus:outline-none focus:bg-emerald-500/5 transition-all"
+                            className="
+                                w-full p-3 text-sm font-mono transition-all outline-none rounded-none
+                                bg-white border-2 border-neutral-300 text-neutral-900 placeholder-neutral-400
+                                focus:border-emerald-500 focus:shadow-[0_0_15px_rgba(16,185,129,0.2)]
+                                
+                                dark:bg-black/40 dark:border-white/20 dark:text-white dark:placeholder-neutral-600
+                                dark:focus:border-emerald-500 dark:focus:bg-emerald-500/5
+                            "
                             required
                         />
                     </div>
                     <div className="group relative">
-                        <label className="text-[10px] font-mono text-neutral-500 uppercase mb-1 block group-focus-within:text-emerald-500">Artist_Identity</label>
+                        <label className="text-[10px] font-mono uppercase mb-1 block group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-500 text-neutral-600 dark:text-neutral-500 font-bold transition-colors">
+                            <FileType size={12} className="inline mr-1"/> Artist_Identity
+                        </label>
                         <input 
                             disabled={isLoading} 
                             value={author}
                             onChange={(e) => setAuthor(e.target.value)}
                             placeholder="ENTER_ARTIST..." 
-                            className="w-full bg-black/50 border border-white/10 rounded p-3 text-white text-sm font-mono focus:border-emerald-500 focus:outline-none focus:bg-emerald-500/5 transition-all"
+                            className="
+                                w-full p-3 text-sm font-mono transition-all outline-none rounded-none
+                                bg-white border-2 border-neutral-300 text-neutral-900 placeholder-neutral-400
+                                focus:border-emerald-500 focus:shadow-[0_0_15px_rgba(16,185,129,0.2)]
+                                
+                                dark:bg-black/40 dark:border-white/20 dark:text-white dark:placeholder-neutral-600
+                                dark:focus:border-emerald-500 dark:focus:bg-emerald-500/5
+                            "
                             required
                         />
                     </div>
@@ -233,13 +255,15 @@ const UploadModal = () => {
                 <div className="grid grid-cols-2 gap-4">
                     {/* Audio Upload */}
                     <div className={`
-                        relative p-4 rounded-xl border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-col items-center justify-center gap-2 bg-black/30
-                        ${songFile ? 'border-emerald-500 bg-emerald-500/5' : 'border-neutral-700 hover:border-emerald-500/50 hover:bg-white/5'}
+                        relative p-4 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-col items-center justify-center gap-2
+                        ${songFile 
+                            ? 'border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/5' 
+                            : 'border-neutral-300 bg-white hover:bg-neutral-50 hover:border-emerald-500/50 dark:border-white/20 dark:bg-black/30 dark:hover:bg-white/5'}
                     `}>
-                        <div className={`p-3 rounded-full ${songFile ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-neutral-500 group-hover:text-emerald-400'}`}>
+                        <div className={`p-3 rounded-none border ${songFile ? 'border-emerald-500 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'border-neutral-300 bg-neutral-100 text-neutral-500 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400 group-hover:text-emerald-500 group-hover:border-emerald-500'}`}>
                             <FileAudio size={24} />
                         </div>
-                        <span className="text-[10px] font-mono text-center truncate w-full px-2 text-neutral-400 group-hover:text-white">
+                        <span className={`text-[10px] font-mono text-center truncate w-full px-2 uppercase ${songFile ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-neutral-600 dark:text-neutral-400'}`}>
                             {songFile ? songFile.name : "SELECT_AUDIO_FILE"}
                         </span>
                         <input
@@ -254,13 +278,15 @@ const UploadModal = () => {
 
                     {/* Image Upload */}
                     <div className={`
-                        relative p-4 rounded-xl border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-col items-center justify-center gap-2 bg-black/30
-                        ${imageFile ? 'border-pink-500 bg-pink-500/5' : 'border-neutral-700 hover:border-pink-500/50 hover:bg-white/5'}
+                        relative p-4 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-col items-center justify-center gap-2
+                        ${imageFile 
+                            ? 'border-pink-500 bg-pink-500/10 dark:bg-pink-500/5' 
+                            : 'border-neutral-300 bg-white hover:bg-neutral-50 hover:border-pink-500/50 dark:border-white/20 dark:bg-black/30 dark:hover:bg-white/5'}
                     `}>
-                        <div className={`p-3 rounded-full ${imageFile ? 'bg-pink-500/20 text-pink-400' : 'bg-white/5 text-neutral-500 group-hover:text-pink-400'}`}>
+                        <div className={`p-3 rounded-none border ${imageFile ? 'border-pink-500 bg-pink-500/20 text-pink-600 dark:text-pink-400' : 'border-neutral-300 bg-neutral-100 text-neutral-500 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400 group-hover:text-pink-500 group-hover:border-pink-500'}`}>
                             <ImageIcon size={24} />
                         </div>
-                        <span className="text-[10px] font-mono text-center truncate w-full px-2 text-neutral-400 group-hover:text-white">
+                        <span className={`text-[10px] font-mono text-center truncate w-full px-2 uppercase ${imageFile ? 'text-pink-700 dark:text-pink-400 font-bold' : 'text-neutral-600 dark:text-neutral-400'}`}>
                             {imageFile ? imageFile.name : "SELECT_COVER_ART"}
                         </span>
                         <input 
@@ -273,14 +299,25 @@ const UploadModal = () => {
                         />
                     </div>
                 </div>
-                {/* Visibility Toggle (Non-Admin only) */}
+
+                {/* Visibility Toggle */}
                 {!isAdmin && (
-                    <div className="flex p-1 bg-black/40 rounded-lg border border-white/5">
-                        <label className={`flex-1 flex items-center justify-center gap-2 p-2 rounded cursor-pointer transition-all ${isPublic === "true" ? 'bg-emerald-500/20 text-emerald-400 font-bold' : 'text-neutral-500 hover:text-white'}`}>
+                    <div className="flex p-1 rounded-none border border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-black/40">
+                        <label className={`
+                            flex-1 flex items-center justify-center gap-2 p-2 rounded-none cursor-pointer transition-all border border-transparent
+                            ${isPublic === "true" 
+                                ? 'bg-white dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold border-emerald-500 shadow-sm' 
+                                : 'text-neutral-500 hover:text-black dark:hover:text-white'}
+                        `}>
                             <input type="radio" value="true" checked={isPublic === "true"} onChange={(e) => setIsPublic(e.target.value)} className="hidden" />
                             <Globe size={14}/> <span className="text-[10px] font-mono uppercase">Public</span>
                         </label>
-                        <label className={`flex-1 flex items-center justify-center gap-2 p-2 rounded cursor-pointer transition-all ${isPublic === "false" ? 'bg-red-500/20 text-red-400 font-bold' : 'text-neutral-500 hover:text-white'}`}>
+                        <label className={`
+                            flex-1 flex items-center justify-center gap-2 p-2 rounded-none cursor-pointer transition-all border border-transparent
+                            ${isPublic === "false" 
+                                ? 'bg-white dark:bg-red-500/20 text-red-700 dark:text-red-400 font-bold border-red-500 shadow-sm' 
+                                : 'text-neutral-500 hover:text-black dark:hover:text-white'}
+                        `}>
                             <input type="radio" value="false" checked={isPublic === "false"} onChange={(e) => setIsPublic(e.target.value)} className="hidden" />
                             <Lock size={14}/> <span className="text-[10px] font-mono uppercase">Private</span>
                         </label>
@@ -288,21 +325,24 @@ const UploadModal = () => {
                 )}
 
                 {/* Submit Button */}
-                <GlitchButton 
+                <CyberButton 
                     type="submit" 
                     disabled={isLoading} 
-                    className="w-full py-4 text-xs tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="
+                        w-full py-4 text-xs tracking-widest disabled:opacity-50 disabled:cursor-not-allowed rounded-none
+                        border-emerald-500 bg-emerald-600 hover:bg-emerald-500 text-white
+                    "
                 >
                     {isLoading ? (
-                        <span className="flex items-center gap-2 text-white"><Loader2 className="animate-spin" size={16}/> UPLOADING...</span>
+                        <span className="flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={16}/> PROCESSING_DATA...</span>
                     ) : (
-                        <span className="flex items-center gap-2 text-white"><UploadCloud size={16}/> INITIATE_UPLOAD</span>
+                        <span className="flex items-center justify-center gap-2"><UploadCloud size={16}/> INITIATE_UPLOAD</span>
                     )}
-                </GlitchButton>
+                </CyberButton>
 
             </form>
         </div>
-      </CyberCard>
+      </div>
     </div>
   );
 }

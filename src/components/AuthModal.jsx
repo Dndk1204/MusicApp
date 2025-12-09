@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { useModal } from "@/context/ModalContext";
 import { useRouter } from "next/navigation";
 import { X, Lock, Mail, ShieldAlert, Fingerprint } from "lucide-react";
+// Import Cyber Components
+import { GlitchText, CyberButton, HoloButton, CyberCard } from "@/components/CyberComponents";
 
 const AuthModal = () => {
   const { isOpen, closeModal, view } = useModal();
@@ -92,120 +94,165 @@ const AuthModal = () => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex justify-center items-center p-4 animate-in fade-in duration-300">
-      {/* Giảm max-w-md -> max-w-sm, p-8 -> p-6 */}
-      <div className="glass w-full max-w-sm rounded-xl p-6 relative shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10">
-        
-        <button onClick={closeModal} className="absolute top-3 right-3 text-neutral-500 hover:text-red-500 transition hover:rotate-90 duration-300">
-          <X size={18} />
-        </button>
+    <div className="fixed inset-0 z-[100] bg-neutral-900/90 backdrop-blur-sm flex justify-center items-center p-4 animate-in fade-in duration-300">
+      
+      {/* Modal Container (Cyber Brutalism) */}
+      <div className="
+          relative w-full max-w-sm overflow-hidden
+          bg-white dark:bg-black 
+          border-2 border-neutral-400 dark:border-white/20 
+          shadow-[0_0_50px_rgba(0,0,0,0.5)] dark:shadow-[0_0_50px_rgba(16,185,129,0.15)]
+          rounded-none
+      ">
+        {/* Decoration Corners */}
+        <div className="absolute top-0 left-0 w-3 h-3 border-t-4 border-l-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
+        <div className="absolute top-0 right-0 w-3 h-3 border-t-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
+        <div className="absolute bottom-0 left-0 w-3 h-3 border-b-4 border-l-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
+        <div className="absolute bottom-0 right-0 w-3 h-3 border-b-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
 
-        {/* HEADER COMPACT */}
-        <div className="text-center mb-6">
-            {/* Icon nhỏ hơn w-10 h-10 */}
-            <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/5 mb-3 border border-white/10">
-                <Fingerprint size={20} className="text-emerald-500"/>
+        {/* HEADER */}
+        <div className="bg-neutral-100 dark:bg-neutral-900 border-b border-neutral-300 dark:border-white/10 p-6 text-center relative">
+            <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-transparent via-emerald-500 to-transparent"></div>
+            
+            <div className="w-12 h-12 mx-auto flex items-center justify-center mb-3 bg-neutral-200 dark:bg-white/5 border border-neutral-400 dark:border-white/20 rounded-none shadow-inner">
+                <Fingerprint size={24} className="text-emerald-600 dark:text-emerald-500 animate-pulse"/>
             </div>
-            {/* Tiêu đề nhỏ hơn text-2xl */}
-            <h2 className="text-2xl font-bold text-white font-mono tracking-tighter">
-            {variant === 'login' && 'SYSTEM_LOGIN'}
-            {variant === 'register' && 'NEW_USER_ENTRY'}
-            {variant === 'recovery' && 'RESET_PROTOCOL'}
+            
+            <h2 className="text-xl font-bold font-mono tracking-widest text-neutral-900 dark:text-white uppercase">
+                <GlitchText text={variant === 'login' ? 'SYSTEM_LOGIN' : variant === 'register' ? 'NEW_USER_ENTRY' : 'RESET_PROTOCOL'} />
             </h2>
-            <p className="text-[9px] font-mono text-emerald-500 tracking-[0.3em] uppercase mt-1 opacity-80">
-            {variant === 'recovery' 
-                ? ':: AWAITING_ID ::' 
-                : ':: AUTH_REQUIRED ::'}
+            
+            <p className="text-[10px] font-mono tracking-[0.2em] uppercase mt-1 text-emerald-600 dark:text-emerald-500/80">
+                {variant === 'recovery' ? ':: AWAITING_ID ::' : ':: AUTH_REQUIRED ::'}
             </p>
+
+            <button 
+                onClick={closeModal} 
+                className="absolute top-3 right-3 text-neutral-500 hover:text-red-500 dark:text-neutral-400 transition hover:rotate-90 duration-300"
+            >
+                <X size={20} />
+            </button>
         </div>
 
-        {/* MESSAGE BOX COMPACT */}
-        {message && (
-          <div className={`p-2 rounded-md mb-4 text-[10px] font-mono font-bold text-center border ${message.type === 'error' ? 'bg-red-500/10 text-red-500 border-red-500/30' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'}`}>
-            {message.text}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3"> {/* Giảm gap-5 -> gap-3 */}
-          {/* EMAIL INPUT */}
-          <div className="relative group">
-            <Mail className="absolute left-3 top-2.5 text-neutral-500 group-focus-within:text-emerald-500 transition" size={16}/>
-            <input
-                type="email"
-                placeholder="Enter Email ID..."
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
-                required
-                /* Giảm padding py-3 -> py-2, text-sm -> text-xs */
-                className="w-full bg-black/40 border border-white/10 rounded-lg py-2.5 pl-9 pr-4 text-white font-mono text-xs outline-none focus:border-emerald-500 focus:shadow-[0_0_15px_rgba(16,185,129,0.1)] transition"
-            />
-          </div>
-          
-          {/* PASSWORD INPUT */}
-          {variant !== 'recovery' && (
-             <div className="relative group">
-                <Lock className="absolute left-3 top-2.5 text-neutral-500 group-focus-within:text-emerald-500 transition" size={16}/>
-                <input
-                    type="password"
-                    placeholder="Enter Password..."
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    required
-                    className="w-full bg-black/40 border border-white/10 rounded-lg py-2.5 pl-9 pr-4 text-white font-mono text-xs outline-none focus:border-emerald-500 focus:shadow-[0_0_15px_rgba(16,185,129,0.1)] transition"
-                />
-            </div>
-          )}
-
-          {/* ADMIN CODE INPUT */}
-          {variant === 'register' && (
-             <div className="relative group">
-                <ShieldAlert className="absolute left-3 top-2.5 text-neutral-500 group-focus-within:text-blue-500 transition" size={16}/>
-                <input
-                    type="text"
-                    placeholder="Admin Code (Optional)"
-                    value={adminCode}
-                    onChange={(e) => setAdminCode(e.target.value)}
-                    disabled={loading}
-                    className="w-full bg-black/40 border border-white/10 rounded-lg py-2.5 pl-9 pr-4 text-white font-mono text-xs outline-none focus:border-blue-500 focus:shadow-[0_0_15px_rgba(59,130,246,0.2)] transition"
-                />
-             </div>
-          )}
-          
-          <button 
-            type="submit" 
-            disabled={loading}
-            /* Giảm padding py-3 -> py-2.5 */
-            className="mt-2 bg-emerald-500 text-black font-bold font-mono py-2.5 rounded-lg hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:scale-[0.98] text-xs"
-          >
-            {loading ? 'PROCESSING...' : (
-              variant === 'login' ? 'INITIALIZE_LOGIN' : 
-              variant === 'register' ? 'CREATE_IDENTITY' : 'SEND_KEY'
+        {/* BODY */}
+        <div className="p-6 bg-neutral-50/50 dark:bg-black/80">
+            
+            {/* MESSAGE BOX */}
+            {message && (
+                <div className={`mb-4 p-2 text-[10px] font-mono font-bold text-center border uppercase tracking-wide animate-in slide-in-from-top-2
+                    ${message.type === 'error' 
+                        ? 'bg-red-100 border-red-500 text-red-600 dark:bg-red-500/10 dark:text-red-500 dark:border-red-500/30' 
+                        : 'bg-emerald-100 border-emerald-500 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-500 dark:border-emerald-500/30'}
+                `}>
+                    {message.text}
+                </div>
             )}
-          </button>
-        </form>
 
-        <div className="mt-4 text-center text-[10px] font-mono text-neutral-500 flex flex-col gap-y-2">
-          {variant === 'login' ? (
-            <>
-              <div>
-                [NO_ID] <span onClick={() => {setVariant('register'); setMessage(null)}} className="text-emerald-500 cursor-pointer hover:underline hover:text-emerald-400">:: REGISTER ::</span>
-              </div>
-              <div onClick={() => {setVariant('recovery'); setMessage(null)}} className="cursor-pointer hover:text-white transition">
-                // LOST_PASSWORD?
-              </div>
-            </>
-          ) : (
-            <div>
-              {variant === 'register' 
-                ? <>[ID_EXISTS] <span onClick={() => {setVariant('login'); setMessage(null)}} className="text-emerald-500 cursor-pointer hover:underline hover:text-emerald-400">:: LOGIN ::</span></>
-                : <span onClick={() => {setVariant('login'); setMessage(null)}} className="text-emerald-500 cursor-pointer hover:underline hover:text-emerald-400 text-center w-full block">{'< RETURN'}</span>
-              }
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                
+                {/* EMAIL INPUT */}
+                <div className="relative group">
+                    <Mail className="absolute left-3 top-3 text-neutral-500 group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-500 transition-colors pointer-events-none" size={16}/>
+                    <input
+                        type="email"
+                        placeholder="ENTER_EMAIL_ID..."
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={loading}
+                        required
+                        className="
+                            w-full p-3 pl-10 text-xs font-mono outline-none transition-all rounded-none
+                            bg-white border-2 border-neutral-300 text-neutral-900 placeholder-neutral-400
+                            focus:border-emerald-500 focus:shadow-[0_0_15px_rgba(16,185,129,0.2)]
+                            
+                            dark:bg-black/40 dark:border-white/20 dark:text-white dark:placeholder-neutral-600
+                            dark:focus:border-emerald-500 dark:focus:shadow-[0_0_15px_rgba(16,185,129,0.15)]
+                        "
+                    />
+                </div>
+                
+                {/* PASSWORD INPUT */}
+                {variant !== 'recovery' && (
+                    <div className="relative group">
+                        <Lock className="absolute left-3 top-3 text-neutral-500 group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-500 transition-colors pointer-events-none" size={16}/>
+                        <input
+                            type="password"
+                            placeholder="ENTER_PASSWORD..."
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            disabled={loading}
+                            required
+                            className="
+                                w-full p-3 pl-10 text-xs font-mono outline-none transition-all rounded-none
+                                bg-white border-2 border-neutral-300 text-neutral-900 placeholder-neutral-400
+                                focus:border-emerald-500 focus:shadow-[0_0_15px_rgba(16,185,129,0.2)]
+                                
+                                dark:bg-black/40 dark:border-white/20 dark:text-white dark:placeholder-neutral-600
+                                dark:focus:border-emerald-500 dark:focus:shadow-[0_0_15px_rgba(16,185,129,0.15)]
+                            "
+                        />
+                    </div>
+                )}
+
+                {/* ADMIN CODE INPUT */}
+                {variant === 'register' && (
+                    <div className="relative group">
+                        <ShieldAlert className="absolute left-3 top-3 text-neutral-500 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-500 transition-colors pointer-events-none" size={16}/>
+                        <input
+                            type="text"
+                            placeholder="ADMIN_CODE (OPTIONAL)"
+                            value={adminCode}
+                            onChange={(e) => setAdminCode(e.target.value)}
+                            disabled={loading}
+                            className="
+                                w-full p-3 pl-10 text-xs font-mono outline-none transition-all rounded-none
+                                bg-white border-2 border-neutral-300 text-neutral-900 placeholder-neutral-400
+                                focus:border-blue-500 focus:shadow-[0_0_15px_rgba(59,130,246,0.2)]
+                                
+                                dark:bg-black/40 dark:border-white/20 dark:text-white dark:placeholder-neutral-600
+                                dark:focus:border-blue-500 dark:focus:shadow-[0_0_15px_rgba(59,130,246,0.15)]
+                            "
+                        />
+                    </div>
+                )}
+                
+                {/* SUBMIT BUTTON */}
+                <CyberButton 
+                    type="submit" 
+                    disabled={loading} 
+                    className="
+                        w-full py-3 text-xs tracking-widest disabled:opacity-50 disabled:cursor-not-allowed rounded-none mt-2
+                    "
+                >
+                    {loading ? 'PROCESSING...' : (
+                        variant === 'login' ? 'INITIALIZE_LOGIN' : 
+                        variant === 'register' ? 'CREATE_IDENTITY' : 'SEND_KEY'
+                    )}
+                </CyberButton>
+            </form>
+
+            {/* FOOTER LINKS */}
+            <div className="mt-6 text-center text-[10px] font-mono text-neutral-500 flex flex-col gap-y-3 pt-4 border-t border-dashed border-neutral-300 dark:border-white/10">
+                {variant === 'login' ? (
+                <>
+                    <div>
+                        [NO_ID] <span onClick={() => {setVariant('register'); setMessage(null)}} className="text-emerald-600 dark:text-emerald-500 cursor-pointer hover:underline font-bold">:: REGISTER ::</span>
+                    </div>
+                    <div onClick={() => {setVariant('recovery'); setMessage(null)}} className="cursor-pointer hover:text-black dark:hover:text-white transition">
+                        // LOST_PASSWORD?
+                    </div>
+                </>
+                ) : (
+                <div>
+                    {variant === 'register' 
+                        ? <>[ID_EXISTS] <span onClick={() => {setVariant('login'); setMessage(null)}} className="text-emerald-600 dark:text-emerald-500 cursor-pointer hover:underline font-bold">:: LOGIN ::</span></>
+                        : <span onClick={() => {setVariant('login'); setMessage(null)}} className="text-emerald-600 dark:text-emerald-500 cursor-pointer hover:underline font-bold w-full block">{'< RETURN_TO_LOGIN'}</span>
+                    }
+                </div>
+                )}
             </div>
-          )}
-        </div>
 
+        </div>
       </div>
     </div>
   );

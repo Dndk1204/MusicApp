@@ -85,7 +85,7 @@ const SpectrumVisualizer = ({ isPlaying }) => {
     <div className="w-full flex flex-col items-center gap-2">
       <canvas
         ref={canvasRef}
-        className="w-full h-20 bg-black/20 rounded-md border border-white/10 backdrop-blur-sm shadow-inner"
+        className="w-full h-20 bg-black/20 rounded-none border border-white/10 backdrop-blur-sm shadow-inner"
         width={400}
         height={80}
         style={{ display: "block" }}

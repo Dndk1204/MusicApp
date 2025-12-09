@@ -8,12 +8,13 @@ import { supabase } from "@/lib/supabaseClient";
 // Components
 import Navbar from "./Navbar";
 import CreatePlaylistModal from "./CreatePlaylistModal";
-import UploadModal from "@/components/UploadModal"; // Từ Sidebar 1
+import UploadModal from "@/components/UploadModal"; 
 
 // Hooks
 import useUI from "@/hooks/useUI";
-import usePlayer from "@/hooks/usePlayer"; // Từ Sidebar 2
-import useUploadModal from "@/hooks/useUploadModal"; // Từ Sidebar 1
+import usePlayer from "@/hooks/usePlayer"; 
+import useUploadModal from "@/hooks/useUploadModal";
+import { CyberButton } from "@/components/CyberComponents"; // Import đúng đường dẫn
 
 // =========================
 //    Skeleton Loader
@@ -21,12 +22,12 @@ import useUploadModal from "@/hooks/useUploadModal"; // Từ Sidebar 1
 const PlaylistSkeleton = () => {
   return (
     <div className="flex flex-col gap-y-2 mt-2 px-1">
-      {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-        <div key={i} className="flex items-center gap-x-3 p-2 rounded-md animate-pulse">
-          <div className="w-10 h-10 bg-neutral-300 dark:bg-neutral-800 rounded-md shrink-0"></div>
+      {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+        <div key={i} className="flex items-center gap-x-3 p-2 rounded-none animate-pulse">
+          <div className="w-10 h-10 bg-neutral-300 dark:bg-neutral-800 rounded-none shrink-0 border border-white/5"></div>
           <div className="flex-1 space-y-2">
-            <div className="h-3 w-3/4 bg-neutral-300 dark:bg-neutral-800 rounded"></div>
-            <div className="h-2 w-1/2 bg-neutral-300 dark:bg-neutral-800 rounded"></div>
+            <div className="h-3 w-3/4 bg-neutral-300 dark:bg-neutral-800 rounded-none"></div>
+            <div className="h-2 w-1/2 bg-neutral-300 dark:bg-neutral-800 rounded-none"></div>
           </div>
         </div>
       ))}
@@ -43,14 +44,14 @@ const Sidebar = ({ children }) => {
   
   // Hooks
   const player = usePlayer();
-  const uploadModal = useUploadModal(); // Hook mở modal upload
+  const uploadModal = useUploadModal();
 
   // State
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
 
-  // Helper: Lấy chữ cái đầu làm ảnh bìa mặc định
+  // Helper
   const getFirstLetter = (name) => {
     if (!name) return "?";
     return name.trim()[0].toUpperCase();
@@ -92,44 +93,23 @@ const Sidebar = ({ children }) => {
     const init = async () => {
       await fetchPlaylists();
 
-      // Lấy user hiện tại
       const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
       if (!user) return;
 
-      // Realtime playlists (Thêm/Xóa Playlist)
       ch1 = supabase
         .channel("rt-playlists")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "playlists",
-            filter: `user_id=eq.${user.id}`
-          },
-          fetchPlaylists
-        )
+        .on("postgres_changes", { event: "*", schema: "public", table: "playlists", filter: `user_id=eq.${user.id}` }, fetchPlaylists)
         .subscribe();
 
-      // Realtime playlist_songs (Khi thêm bài vào playlist thì cập nhật số lượng)
       ch2 = supabase
         .channel("rt-playlist-songs")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "playlist_songs"
-          },
-          fetchPlaylists
-        )
+        .on("postgres_changes", { event: "*", schema: "public", table: "playlist_songs" }, fetchPlaylists)
         .subscribe();
     };
 
     init();
 
-    // Lắng nghe sự kiện LOGIN/LOGOUT để reset dữ liệu
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_IN") {
         setLoading(true);
@@ -197,7 +177,6 @@ const Sidebar = ({ children }) => {
     e.stopPropagation();
 
     try {
-      // 1. Lấy toàn bộ bài hát trong playlist
       const { data: songsData, error } = await supabase
         .from("playlist_songs")
         .select(`
@@ -211,7 +190,6 @@ const Sidebar = ({ children }) => {
 
       if (error) throw error;
 
-      // 2. Lọc và chuẩn hóa dữ liệu
       const songs = songsData
         .map((item) => item.songs)
         .filter(Boolean);
@@ -231,9 +209,7 @@ const Sidebar = ({ children }) => {
         ...s,
       });
 
-      // 3. Đẩy vào Player
       const ids = songs.map((s) => Number(s.id));
-      // Cập nhật Song Map global nếu cần (để tránh fetch lại)
       if (typeof window !== 'undefined') {
            const songMap = {};
            songs.forEach(s => songMap[s.id] = normalize(s));
@@ -252,7 +228,7 @@ const Sidebar = ({ children }) => {
   return (
     <div className="relative h-screen w-full overflow-hidden bg-neutral-100 dark:bg-black">
       
-      {/* Modal Upload (từ Sidebar 1) */}
+      {/* Modal Upload */}
       <UploadModal />
 
       <div className="fixed top-0 left-0 w-full h-[64px] z-[999]">
@@ -261,121 +237,129 @@ const Sidebar = ({ children }) => {
 
       <div className="flex h-full w-full">
         {/* SIDEBAR */}
-        <div className="hidden md:flex flex-col w-[240px] h-full pt-[74px] pb-4 ml-4 shrink-0 gap-y-3">
+        <div className="hidden md:flex flex-col w-[220px] h-full pt-[74px] pb-4 ml-4 shrink-0 gap-y-3">
 
           {/* PHẦN 1: USER LIBRARY & UPLOAD */}
-          <div className="bg-white/60 dark:bg-black/60 backdrop-blur-3xl border border-neutral-200 dark:border-white/5 rounded-2xl p-3 shadow-sm">
-             <div className="flex items-center gap-x-2 mb-3 pl-2 text-neutral-700 dark:text-neutral-400">
-                <Music size={20} />
-                <p className="font-bold text-[10px] tracking-[0.2em] font-mono">YOUR MUSIC</p>
-             </div>
+          <div className="bg-white/60 dark:bg-black/60 backdrop-blur-3xl border border-neutral-200 dark:border-white/5 rounded-none p-2 shadow-sm">
+              
+              {/* Header */}
+              <div className="flex items-center justify-between px-2 mb-2">
+                 <div className="flex items-center gap-x-2 text-neutral-700 dark:text-neutral-400">
+                    <Library size={16} />
+                    <p className="font-bold text-[9px] tracking-[0.2em] font-mono">LIBRARY</p>
+                 </div>
+                 
+                 {/* Nút Upload: Bỏ Rounded */}
+                 <CyberButton
+                    onClick={uploadModal.onOpen}
+                    className="
+                        flex items-center gap-1.5 !px-2 !py-1 rounded-none
+                        bg-emerald-500/10 dark:bg-emerald-500/20
+                        border border-emerald-500/30 
+                        !text-black dark:!text-emerald-400 dark:hover:!text-white
+                        hover:bg-emerald-500 hover:!text-white hover:border-emerald-500
+                        hover:shadow-[0_0_10px_rgba(16,185,129,0.4)]
+                        transition-all duration-300 group 
+                    "
+                    title="Upload New Song"
+                 >
+                    <UploadCloud size={12} className="group-hover:animate-bounce " /> 
+                    <span className="text-[9px] font-bold font-mono uppercase">Upload</span>
+                 </CyberButton>
+              </div>
 
-             <div className="flex flex-col gap-2">
-                {/* Nút Vào Thư Viện */}
-                <button
+              <div className="flex flex-col gap-1">
+                 {/* Nút Vào Thư Viện (My Uploads) */}
+                 <button
                     onClick={() => router.push('/user/library')}
-                    className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-neutral-200/50 dark:hover:bg-white/10 transition text-sm text-neutral-700 dark:text-neutral-300 font-medium group"
-                >
-                    <div className="w-8 h-8 rounded bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center group-hover:text-emerald-500 transition">
-                        <User size={16} />
+                    className="flex items-center gap-2 w-full p-1.5 rounded-none hover:!text-emerald-400 hover:bg-neutral-200/50 dark:hover:bg-white/5 transition text-xs text-neutral-900 dark:text-neutral-300 font-medium group"
+                 >
+                    <div className="w-6 h-6 rounded-none bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center group-hover:text-emerald-500 transition shadow-sm border border-neutral-300 dark:border-white/5">
+                        <User size={12} />
                     </div>
                     <span>My Uploads</span>
-                </button>
-
-                {/* Nút Upload Nhạc */}
-                <button
-                    onClick={uploadModal.onOpen} // Mở modal upload
-                    className="flex items-center gap-3 w-full p-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 hover:border-emerald-500/50 transition text-sm text-emerald-600 dark:text-emerald-400 font-medium group"
-                >
-                    <div className="w-8 h-8 rounded bg-emerald-500/20 flex items-center justify-center group-hover:scale-110 transition">
-                        <UploadCloud size={16} />
-                    </div>
-                    <span>Upload Song</span>
-                </button>
-             </div>
+                 </button>
+              </div>
           </div>
 
           {/* PHẦN 2: PLAYLISTS */}
-          <div className="flex flex-col flex-1 min-h-0 bg-white/60 dark:bg-black/60 backdrop-blur-3xl border border-neutral-200 dark:border-white/5 rounded-2xl p-3 shadow-sm overflow-hidden">
+          <div className="flex flex-col flex-1 min-h-0 bg-white/60 dark:bg-black/60 backdrop-blur-3xl border border-neutral-200 dark:border-white/5 rounded-none p-2 shadow-sm overflow-hidden mt-2">
 
-            {/* Header Library */}
-            <div className="flex items-center justify-between text-neutral-700 dark:text-neutral-400 pl-2 pb-2 border-b border-neutral-200 dark:border-white/5">
-              <div className="flex items-center gap-x-2">
-                <Library size={20} />
-                <p className="font-bold text-[10px] tracking-[0.2em] font-mono">PLAYLISTS</p>
-              </div>
+            {/* Header Playlist */}
+            <div className="flex items-center justify-between text-neutral-700 dark:text-neutral-400 px-2 pb-2 border-b border-neutral-200 dark:border-white/5">
+              <p className="font-bold text-[9px] tracking-[0.2em] font-mono">PLAYLISTS</p>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="hover:text-emerald-500 p-1 transition"
+                className="hover:text-emerald-500 p-1 transition hover:bg-white/10 rounded-none border border-transparent hover:border-emerald-500/50"
                 title="Create Playlist"
               >
-                <Plus size={20} />
+                <Plus size={14} />
               </button>
             </div>
 
             {/* Playlist List */}
-            <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar mt-1">
               {loading ? (
                 <PlaylistSkeleton />
               ) : playlists.length === 0 ? (
-                <div className="flex flex-col items-center mt-10 gap-2 opacity-50">
-                  <ListMusic size={24} />
-                  <p className="text-[10px] italic font-mono">[EMPTY]</p>
+                <div className="flex flex-col items-center mt-6 gap-1 opacity-40">
+                  <ListMusic size={20} />
+                  <p className="text-[9px] italic font-mono">[EMPTY]</p>
                 </div>
               ) : (
-                <ul className="flex flex-col gap-y-1 mt-1">
+                <ul className="flex flex-col gap-y-0.5">
                   {playlists.map((pl) => (
                     <li key={pl.id}>
                       <div
                         onClick={() => router.push(`/playlist?id=${pl.id}`)}
                         className="
-                          group relative flex items-center gap-x-3 px-2 py-2 rounded-lg
-                          hover:bg-neutral-200/50 dark:hover:bg-white/10
+                          group relative flex items-center gap-x-2 px-2 py-1.5 rounded-none
+                          hover:bg-neutral-200/50 dark:hover:bg-white/5
                           transition-all duration-200 cursor-pointer overflow-hidden
+                          border border-transparent hover:border-white/5
                         "
                       >
-                        {/* Cover Image */}
-                        <div className="relative w-10 h-10 shrink-0 rounded-md overflow-hidden border border-neutral-300 dark:border-white/10 shadow-sm flex items-center justify-center bg-neutral-200 dark:bg-neutral-800">
+                        {/* Cover Image - Bỏ Rounded, thêm viền */}
+                        <div className="relative w-8 h-8 shrink-0 rounded-none overflow-hidden border border-neutral-300 dark:border-white/10 shadow-sm flex items-center justify-center bg-neutral-200 dark:bg-neutral-800">
                              {pl.cover_url ? (
                                 <img src={pl.cover_url} alt={pl.name} className="w-full h-full object-cover" />
                              ) : (
-                                <span className="text-sm font-bold text-neutral-700 dark:text-neutral-300">
+                                <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 font-mono">
                                     {getFirstLetter(pl.name)}
                                 </span>
                              )}
 
-                            {/* Overlay Play Icon */}
                             <div className="absolute inset-0 bg-black/40 hidden group-hover:flex items-center justify-center backdrop-blur-[1px]">
-                                <Play size={16} className="text-white fill-white" />
+                                <Play size={10} className="text-white fill-white" />
                             </div>
                         </div>
 
-                        {/* Playlist Name and Song Count */}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm text-neutral-700 dark:text-neutral-300 truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                        {/* Playlist Name & Count */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                          <p className="font-medium text-xs text-neutral-700 dark:text-neutral-300 truncate group-hover:text-emerald-500 transition-colors leading-tight font-mono">
                             {pl.name}
                           </p>
-                          <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate font-mono">
-                            {pl.playlist_songs?.length || 0} songs
+                          <p className="text-[9px] text-neutral-400 dark:text-neutral-500 truncate font-mono leading-tight">
+                            {pl.playlist_songs?.length || 0} tracks
                           </p>
                         </div>
 
-                        {/* Action Buttons (Slide in on hover) */}
-                        <div className="absolute right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300">
+                        {/* Action Buttons - Bỏ Rounded */}
+                        <div className="absolute right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-200">
                              <button
                                 onClick={(e) => handlePlayPlaylist(e, pl.id)}
-                                className="p-1.5 rounded-full bg-emerald-500 text-white shadow-lg hover:bg-emerald-400 hover:scale-110 transition"
-                                title="Play Playlist"
+                                className="p-1 rounded-none bg-emerald-500 text-white hover:bg-emerald-400 hover:scale-105 transition shadow-sm"
+                                title="Play"
                              >
-                                <Play size={12} fill="currentColor" />
+                                <Play size={10} fill="currentColor" />
                              </button>
 
                              <button
                                 onClick={(e) => handleDeletePlaylist(e, pl.id)}
-                                className="p-1.5 rounded-full bg-neutral-200 dark:bg-neutral-800 text-neutral-500 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 transition"
-                                title="Delete Playlist"
+                                className="p-1 rounded-none bg-neutral-200 dark:bg-neutral-800 text-neutral-500 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 transition shadow-sm border border-transparent hover:border-red-500/30"
+                                title="Delete"
                              >
-                                <Trash2 size={12} />
+                                <Trash2 size={10} />
                              </button>
                         </div>
                       </div>

@@ -5,13 +5,8 @@ import usePlayer from "@/hooks/usePlayer";
 import useLoadSongUrl from "@/hooks/useLoadSongUrl";
 import PlayerContent from "./PlayerContent";
 import { supabase } from "@/lib/supabaseClient";
-
-const formatDuration = (seconds) => {
-  if (!seconds) return "00:00";
-  const min = Math.floor(seconds / 60);
-  const sec = Math.floor(seconds % 60);
-  return `${min}:${sec < 10 ? "0" + sec : sec}`;
-};
+// Import Cyber Components nếu cần, hoặc dùng class
+import { GlitchText } from "@/components/CyberComponents";
 
 const Player = () => {
   const player = usePlayer();
@@ -19,7 +14,7 @@ const Player = () => {
   const [isMounted, setIsMounted] = useState(false);
 
   /* ------------------------------------------------------
-     Reset player khi SIGNED_OUT
+      Reset player khi SIGNED_OUT
   ------------------------------------------------------ */
   useEffect(() => {
     // Reset player every time page reloads
@@ -41,7 +36,7 @@ const Player = () => {
   }, []);
 
   /* ------------------------------------------------------
-     Load bài hát từ Supabase trước — nếu thiếu mới gọi Jamendo
+      Load bài hát từ Supabase trước — nếu thiếu mới gọi Jamendo
   ------------------------------------------------------ */
   useEffect(() => {
     if (!isMounted) return;
@@ -54,7 +49,7 @@ const Player = () => {
 
       try {
         /* ------------------------------------------------------
-           1️⃣ Lấy bài hát từ Supabase
+            1️⃣ Lấy bài hát từ Supabase
         ------------------------------------------------------ */
         const { data: dbSong } = await supabase
           .from("songs")
@@ -78,8 +73,7 @@ const Player = () => {
         }
 
         /* ------------------------------------------------------
-           2️⃣ Nếu không có trong Supabase → fetch bằng Jamendo ID
-           YÊU CẦU: bảng songs có trường `external_id` = id Jamendo
+            2️⃣ Nếu không có trong Supabase → fetch bằng Jamendo ID
         ------------------------------------------------------ */
         const jamendoId = dbSong?.external_id || player.activeId;
 
@@ -111,7 +105,7 @@ const Player = () => {
         setSong(recoveredSong);
 
         /* ------------------------------------------------------
-           3️⃣ Upsert lại vào Supabase để lần sau load nhanh hơn
+            3️⃣ Upsert lại vào Supabase để lần sau load nhanh hơn
         ------------------------------------------------------ */
         if (dbSong) {
           await supabase.from("songs").upsert({
@@ -136,18 +130,37 @@ const Player = () => {
 
   if (!isMounted) return null;
 
+  // --- EMPTY STATE (WAITING) ---
   if (!song || !songUrl || !player.activeId) {
     return (
-      <div className="fixed bottom-0 w-full h-[68px] bg-white/80 dark:bg-black/40 backdrop-blur-xl border-t border-neutral-200 dark:border-white/5 flex items-center justify-center z-50 transition-colors duration-300">
-        <p className="text-neutral-500 dark:text-neutral-400 font-mono text-[10px] tracking-widest uppercase animate-pulse">
-          :: SYSTEM_READY_TO_PLAY ::
+      <div className="
+        fixed bottom-0 w-full h-[60px] 
+        bg-white/80 dark:bg-black/80 backdrop-blur-md 
+        border-t border-neutral-300 dark:border-white/10 
+        flex items-center justify-center 
+        z-50 transition-colors duration-300
+      ">
+        <p className="text-neutral-500 dark:text-neutral-400 font-mono text-[10px] tracking-[0.2em] uppercase animate-pulse flex items-center gap-2">
+           <span className="w-1.5 h-1.5 bg-emerald-500 rounded-none"></span>
+           :: SYSTEM_READY_TO_PLAY ::
         </p>
       </div>
     );
   }
 
+  // --- PLAYER ACTIVE ---
   return (
-    <div className="fixed bottom-0 w-full h-[72px] bg-white/90 dark:bg-neutral-900/60 border-t border-neutral-200 dark:border-white/10 px-4 py-1 z-50 backdrop-blur-xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_-10px_30px_rgba(0,0,0,0.3)] transition-all duration-500">
+    <div className="
+        fixed bottom-0 w-full h-[80px] 
+        bg-white/95 dark:bg-black/90 backdrop-blur-xl 
+        border-t-2 border-neutral-300 dark:border-emerald-500/30 
+        px-4 py-2 z-50 
+        shadow-[0_-10px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_-5px_30px_rgba(16,185,129,0.1)] 
+        transition-all duration-500
+    ">
+      {/* Decor Line (Top Accent) */}
+      <div className="absolute top-0 left-0 h-[2px] w-full bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-50"></div>
+      
       <PlayerContent key={songUrl} song={song} songUrl={songUrl} />
     </div>
   );
