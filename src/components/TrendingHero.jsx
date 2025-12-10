@@ -5,12 +5,16 @@ import Image from "next/image";
 import { Play, User, ChevronRight, ChevronLeft, Music, TrendingUp, Crown, BarChart3, Activity } from "lucide-react";
 import Link from "next/link";
 import usePlayer from "@/hooks/usePlayer";
+import { useAuth } from "@/components/AuthWrapper";
+import { useModal } from "@/context/ModalContext";
 import { supabase } from "@/lib/supabaseClient";
 // Import Cyber Components
 import { GlitchText, CyberCard, ScanlineOverlay, HoloButton } from "@/components/CyberComponents";
 
-const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => { 
+const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
   const player = usePlayer();
+  const { isAuthenticated } = useAuth();
+  const { openModal } = useModal();
   
   const [activeTab, setActiveTab] = useState('songs'); 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -131,6 +135,13 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
 
   const handlePlay = () => {
     if (activeTab !== 'songs' || !activeSong) return;
+
+    if (!isAuthenticated) {
+      // Show login modal if not authenticated
+      openModal();
+      return;
+    }
+
     if (typeof window !== "undefined") {
         const songMap = {};
         trendingSongs.forEach(song => songMap[song.id] = song);

@@ -2,6 +2,8 @@
 
 import { Play, ChevronDown, Mic2, Disc } from "lucide-react";
 import usePlayer from "@/hooks/usePlayer";
+import { useAuth } from "@/components/AuthWrapper";
+import { useModal } from "@/context/ModalContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 // Import Cyber Components
@@ -18,7 +20,9 @@ const formatDuration = (sec) => {
 
 const SearchContent = ({ songs }) => {
   const player = usePlayer();
-  
+  const { isAuthenticated } = useAuth();
+  const { openModal } = useModal();
+
   // --- PAGINATION STATE ---
   const BATCH_SIZE = 8;
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
@@ -38,6 +42,12 @@ const SearchContent = ({ songs }) => {
   }, [songs]);
 
   const handlePlay = (id) => {
+    if (!isAuthenticated) {
+      // Show login modal if not authenticated
+      openModal();
+      return;
+    }
+
     player.setId(id);
     player.setIds(songs.map((song) => song.id));
   };
