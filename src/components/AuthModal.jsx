@@ -128,7 +128,7 @@ const AuthModal = () => {
 
             <button 
                 onClick={closeModal} 
-                className="absolute top-3 right-3 text-neutral-500 hover:text-red-500 dark:text-neutral-400 transition hover:rotate-90 duration-300"
+                className="absolute top-3 right-3 text-neutral-500 hover:!text-red-500 dark:text-neutral-400 transition hover:!rotate-90 duration-300"
             >
                 <X size={20} />
             </button>
