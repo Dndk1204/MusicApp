@@ -331,7 +331,7 @@ const NowPlayingPage = () => {
   if (!player.activeId || !song) return null;
 
   return (
-    <div className="w-full h-[100vh] grid grid-cols-1 lg:grid-cols-10 gap-6 p-4 pb-[100px] overflow-hidden bg-neutral-100 dark:bg-black transition-colors animate-in fade-in duration-500 relative">
+    <div className="w-full h-[80vh] grid grid-cols-1 lg:grid-cols-10 gap-6 p-4 pb-[100px] overflow-hidden bg-neutral-100 dark:bg-black transition-colors animate-in fade-in duration-500 relative">
       
       {/* Background FUI Elements */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none opacity-50"></div>
@@ -390,7 +390,7 @@ const NowPlayingPage = () => {
       </div>
 
       {/* --- CỘT PHẢI (TABS & CONTROLS) --- */}
-      <div className="lg:col-span-4 flex flex-col h-[110%] bg-white/80 dark:bg-black/40 backdrop-blur-2xl border border-neutral-200 dark:border-white/10 rounded-none overflow-hidden shadow-2xl z-30 relative">
+      <div className="lg:col-span-4 flex flex-col h-full bg-white/80 dark:bg-black/40 backdrop-blur-2xl border border-neutral-200 dark:border-white/10 rounded-none overflow-hidden shadow-2xl z-30 relative">
          
          {/* Decorative FUI Corners */}
          <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-emerald-500 z-40"></div>
@@ -410,7 +410,8 @@ const NowPlayingPage = () => {
                 </button>
          </div>
 
-         <div className="flex-1 overflow-hidden p-6 custom-scrollbar relative">
+         {/* --- MAIN CONTENT CONTAINER (Đã chỉnh sửa điều kiện scroll) --- */}
+         <div className="flex-1 min-h-0 p-6 custom-scrollbar relative overflow-hidden flex flex-col w-full h-full">
 
             {/* 1. EQUALIZER TAB */}
             {activeTab === 'equalizer' && (
@@ -422,7 +423,7 @@ const NowPlayingPage = () => {
                     
                     <SpectrumVisualizer isPlaying={isPlaying} />
                     
-                    <div className="space-y-6 flex-1 mt-4">
+                    <div className="space-y-4 flex-1 mt-4">
                         {[
                             { id: 'bass', label: 'Bass_Freq (Low)', min: -15, max: 15 },
                             { id: 'mid', label: 'Mid_Freq (Med)', min: -15, max: 15 },
@@ -438,6 +439,43 @@ const NowPlayingPage = () => {
                                 <Slider value={audioSettings[item.id]} max={item.max} min={item.min} step={1} onChange={(val) => handleAudioChange(item.id, val)} />
                             </div>
                         ))}
+                        <div className="border-t border-dashed border-neutral-300 dark:border-white/10 pt-2 mt-2">
+                            <p className="text-[8px] font-mono text-neutral-400 uppercase mb-2 tracking-widest">:: PRESET_MATRIX ::</p>
+                            <div className="overflow-x-auto custom-scrollbar pb-1">
+                                <div className="flex gap-2 min-w-max">
+                                    {[
+                                        { name: 'FLAT', values: {bass: 0, mid: 0, treble: 0}, desc: 'Neutral EQ' },
+                                        { name: 'BASS_BOOST', values: {bass: 10, mid: 2, treble: -3}, desc: 'Enhanced lows' },
+                                        { name: 'DYNAMIC', values: {bass: 7, mid: 3, treble: 7}, desc: 'Balanced boost' },
+                                        { name: 'ROCK', values: {bass: 8, mid: 4, treble: 2}, desc: 'Heavy guitars' },
+                                        { name: 'POP', values: {bass: 5, mid: 8, treble: 5}, desc: 'Vocal clarity' },
+                                        { name: 'JAZZ', values: {bass: 6, mid: -2, treble: 8}, desc: 'Smooth highs' },
+                                        { name: 'ELECTRONIC', values: {bass: 12, mid: 5, treble: -4}, desc: 'Club vibration' },
+                                        { name: 'INDIE', values: {bass: 3, mid: 7, treble: 6}, desc: 'Alternative vibe' },
+                                        { name: 'CLASSIC', values: {bass: 4, mid: -3, treble: 9}, desc: 'Pure sound' },
+                                        { name: 'HIPHOP', values: {bass: 11, mid: 6, treble: 1}, desc: 'Bass rhythm' },
+                                        { name: 'VOCAL', values: {bass: 2, mid: 12, treble: 4}, desc: 'Voice forward' },
+                                        { name: 'CINEMATIC', values: {bass: 9, mid: 3, treble: 3}, desc: 'Theatrical depth' }
+                                    ].map((preset) => (
+                                        <button
+                                            key={preset.name}
+                                            onClick={() => applySettings({
+                                                ...preset.values,
+                                                volume: audioSettings.volume
+                                            })}
+                                            className={`text-[9px] font-mono py-1.5 px-2 border transition-all duration-300 whitespace-nowrap shrink-0 ${
+                                                isPresetActive(preset.values)
+                                                    ? 'bg-emerald-500 text-black border-emerald-500 font-bold shadow-[0_0_10px_rgba(16,185,129,0.4)]'
+                                                    : 'border-neutral-400 dark:border-white/20 text-neutral-500 hover:border-emerald-500 hover:text-emerald-500'
+                                            }`}
+                                            title={preset.desc}
+                                        >
+                                            {preset.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
 
                         <div className="flex gap-2 pt-4 pb-2">
                             <CyberButton onClick={handleSaveSettings} disabled={isSaving} className="flex-1 text-xs py-2 h-auto">
@@ -448,21 +486,14 @@ const NowPlayingPage = () => {
                             </GlitchButton>
                         </div>
 
-                        <div className="border-t border-dashed border-neutral-300 dark:border-white/10 pt-4">
-                            <p className="text-[8px] font-mono text-neutral-400 uppercase mb-3 tracking-widest">:: PRESET_MATRIX ::</p>
-                            <div className="grid grid-cols-3 gap-2">
-                                <button onClick={() => applySettings({bass: 0, mid: 0, treble: 0, volume: audioSettings.volume})} className={`text-[9px] font-mono py-2 border transition-all duration-300 ${isPresetActive({bass:0,mid:0,treble:0}) ? 'bg-emerald-500 text-black border-emerald-500 font-bold' : 'border-neutral-400 dark:border-white/20 text-neutral-500 hover:border-emerald-500 hover:text-emerald-500'}`}>FLAT</button>
-                                <button onClick={() => applySettings({bass: 10, mid: 2, treble: -3, volume: audioSettings.volume})} className={`text-[9px] font-mono py-2 border transition-all duration-300 ${isPresetActive({bass:10,mid:2,treble:-3}) ? 'bg-emerald-500 text-black border-emerald-500 font-bold' : 'border-neutral-400 dark:border-white/20 text-neutral-500 hover:border-emerald-500 hover:text-emerald-500'}`}>BASS_BOOST</button>
-                                <button onClick={() => applySettings({bass: 7, mid: 3, treble: 7, volume: audioSettings.volume})} className={`text-[9px] font-mono py-2 border transition-all duration-300 ${isPresetActive({bass:7,mid:3,treble:7}) ? 'bg-emerald-500 text-black border-emerald-500 font-bold' : 'border-neutral-400 dark:border-white/20 text-neutral-500 hover:border-emerald-500 hover:text-emerald-500'}`}>DYNAMIC</button>
-                            </div>
-                        </div>
+                        
                     </div>
                 </div>
             )}
 
-            {/* 2. INFO TAB (TECH SPECS) */}
+            {/* 2. INFO TAB (TECH SPECS) - Đã sửa để không scroll */}
             {activeTab === 'info' && (
-                <div className="flex flex-col gap-4 text-xs font-mono text-neutral-700 dark:text-white animate-in fade-in duration-300 h-full">
+                <div className="flex flex-col gap-4 text-xs font-mono text-neutral-700 dark:text-white animate-in fade-in duration-300 w-full">
                     <h3 className="text-[10px] font-mono text-emerald-500 uppercase tracking-wider mb-2 flex items-center gap-2 border-b border-neutral-200 dark:border-white/10 pb-2">
                         <Cpu size={12}/> <span>:: TRACK_METADATA ::</span>
                     </h3>
@@ -491,8 +522,8 @@ const NowPlayingPage = () => {
                                 {song.uploader_avatar
                                    ? <img src={song.uploader_avatar} className="w-6 h-6 rounded-none border border-white/20 object-cover"/>
                                    : (song.uploader_role === 'admin'
-                                       ? <ShieldCheck size={16} className="text-yellow-500"/>
-                                       : <UserCheck size={16} className="text-green-500"/>
+                                        ? <ShieldCheck size={16} className="text-yellow-500"/>
+                                        : <UserCheck size={16} className="text-green-500"/>
                                    )
                                 }
                                 <p className="font-bold">{song.uploader}</p>
@@ -500,7 +531,7 @@ const NowPlayingPage = () => {
                         </div>
                     </div>
 
-                    <div className="mt-auto pt-4 border-t border-dashed border-neutral-200 dark:border-white/10 text-center">
+                    <div className="mt-4 pt-4 border-t border-dashed border-neutral-200 dark:border-white/10 text-center">
                         <p className="text-[9px] text-neutral-400 animate-pulse">:: SECURE_CONNECTION_ESTABLISHED ::</p>
                     </div>
                 </div>
