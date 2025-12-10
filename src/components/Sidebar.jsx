@@ -16,7 +16,7 @@ import useUI from "@/hooks/useUI";
 import usePlayer from "@/hooks/usePlayer";
 import useUploadModal from "@/hooks/useUploadModal";
 import { useModal } from "@/context/ModalContext";
-import { CyberButton } from "@/components/CyberComponents"; // Import đúng đường dẫn
+import { CyberButton, ScanlineOverlay } from "@/components/CyberComponents"; 
 
 // =========================
 //    Skeleton Loader
@@ -42,6 +42,8 @@ const PlaylistSkeleton = () => {
 // =========================
 const Sidebar = ({ children }) => {
   const router = useRouter();
+  
+  // SỬ DỤNG USE UI
   const { alert, confirm } = useUI();
 
   // Hooks
@@ -142,9 +144,9 @@ const Sidebar = ({ children }) => {
       const { error } = await supabase.from("playlists").insert({ name, user_id: user.id });
       if (error) throw error;
 
-      alert("Playlist created successfully!", "success", "SUCCESS");
+      alert("DIRECTORY_CREATED", "success");
     } catch (err) {
-      alert(err.message, "error", "CREATION_FAILED");
+      alert(err.message, "error");
     }
     setShowAddModal(false);
   };
@@ -156,8 +158,8 @@ const Sidebar = ({ children }) => {
     e.stopPropagation();
 
     const isConfirmed = await confirm(
-      "Are you sure you want to delete this playlist? This action cannot be undone.", 
-      "DELETE_CONFIRMATION"
+      "CONFIRM_DELETION: THIS ACTION IS IRREVERSIBLE.", 
+      "DELETE_DIRECTORY"
     );
 
     if (!isConfirmed) return;
@@ -167,10 +169,10 @@ const Sidebar = ({ children }) => {
       if (error) throw error;
       
       router.refresh();
-      alert("Playlist deleted.", "success", "DELETED");
+      alert("DIRECTORY_PURGED", "success");
       
     } catch (err) {
-      alert(err.message, "error", "DELETE_FAILED");
+      alert(err.message, "error");
     }
   };
 
@@ -181,7 +183,6 @@ const Sidebar = ({ children }) => {
     e.stopPropagation();
 
     if (!isAuthenticated) {
-      // Show login modal if not authenticated
       openModal();
       return;
     }
@@ -205,7 +206,7 @@ const Sidebar = ({ children }) => {
         .filter(Boolean);
 
       if (!songs.length) {
-        alert("This playlist is empty.", "info", "EMPTY");
+        alert("DIRECTORY_EMPTY", "info");
         return;
       }
 
@@ -231,7 +232,7 @@ const Sidebar = ({ children }) => {
 
     } catch (err) {
       console.error("Play playlist failed:", err);
-      alert("Could not play playlist.", "error", "ERROR");
+      alert("PLAYBACK_ERROR", "error");
     }
   };
 
@@ -249,7 +250,7 @@ const Sidebar = ({ children }) => {
         {/* SIDEBAR */}
         <div className="hidden md:flex flex-col w-[220px] h-full pt-[74px] pb-4 ml-4 shrink-0 gap-y-3">
 
-          {/* PHẦN 1: USER LIBRARY & UPLOAD - Chỉ hiện khi đã đăng nhập */}
+          {/* PHẦN 1: USER LIBRARY & UPLOAD */}
           {isAuthenticated && (
             <div className="bg-white/60 dark:bg-black/60 backdrop-blur-3xl border border-neutral-200 dark:border-white/5 rounded-none p-2 shadow-sm">
 
@@ -260,7 +261,7 @@ const Sidebar = ({ children }) => {
                       <p className="font-bold text-[12px] tracking-[0.2em] font-mono">LIBRARY</p>
                    </div>
 
-                   {/* Nút Upload: Bỏ Rounded */}
+                   {/* Nút Upload */}
                    <CyberButton
                       onClick={uploadModal.onOpen}
                       className="
@@ -280,7 +281,7 @@ const Sidebar = ({ children }) => {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                   {/* Nút Vào Thư Viện (My Uploads) */}
+                   {/* Nút Vào Thư Viện */}
                    <button
                       onClick={() => router.push('/user/library')}
                       className="flex items-center gap-2 w-full p-1.5 rounded-none hover:!text-emerald-400 hover:bg-neutral-200/50 dark:hover:bg-white/5 transition text-xs text-neutral-900 dark:text-neutral-300 font-medium group"
@@ -333,19 +334,23 @@ const Sidebar = ({ children }) => {
                           border border-transparent hover:border-white/5
                         "
                       >
-                        {/* Cover Image - Bỏ Rounded, thêm viền */}
+                        {/* Cover Image + Hover Blur + Play Icon */}
                         <div className="relative w-8 h-8 shrink-0 rounded-none overflow-hidden border border-neutral-300 dark:border-white/10 shadow-sm flex items-center justify-center bg-neutral-200 dark:bg-neutral-800">
                              {pl.cover_url ? (
-                                <img src={pl.cover_url} alt={pl.name} className="w-full h-full object-cover" />
+                                <img 
+                                    src={pl.cover_url} 
+                                    alt={pl.name} 
+                                    className="w-full h-full object-cover transition-all duration-300 group-hover:blur-[2px] group-hover:scale-110" 
+                                />
                              ) : (
-                                <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 font-mono">
+                                <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 font-mono transition-all duration-300 group-hover:blur-[2px]">
                                     {getFirstLetter(pl.name)}
                                 </span>
                              )}
 
-                            <div className="absolute inset-0 bg-black/40 hidden group-hover:flex items-center justify-center backdrop-blur-[1px]">
-                                <Play size={13} className="text-white fill-white" />
-                            </div>
+                             {/* Play Overlay */}
+                             <div className="absolute inset-0 bg-black/40 hidden group-hover:flex items-center justify-center backdrop-blur-[1px] transition-all"></div>
+                             <ScanlineOverlay />
                         </div>
 
                         {/* Playlist Name & Count */}
@@ -358,7 +363,7 @@ const Sidebar = ({ children }) => {
                           </p>
                         </div>
 
-                        {/* Action Buttons - Bỏ Rounded */}
+                        {/* Action Buttons */}
                         <div className="absolute right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-200">
                              <button
                                 onClick={(e) => handlePlayPlaylist(e, pl.id)}

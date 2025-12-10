@@ -1,5 +1,6 @@
 "use client";
 
+import { v4 as uuidv4 } from 'uuid';
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -112,7 +113,7 @@ const UploadModal = () => {
         return;
       }
 
-      const uniqueID = crypto.randomUUID();
+      const uniqueID = uuidv4();
       const safeTitle = sanitizeString(title);
 
       // 1. Upload MP3
