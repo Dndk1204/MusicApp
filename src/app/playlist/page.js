@@ -4,7 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
-import { Loader2, Play, Edit2, Plus, Trash2, Clock, Music2, ArrowLeft } from "lucide-react";
+import { Loader2, Play, Edit2, Plus, Trash2, Clock, Music2, ArrowLeft, Ban } from "lucide-react";
 import AddSongModal from "@/components/AddSongModal";
 import EditPlaylistModal from "@/components/EditPlaylistModal";
 import usePlayer from "@/hooks/usePlayer";
@@ -64,6 +64,15 @@ export default function PlaylistPage() {
   const [loading, setLoading] = useState(true);
   const [showAddSongModal, setShowAddSongModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setCurrentUser(data?.user?.id || null);
+    });
+  }, []);
+
+  const isOwner = currentUser && playlist?.user_id === currentUser;
 
   /* ==========================================================
       FETCH DATA
@@ -228,13 +237,17 @@ export default function PlaylistPage() {
           <Play size={18} fill="currentColor" className="mr-2" /> PLAY_ALL
         </HoloButton>
 
-        <HoloButton onClick={() => setShowAddSongModal(true)} className="px-6 border-cyan-500/30 text-cyan-600 dark:text-cyan-400 hover:border-cyan-400">
-          <Plus size={18} className="mr-2" /> ADD_TRACK
-        </HoloButton>
+        {isOwner && (
+          <HoloButton onClick={() => setShowAddSongModal(true)} className="px-6 border-cyan-500/30 text-cyan-600 dark:text-cyan-400">
+            <Plus size={18} className="mr-2" /> ADD_TRACK
+          </HoloButton>
+        )}
 
-        <HoloButton onClick={() => setShowEditModal(true)} className="px-6 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:border-amber-400">
-          <Edit2 size={18} className="mr-2" /> EDIT_INFO
-        </HoloButton>
+        {isOwner && (
+          <HoloButton onClick={() => setShowEditModal(true)} className="px-6 border-amber-500/30 text-amber-600 dark:text-amber-400">
+            <Edit2 size={18} className="mr-2" /> EDIT_INFO
+          </HoloButton>
+        )}
       </div>
 
       {/* SONG LIST TABLE (CyberCard) */}
@@ -312,18 +325,27 @@ export default function PlaylistPage() {
                     </td>
 
                     <td className="p-4 text-center">
+                      {isOwner ? (
                         <button
-                        onClick={(e) => { e.stopPropagation(); handleRemoveSong(song.id); }}
-                        className="
-                             p-2 rounded-none hover:bg-red-500/20 text-neutral-400 hover:text-red-500 transition-all 
-                             group-hover/song:opacity-100 focus:opacity-100
-                        "
-                        title="Remove Track"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveSong(song.id);
+                          }}
+                          className="p-2 hover:bg-red-500/20 text-neutral-400 hover:text-red-500 transition-all"
+                          title="Remove Track"
                         >
-                        <Trash2 size={16} />
+                          <Trash2 size={16} />
                         </button>
+                      ) : (
+                        <div
+                          className="p-2 cursor-not-allowed text-neutral-600 dark:text-neutral-500 opacity-60"
+                          title="You cannot remove songs from someone else's playlist"
+                        >
+                          <Ban size={16} />
+                        </div>
+                      )}
                     </td>
-                    </tr>
+                  </tr>
                 );
                 })}
                 
