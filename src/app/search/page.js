@@ -1,6 +1,6 @@
 import getSongs from "@/app/actions/getSongs";
 import SearchContent from "@/components/SearchContent";
-import { Search, Disc, Filter, X, Tag, Globe, Users, User, ArrowRight, CircleUser } from "lucide-react";
+import { Search, Disc, Filter, X, Tag, Globe, Users, User, ArrowRight, CircleUser, Music } from "lucide-react";
 import Link from "next/link";
 import qs from "query-string";
 import ArtistGrid from "@/components/ArtistGrid";
@@ -66,8 +66,50 @@ const SearchPage = async ({ searchParams }) => {
   let users = [];
 
   // --- LOGIC TITLE & ICON ---
-  let pageTitle = "SEARCH_RESULTS";
-  
+  let playlists = [];
+let pageTitle = "SEARCH_RESULTS";
+
+// --- HELPER: SEARCH PLAYLISTS LOGIC ---
+const searchPlaylists = async (term) => {
+    if (!term) return [];
+
+    const cookieStore = await cookies();
+    const supabase = createServerComponentClient({ cookies: () => cookieStore });
+    const searchTerm = term.trim();
+
+    try {
+        const { data: playlists, error } = await supabase
+            .from('playlists')
+            .select(`
+                *,
+                profiles:user_id (
+                    full_name,
+                    avatar_url
+                ),
+                playlist_songs(count)
+            `)
+            .ilike('name', `%${searchTerm}%`)
+            .limit(20);
+
+        if (error || !playlists) return [];
+
+        // Transform the data to include creator info and song count
+        const playlistsWithCreators = playlists.map(playlist => ({
+            ...playlist,
+            creator: {
+                name: playlist.profiles?.full_name || 'Unknown User',
+                avatar: playlist.profiles?.avatar_url || null
+            },
+            songCount: playlist.playlist_songs?.[0]?.count || 0
+        }));
+
+        return playlistsWithCreators.slice(0, 20);
+    } catch (err) {
+        console.error("Playlist search error:", err);
+        return [];
+    }
+};
+
   if (params.type === 'user_uploads') {
       const cookieStore = await cookies();
       const supabase = createServerComponentClient({ cookies: () => cookieStore });
@@ -84,28 +126,90 @@ const SearchPage = async ({ searchParams }) => {
       pageTitle = "COMMUNITY_UPLOADS";
   } else {
       // 1. TÌM SONGS (Dựa trên title, tag, uploader)
-      const songsPromise = getSongs({ 
-          title: params.title, 
+      const songsPromise = getSongs({
+          title: params.title,
           tag: params.tag,
-          uploader: params.uploader 
+          artist: params.uploader
       });
-      
+
       // 2. TÌM USERS (FIXED LOGIC)
       // Ưu tiên: Nếu có params.uploader thì tìm user đó, nếu không thì tìm theo params.title
       const userQuery = params.uploader || params.title;
       const usersPromise = userQuery ? searchUsers(userQuery) : Promise.resolve([]);
 
+      // 3. TÌM PLAYLISTS (Luôn tìm kiếm để hiển thị số lượng ở Tab, bất kể đang ở tab nào)
+      const playlistQuery = params.title || params.uploader;
+      const playlistsPromise = playlistQuery ? searchPlaylists(playlistQuery) : Promise.resolve([]);
+
       // Chạy song song
-      const [songsResult, usersResult] = await Promise.all([songsPromise, usersPromise]);
+      const [songsResult, usersResult, playlistsResult] = await Promise.all([songsPromise, usersPromise, playlistsPromise]);
 
       songs = songsResult.songs || [];
-      artists = songsResult.artists || []; 
+      artists = songsResult.artists || [];
+      playlists = playlistsResult || [];
+
+      // 3. TÌM SONG UPLOADS FROM USERS (if title or tag is provided)
+      if (params.title || params.tag) {
+          const cookieStore = await cookies();
+          const supabase = createServerComponentClient({ cookies: () => cookieStore });
+
+          // Build query for user songs
+          let query = supabase
+              .from('songs')
+              .select('*')
+              .not('user_id', 'is', null)
+              .eq('is_public', true);
+
+          if (params.title) {
+              query = query.ilike('title', `%${params.title}%`);
+          }
+          if (params.tag) {
+              query = query.ilike('tag', `%${params.tag}%`);
+          }
+
+          query = query.order('created_at', { ascending: false }).limit(20);
+
+          try {
+              const { data: userSongs } = await query;
+
+              if (userSongs && userSongs.length > 0) {
+                  // Combine and filter duplicates based on title and author
+                  const mapSong = (song) => ({
+                      id: song.id,
+                      title: song.title,
+                      author: song.author,
+                      song_path: song.song_path || song.songUrl, // Handle different field names
+                      image_path: song.image_url || song.image_path || '/images/music-placeholder.png',
+                      duration: song.duration,
+                      lyrics: song.lyrics || null,
+                      user_id: song.user_id
+                  });
+
+                  const jamendoSongs = songs.map(mapSong);
+                  const uploadedSongs = userSongs.map(mapSong);
+
+                  // Prioritize user uploaded songs first, then Jamendo results
+                  const combined = [...uploadedSongs, ...jamendoSongs];
+                  const unique = combined.filter((song, index, self) =>
+                      index === self.findIndex(s => s.id === song.id && s.title === song.title && s.author === song.author)
+                  );
+
+                  songs = unique.slice(0, 50); // Limit total results
+              }
+          } catch (err) {
+              console.error("Error searching user songs:", err);
+          }
+      }
+
       users = usersResult || [];
 
       // Logic hiển thị tiêu đề trang
       if (activeTab === 'users') {
           // Hiển thị từ khóa đang tìm kiếm user
           pageTitle = userQuery ? `USER_RESULTS: "${userQuery.toUpperCase()}"` : "SEARCH_USERS";
+      } else if (activeTab === 'playlists') {
+          // Hiển thị từ khóa đang tìm kiếm playlist
+          pageTitle = playlistQuery ? `PLAYLIST_RESULTS: "${playlistQuery.toUpperCase()}"` : "SEARCH_PLAYLISTS";
       } else {
           if (params.uploader) {
               pageTitle = `UPLOADER: "${params.uploader.toUpperCase()}"`;
@@ -126,7 +230,9 @@ const SearchPage = async ({ searchParams }) => {
         {/* Title Area - Cyber Style */}
         <div className="flex flex-col gap-2">
             <h1 className="text-3xl md:text-5xl font-black font-mono text-neutral-900 dark:text-white tracking-tighter uppercase flex items-center gap-3">
-                {activeTab === 'users' ? <Users className="text-blue-500" size={32} /> : <Search className="text-emerald-500" size={32} />}
+                {activeTab === 'users' ? <Users className="text-blue-500" size={32} /> :
+                 activeTab === 'playlists' ? <Music className="text-purple-500" size={32} /> :
+                 <Search className="text-emerald-500" size={32} />}
                 <GlitchText text={pageTitle} />
             </h1>
             <div className="h-1 w-24 bg-emerald-500"></div> {/* Decor Line */}
@@ -134,10 +240,10 @@ const SearchPage = async ({ searchParams }) => {
 
         {/* TABS */}
         {params.type !== 'user_uploads' && (
-          <div className="flex border-b-2 border-neutral-300 dark:border-white/10">
+          <div className="grid grid-cols-3 border-b-2 border-neutral-300 dark:border-white/10">
             <Link
               href={qs.stringifyUrl({ url: '/search', query: { ...params, tab: 'songs' } }, { skipNull: true })}
-              className={`flex-1 py-3 text-xs font-mono font-bold tracking-[0.2em] uppercase flex items-center justify-center gap-2 transition-all relative group ${
+              className={`py-3 text-xs font-mono font-bold tracking-[0.2em] uppercase flex items-center justify-center gap-2 transition-all relative group ${
                 activeTab === 'songs'
                   ? 'bg-neutral-900 dark:bg-white text-white dark:text-black'
                   : 'text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-200 dark:hover:bg-white/5'
@@ -146,10 +252,22 @@ const SearchPage = async ({ searchParams }) => {
               <Disc size={14} /> SONGS <span className="opacity-50">[{songs.length}]</span>
               {activeTab === 'songs' && <div className="absolute bottom-0 left-0 w-full h-1 bg-emerald-500 translate-y-full"></div>}
             </Link>
-            
+
+            <Link
+              href={qs.stringifyUrl({ url: '/search', query: { ...params, tab: 'playlists' } }, { skipNull: true })}
+              className={`py-3 text-xs font-mono font-bold tracking-[0.2em] uppercase flex items-center justify-center gap-2 transition-all relative group ${
+                activeTab === 'playlists'
+                  ? 'bg-neutral-900 dark:bg-white text-white dark:text-black'
+                  : 'text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-200 dark:hover:bg-white/5'
+              }`}
+            >
+              <Music size={14} /> PLAYLISTS <span className="opacity-50">[{playlists.length}]</span>
+              {activeTab === 'playlists' && <div className="absolute bottom-0 left-0 w-full h-1 bg-purple-500 translate-y-full"></div>}
+            </Link>
+
             <Link
               href={qs.stringifyUrl({ url: '/search', query: { ...params, tab: 'users' } }, { skipNull: true })}
-              className={`flex-1 py-3 text-xs font-mono font-bold tracking-[0.2em] uppercase flex items-center justify-center gap-2 transition-all relative group ${
+              className={`py-3 text-xs font-mono font-bold tracking-[0.2em] uppercase flex items-center justify-center gap-2 transition-all relative group ${
                 activeTab === 'users'
                   ? 'bg-neutral-900 dark:bg-white text-white dark:text-black'
                   : 'text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-200 dark:hover:bg-white/5'
@@ -242,10 +360,26 @@ const SearchPage = async ({ searchParams }) => {
       )}
 
       {/* --- CONTENT AREA --- */}
-      
+
       {/* 1. SONGS TAB */}
       {activeTab === 'songs' && (
         <>
+          {/* Songs Found Header */}
+          {songs.length > 0 && (
+            <div className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {/* HEADER SECTION */}
+                <div className="flex items-center justify-between mb-4 border-b border-neutral-300 dark:border-white/10 pb-2">
+                    <h2 className="text-sm font-bold font-mono text-neutral-900 dark:text-white tracking-[0.2em] flex items-center gap-2">
+                        <span className="w-2 h-2 bg-emerald-500"></span>
+                        SONGS_MATCHED
+                    </h2>
+                    <span className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 bg-neutral-200 dark:bg-white/10 px-2 py-0.5">
+                        CNT: {songs.length}
+                    </span>
+                </div>
+            </div>
+          )}
+
           {/* Artists Found Grid */}
           {params.title && artists && artists.length > 0 && (
               <ArtistGrid artists={artists} />
@@ -346,6 +480,120 @@ const SearchPage = async ({ searchParams }) => {
              ))
           )}
         </div>
+      )}
+
+      {/* 3. PLAYLISTS TAB */}
+      {activeTab === 'playlists' && (
+        <>
+          {/* Playlists Grid (Similar to ArtistGrid) */}
+          {playlists.length > 0 && (
+            <div className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {/* HEADER SECTION */}
+                <div className="flex items-center justify-between mb-4 border-b border-neutral-300 dark:border-white/10 pb-2">
+                    <h2 className="text-sm font-bold font-mono text-neutral-900 dark:text-white tracking-[0.2em] flex items-center gap-2">
+                        <span className="w-2 h-2 bg-purple-500"></span>
+                        PLAYLISTS_MATCHED
+                    </h2>
+                    <span className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 bg-neutral-200 dark:bg-white/10 px-2 py-0.5">
+                        CNT: {playlists.length}
+                    </span>
+                </div>
+
+                {/* GRID HIỂN THỊ */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {playlists.slice(0, 9).map((playlist) => (
+                        <Link
+                            key={playlist.id}
+                            href={`/playlist?id=${playlist.id}`}
+                            className="block h-full"
+                        >
+                            <CyberCard className="
+                                group h-full p-0
+                                bg-white/80 dark:bg-neutral-900/40
+                                border border-neutral-300 dark:border-white/10
+                                hover:border-purple-500/50 dark:hover:border-purple-500/50
+                                transition-all duration-300 cursor-pointer
+                            ">
+                                <div className="flex items-center gap-0 h-full">
+
+                                    {/* CỘT TRÁI: ẢNH (Vuông vức + Scanline) */}
+                                    <div className="relative w-20 h-full shrink-0 border-r border-neutral-300 dark:border-white/10 bg-neutral-200 dark:bg-neutral-800 overflow-hidden group/img min-h-[5rem]">
+                                        {playlist.cover_url ? (
+                                            <img
+                                                src={playlist.cover_url}
+                                                alt={playlist.name}
+                                                fill
+                                                className="object-cover grayscale group-hover:grayscale-0 transition-all duration-500 group-hover:scale-110"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-neutral-400 dark:text-neutral-500">
+                                                <Music size={20} />
+                                            </div>
+                                        )}
+                                        {/* Hiệu ứng quét */}
+                                        <ScanlineOverlay />
+                                    </div>
+
+                                    {/* CỘT PHẢI: INFO */}
+                                    <div className="flex-1 p-3 flex flex-col justify-center min-w-0">
+                                        <div className="flex justify-between items-start gap-2">
+                                            <div className="min-w-0">
+                                                <h3 className="text-sm font-bold text-neutral-900 dark:text-white font-mono group-hover:text-purple-600 dark:group-hover:text-purple-400 transition truncate uppercase">
+                                                    {playlist.name}
+                                                </h3>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    {playlist.creator.avatar ? (
+                                                        <img
+                                                            src={playlist.creator.avatar}
+                                                            alt={playlist.creator.name}
+                                                            className="w-3 h-3 rounded-none object-cover"
+                                                        />
+                                                    ) : (
+                                                        <User size={10} className="text-neutral-500" />
+                                                    )}
+                                                    <span className="text-[9px] text-neutral-500 dark:text-neutral-400 font-mono tracking-wider opacity-70">
+                                                        {playlist.creator.name} • {playlist.songCount} songs
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Play Button */}
+                                            <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <div className="w-8 h-8 bg-purple-500/20 flex items-center justify-center rounded-none group-hover:bg-purple-500 transition-colors">
+                                                    <svg className="w-4 h-4 text-purple-500 group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
+                                                        <path d="M8 5v14l11-7z"/>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </CyberCard>
+                        </Link>
+                    ))}
+                </div>
+
+                {/* Load More if needed */}
+                {playlists.length > 9 && (
+                  <div className="mt-4 text-center">
+                    <p className="text-xs font-mono text-neutral-500">Showing 9 of {playlists.length} playlists</p>
+                  </div>
+                )}
+            </div>
+          )}
+
+          {/* Empty State */}
+          {playlists.length === 0 && (
+             <div className="flex flex-col items-center justify-center py-20 opacity-70 font-mono gap-4 animate-in fade-in zoom-in duration-500 text-neutral-500 dark:text-neutral-400 border border-dashed border-neutral-300 dark:border-white/10">
+                <div className="relative">
+                    <Music size={60} className="text-purple-300 dark:text-purple-700 animate-pulse"/>
+                    <Search size={24} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-neutral-800 dark:text-white"/>
+                </div>
+                <p className="text-lg tracking-widest">[NO_PLAYLISTS_FOUND]</p>
+                <p className="text-xs">Try different query parameters.</p>
+             </div>
+          )}
+        </>
       )}
 
     </div>
