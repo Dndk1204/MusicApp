@@ -1,20 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { v4 as uuidv4 } from 'uuid';
+import { Profiler, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 // Components
-import { GlitchText, CyberCard, HoloButton, CyberButton, ScanlineOverlay, GlitchButton } from "@/components/CyberComponents";
+import { GlitchText, CyberCard, CyberButton, ScanlineOverlay, GlitchButton } from "@/components/CyberComponents";
 import FollowButton from "@/components/FollowButton"; // Đã thêm lại import này
 
 // Icons
-import { Play, Music, Disc, ArrowLeft, PlayCircle, Edit3, Heart, User, Camera, Save, X, Loader2, FileText, LayoutGrid, Lock, Mail, Phone, ShieldCheck } from "lucide-react";
+import { Play, Music, Disc, ArrowLeft, PlayCircle, Edit3, Heart, User, Camera, Save, X, Loader2, FileText, LayoutGrid, Lock, Mail, Phone, ShieldCheck, Edit2Icon, Edit3Icon, DiscIcon } from "lucide-react";
 
 // Hooks
 import usePlayer from "@/hooks/usePlayer";
 import useUI from "@/hooks/useUI"; 
 import Link from "next/link"; 
+
+const formatDuration = (sec) => {
+  if (!sec || sec === "--:--") return "";
+  if (typeof sec === 'string') return sec; 
+  const s = Math.floor(Number(sec) % 60);
+  const m = Math.floor(Number(sec) / 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+};
 
 // --- EDIT PROFILE MODAL ---
 const EditProfileModal = ({ user, email, onClose, onUpdate }) => {
@@ -52,7 +61,7 @@ const EditProfileModal = ({ user, email, onClose, onUpdate }) => {
         try {
             let newAvatarUrl = user.avatar_url;
             let newBannerUrl = user.banner_url;
-            const uniqueID = crypto.randomUUID();
+            const uniqueID = uuidv4();
 
             if (avatarFile) {
                 const path = `avatar-${user.id}-${uniqueID}`;
@@ -130,35 +139,46 @@ const EditProfileModal = ({ user, email, onClose, onUpdate }) => {
                     <div className="flex flex-col md:flex-row gap-8">
                         {/* 2. Avatar Edit */}
                         <div className="space-y-2 group shrink-0">
-                            <label className="text-[10px] font-mono uppercase tracking-widest text-emerald-600 font-bold flex items-center gap-2"><User size={12}/> Avatar_ID</label>
-                            <div className="relative w-32 h-32 bg-neutral-900 border-2 border-dashed border-neutral-600 group-hover:border-emerald-500/50 transition-colors overflow-hidden">
-                                {avatarPreview ? (
-                                    <img src={avatarPreview} className="w-full h-full object-cover" alt="Avatar"/>
-                                ) : (
-                                    <div className="absolute inset-0 flex items-center justify-center text-neutral-600"><User size={40} /></div>
-                                )}
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 cursor-pointer">
-                                    <label className="cursor-pointer text-emerald-500">
-                                        <Camera size={32}/>
-                                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileChange(e, 'avatar')} />
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
+                          <label className="text-[10px] font-mono uppercase tracking-widest text-emerald-600 font-bold flex items-center gap-2">
+                              <User size={12}/> Avatar_ID
+                          </label>
+                          
+                          <label className="relative w-32 h-32 bg-neutral-900 border-2 border-dashed border-neutral-600 group-hover:border-emerald-500/50 transition-colors overflow-hidden cursor-pointer block">
+                              <input 
+                                  type="file" 
+                                  accept="image/*" 
+                                  className="hidden" 
+                                  onChange={(e) => handleFileChange(e, 'avatar')} 
+                              />
+                              
+                              {avatarPreview ? (
+                                  <img src={avatarPreview} className="w-full h-full object-cover" alt="Avatar"/>
+                              ) : (
+                                  <div className="absolute inset-0 flex items-center justify-center text-neutral-600">
+                                      <User size={40} />
+                                  </div>
+                              )}
+                              
+                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60">
+                                  <Camera size={32} className="text-emerald-500" />
+                              </div>
+                              
+                          </label>
+                      </div>
 
                         {/* 3. Text Inputs (Name, Phone, Bio) */}
                         <div className="flex-1 space-y-4 w-full">
                             
                             {/* Email (Read Only) */}
                             <div className="space-y-1">
-                                <label className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 font-bold flex items-center gap-2"><Mail size={12}/> Email_Address (LOCKED)</label>
+                                <label className="text-[10px] font-mono pb-1 uppercase tracking-widest text-neutral-500 font-bold flex items-center gap-2"><Mail size={12}/> Email_Address (LOCKED)</label>
                                 <div className="relative">
                                     <input 
                                         value={email || ""} 
                                         readOnly
                                         className="w-full bg-neutral-900 border border-neutral-800 p-3 pl-4 text-sm font-mono text-neutral-500 cursor-not-allowed rounded-none" 
                                     />
-                                    <Lock size={12} className="absolute right-3 top-3 text-neutral-600"/>
+                                    <Lock size={16} className="absolute right-3 top-4 text-neutral-600"/>
                                 </div>
                             </div>
 
@@ -356,9 +376,9 @@ const UserProfilePage = () => {
       
       {/* 1. HERO SECTION */}
       <div className="relative">
-        <div className="h-56 w-full bg-neutral-900 relative overflow-hidden border-b grayscale hover:grayscale-0 border-white/10 group transition-all duration-500">
+        <div className="h-56 w-full bg-neutral-900 relative overflow-hidden border-b border-white/10 group">
             {profile.banner_url ? (
-                <img src={profile.banner_url} alt="Banner" className="w-full h-full object-cover opacity-80" />
+                <img src={profile.banner_url} alt="Banner" className="w-full h-full grayscale group-hover:grayscale-0 object-cover opacity-80 transition-all duration-1000" />
             ) : (
                 <>
                     <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/50 to-black z-0"></div>
@@ -373,13 +393,13 @@ const UserProfilePage = () => {
             <button onClick={() => router.back()} className="absolute top-6 left-6 p-2 bg-black/50 hover:bg-emerald-500 hover:text-white text-white border border-white/20 transition-colors z-20"><ArrowLeft size={20} /></button>
         </div>
 
-        <div className="px-6 pb-6 relative max-w-7xl mx-auto">
+        <div className="px-6 pb-20 relative max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-end -mt-24 gap-8">
             
             {/* Avatar */}
             <div className="relative w-40 h-40 md:w-48 md:h-48 bg-black border-4 border-black dark:border-neutral-900 shadow-[0_10px_40px_rgba(0,0,0,0.5)] shrink-0 overflow-hidden group">
               {profile.avatar_url ? (
-                <img src={profile.avatar_url} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"/>
+                <img src={profile.avatar_url} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"/>
               ) : (
                 <div className="w-full h-full bg-neutral-800 flex items-center justify-center text-neutral-500">
                     <User size={64} strokeWidth={1.5} />
@@ -398,14 +418,14 @@ const UserProfilePage = () => {
                           <GlitchText text={profile.full_name || "UNKNOWN_USER"} />
                         </h1>
 
-                        <div className="flex items-center gap-3 text-xs font-mono tracking-widest text-emerald-600 dark:text-emerald-500 uppercase mb-2">
+                        <div className="flex items-center gap-3 translate-y-[0.62rem] text-xs font-mono tracking-widest text-emerald-600 dark:text-emerald-500 uppercase mb-2">
                           <span className="bg-emerald-500/10 px-2 py-0.5 border border-emerald-500/30">{profile.role === 'admin' ? ':: SYSTEM_ADMIN ::' : ':: NET_RUNNER ::'}</span>
                           <span className="opacity-50">ID_{profile.id.slice(0, 6).toUpperCase()}</span>
                         </div>
                       </div>
 
                       {/* --- PRIVACY LOGIC: Email & Phone --- */}
-                      <div className="inline-flex flex-col gap-2 mt-2 bg-black/40 backdrop-blur-md border border-white/10 p-3 w-fit">
+                      <div className="inline-flex flex-col translate-y-2 gap-2 mt-2 bg-black/40 backdrop-blur-md border border-white/10 p-3 w-fit">
                           {isOwner ? (
                               <>
                                   <div className="flex items-center gap-2 text-xs font-mono text-neutral-300">
@@ -423,18 +443,24 @@ const UserProfilePage = () => {
                               </div>
                           )}
                       </div>
-
-                      {profile.bio && (
-                          <p className="mt-3 text-sm font-mono text-neutral-700 dark:text-neutral-300 max-w-2xl leading-relaxed border-l-2 border-emerald-500/50 pl-3">
-                              {profile.bio}
-                          </p>
-                      )}
                   </div>
+
+                  {profile.bio && (
+                    <p className="mt-3 absolute left-6 translate-y-14 text-[16px] font-mono text-neutral-700 dark:text-neutral-300 max-w-2xl leading-relaxed border-l-2 border-emerald-500/50 pl-3">
+                      {profile.bio}
+                    </p>
+                  )}
                   
                   {isOwner && (
-                    <HoloButton onClick={() => setShowEditModal(true)} className="px-6 py-2 text-xs border-emerald-500 text-emerald-600 dark:text-emerald-500 hover:bg-emerald-500 hover:text-black font-bold transition-all">
+                    <CyberButton onClick={() => setShowEditModal(true)} className="px-6 py-2 text-xs border-emerald-500 text-emerald-600 dark:text-emerald-500 hover:bg-emerald-500 hover:text-black dark:hover:text-white font-bold transition-all">
                       <Edit3 size={14} className="mr-2"/> CONFIG_PROFILE
-                    </HoloButton>
+                    </CyberButton>
+                  )}
+
+                  {isOwner && (
+                    <CyberButton onClick={() => router.push(`/user/library`)} className="px-6 py-2 text-xs border-emerald-500 text-emerald-600 dark:text-emerald-500 hover:bg-emerald-500 hover:text-black dark:hover:text-white font-bold transition-all">
+                      <DiscIcon size={14} className="mr-2"/> MANAGE_UPLOADS
+                    </CyberButton>
                   )}
               </div>
             </div>
@@ -489,13 +515,14 @@ const UserProfilePage = () => {
                             <div key={song.id} onClick={() => handlePlaySong(song)} className="group flex items-center gap-4 p-3 bg-white dark:bg-neutral-900/40 border border-neutral-200 dark:border-white/5 hover:border-emerald-500/50 hover:bg-neutral-50 dark:hover:bg-white/5 transition-all cursor-pointer">
                               <div className="relative w-12 h-12 bg-neutral-200 dark:bg-neutral-800 shrink-0 overflow-hidden border border-neutral-300 dark:border-white/10">
                                 {song.image_url || song.image_path ? (
-                                    <img src={song.image_url || song.image_path} alt={song.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                    <img src={song.image_url || song.image_path} alt={song.title} className="w-full h-full object-cover opacity-80 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500" />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-neutral-400"><Music size={18}/></div>
                                 )}
                                 <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <PlayCircle size={20} className="text-white"/>
+                                    <Play size={20} className="text-white"/>
                                 </div>
+                                <ScanlineOverlay />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <h3 className="font-bold font-mono text-sm text-neutral-900 dark:text-white truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors uppercase">
@@ -503,6 +530,9 @@ const UserProfilePage = () => {
                                 </h3>
                                 <p className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
                                   {song.author}
+                                </p>
+                                <p className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
+                                  {formatDuration(song.duration ? formatDuration(song.duration) : "UNKNOWN_DURATION")}
                                 </p>
                               </div>
                               <div className="text-right flex items-center gap-4">
@@ -530,7 +560,7 @@ const UserProfilePage = () => {
                                 <CyberCard className="group h-full p-0 hover:border-emerald-500/50 transition cursor-pointer relative bg-white dark:bg-neutral-900/40 rounded-none">
                                     <div className="relative aspect-square w-full bg-neutral-800 overflow-hidden group/img border-b border-neutral-300 dark:border-white/10">
                                         {pl.cover_url ? (
-                                            <img src={pl.cover_url} alt={pl.name} className="w-full h-full object-cover opacity-80 group-hover/img:scale-105 transition-transform duration-500" />
+                                            <img src={pl.cover_url} alt={pl.name} className="w-full h-full object-cover opacity-80 group-hover/img:scale-105 grayscale group-hover:grayscale-0 transition-all duration-500" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-neutral-300 to-neutral-200 dark:from-neutral-800 dark:to-black">
                                                 <Disc size={40} className="text-neutral-500 dark:text-neutral-600"/>

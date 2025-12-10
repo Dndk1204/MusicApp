@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
-import { ListMusic, User, Play, Loader2, Heart, Edit3, ArrowLeft, Disc, Music } from "lucide-react";
+import { ListMusic, User, Play, Edit3, ArrowLeft, Music } from "lucide-react";
 import Link from "next/link"; 
-import { DecoderText, CyberCard, GlitchText, HoloButton, ScanlineOverlay } from "@/components/CyberComponents"; 
+import { CyberCard, GlitchText, HoloButton, ScanlineOverlay } from "@/components/CyberComponents"; 
 import FollowButton from '@/components/FollowButton';
 
 // --- PLAYLIST CARD ---

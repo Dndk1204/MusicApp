@@ -384,9 +384,9 @@ export const CyberCard = ({ children, className = "" }) => {
 // --- 5. AUDIO VISUALIZER ---
 export const AudioVisualizer = ({ isPlaying = true }) => {
   return (
-    <div className="flex items-end gap-1 h-5">
+    <div className="flex items-end gap-1 h-8">
       {[1, 2, 3, 4, 5].map((item) => (
-        <motion.div key={item} className="w-1 bg-emerald-500/80 rounded-t-sm" animate={isPlaying ? { height: ["20%", "80%", "40%", "100%", "30%"] } : { height: "10%" }} transition={{ duration: 0.6, repeat: Infinity, repeatType: "reverse", ease: "easeInOut", delay: item * 0.1 }} />
+        <motion.div key={item} className="w-1 bg-emerald-500/80 rounded-none" animate={isPlaying ? { height: ["20%", "80%", "40%", "100%", "30%"] } : { height: "10%" }} transition={{ duration: 0.6, repeat: Infinity, repeatType: "reverse", ease: "easeInOut", delay: item * 0.1 }} />
       ))}
     </div>
   );
