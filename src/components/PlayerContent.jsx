@@ -258,6 +258,7 @@ const PlayerContent = ({ song, songUrl }) => {
             onClick={() => { 
                 if(song) {
                     const normalizedSong = {
+                        id: song.id || song.encodeId,
                         title: song.title,
                         author: song.artistsNames || song.author,
                         song_url: song.streaming?.mp3 || song.song_url,

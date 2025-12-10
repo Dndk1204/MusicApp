@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { X, Check, Trash2, Upload, Image as ImageIcon } from "lucide-react";
 import useUI from "@/hooks/useUI"; 
 import { GlitchText, HoloButton, GlitchButton, CyberButton, NeonButton } from "@/components/CyberComponents";
+import { Loader2 } from "lucide-react";
 
 export default function EditPlaylistModal({ playlist, onClose, onUpdated, onDeleted }) {
   const { alert, confirm } = useUI();
