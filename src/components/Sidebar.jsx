@@ -340,16 +340,16 @@ const Sidebar = ({ children }) => {
                                 <img 
                                     src={pl.cover_url} 
                                     alt={pl.name} 
-                                    className="w-full h-full object-cover transition-all duration-300 group-hover:blur-[2px] group-hover:scale-110" 
+                                    className="w-full h-full object-cover transition-all duration-300 blur-[2px] group-hover:blur-none group-hover:scale-100" 
                                 />
                              ) : (
-                                <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 font-mono transition-all duration-300 group-hover:blur-[2px]">
+                                <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 font-mono transition-all duration-300 blur-[2px] group-hover:blur-none">
                                     {getFirstLetter(pl.name)}
                                 </span>
                              )}
 
                              {/* Play Overlay */}
-                             <div className="absolute inset-0 bg-black/40 hidden group-hover:flex items-center justify-center backdrop-blur-[1px] transition-all"></div>
+                             <div className="absolute inset-0 hidden group-hover:flex items-center justify-center transition-all"></div>
                              <ScanlineOverlay />
                         </div>
 
