@@ -257,7 +257,7 @@ const Sidebar = ({ children }) => {
                 <div className="flex items-center justify-between px-2 mb-2">
                    <div className="flex items-center gap-x-2 text-neutral-700 dark:text-neutral-400">
                       <Library size={16} />
-                      <p className="font-bold text-[9px] tracking-[0.2em] font-mono">LIBRARY</p>
+                      <p className="font-bold text-[12px] tracking-[0.2em] font-mono">LIBRARY</p>
                    </div>
 
                    {/* Nút Upload: Bỏ Rounded */}
@@ -275,7 +275,7 @@ const Sidebar = ({ children }) => {
                       title="Upload New Song"
                    >
                       <UploadCloud size={12} className="group-hover:animate-bounce " />
-                      <span className="text-[9px] font-bold font-mono uppercase">Upload</span>
+                      <span className="text-[10px] font-bold font-mono uppercase">Upload</span>
                    </CyberButton>
                 </div>
 
@@ -285,10 +285,10 @@ const Sidebar = ({ children }) => {
                       onClick={() => router.push('/user/library')}
                       className="flex items-center gap-2 w-full p-1.5 rounded-none hover:!text-emerald-400 hover:bg-neutral-200/50 dark:hover:bg-white/5 transition text-xs text-neutral-900 dark:text-neutral-300 font-medium group"
                    >
-                      <div className="w-6 h-6 rounded-none bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center group-hover:text-emerald-500 transition shadow-sm border border-neutral-300 dark:border-white/5">
-                          <User size={12} />
+                      <div className="w-8 h-8 rounded-none bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center group-hover:text-emerald-500 transition shadow-sm border border-neutral-300 dark:border-white/5">
+                          <User size={13} />
                       </div>
-                      <span>My Uploads</span>
+                      <span className="text-[13px]">My Uploads</span>
                    </button>
                 </div>
             </div>
@@ -299,14 +299,14 @@ const Sidebar = ({ children }) => {
 
             {/* Header Playlist */}
             <div className="flex items-center justify-between text-neutral-700 dark:text-neutral-400 px-2 pb-2 border-b border-neutral-200 dark:border-white/5">
-              <p className="font-bold text-[9px] tracking-[0.2em] font-mono">PLAYLISTS</p>
+              <p className="font-bold text-[12px] tracking-[0.2em] font-mono">PLAYLISTS</p>
               {isAuthenticated && (
                 <button
                   onClick={() => setShowAddModal(true)}
                   className="hover:text-emerald-500 p-1 transition hover:bg-white/10 rounded-none border border-transparent hover:border-emerald-500/50"
                   title="Create Playlist"
                 >
-                  <Plus size={14} />
+                  <Plus size={16} />
                 </button>
               )}
             </div>
@@ -318,7 +318,7 @@ const Sidebar = ({ children }) => {
               ) : playlists.length === 0 ? (
                 <div className="flex flex-col items-center mt-6 gap-1 opacity-40">
                   <ListMusic size={20} />
-                  <p className="text-[9px] italic font-mono">[EMPTY]</p>
+                  <p className="text-[12px] italic font-mono">[EMPTY]</p>
                 </div>
               ) : (
                 <ul className="flex flex-col gap-y-0.5">
@@ -344,16 +344,16 @@ const Sidebar = ({ children }) => {
                              )}
 
                             <div className="absolute inset-0 bg-black/40 hidden group-hover:flex items-center justify-center backdrop-blur-[1px]">
-                                <Play size={10} className="text-white fill-white" />
+                                <Play size={13} className="text-white fill-white" />
                             </div>
                         </div>
 
                         {/* Playlist Name & Count */}
                         <div className="flex-1 min-w-0 flex flex-col justify-center">
-                          <p className="font-medium text-xs text-neutral-700 dark:text-neutral-300 truncate group-hover:text-emerald-500 transition-colors leading-tight font-mono">
+                          <p className="font-medium text-xs !text-[13px] text-neutral-700 dark:text-neutral-300 truncate group-hover:text-emerald-500 transition-colors leading-tight font-mono">
                             {pl.name}
                           </p>
-                          <p className="text-[9px] text-neutral-400 dark:text-neutral-500 truncate font-mono leading-tight">
+                          <p className="text-[13px] text-neutral-400 dark:text-neutral-500 truncate font-mono leading-tight">
                             {pl.playlist_songs?.length || 0} tracks
                           </p>
                         </div>
@@ -365,7 +365,7 @@ const Sidebar = ({ children }) => {
                                 className="p-1 rounded-none bg-emerald-500 text-white hover:bg-emerald-400 hover:scale-105 transition shadow-sm"
                                 title="Play"
                              >
-                                <Play size={10} fill="currentColor" />
+                                <Play size={13} fill="currentColor" />
                              </button>
 
                              <button
@@ -373,7 +373,7 @@ const Sidebar = ({ children }) => {
                                 className="p-1 rounded-none bg-neutral-200 dark:bg-neutral-800 text-neutral-500 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 transition shadow-sm border border-transparent hover:border-red-500/30"
                                 title="Delete"
                              >
-                                <Trash2 size={10} />
+                                <Trash2 size={13} />
                              </button>
                         </div>
                       </div>

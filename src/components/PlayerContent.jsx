@@ -16,7 +16,6 @@ import { supabase } from "@/lib/supabaseClient";
 import { addSongToPlaylist } from "@/lib/addSongToPlaylist";
 
 // --- COMPONENTS ---
-import LikeButton from "./LikeButton";
 import MediaItem from "./MediaItem";
 import Slider from "./Slider";
 import { AudioVisualizer } from "./CyberComponents";
@@ -241,7 +240,6 @@ const PlayerContent = ({ song, songUrl }) => {
       {/* LEFT: Media Info + Actions */}
       <div className="flex w-full md:w-[20em] justify-start items-center gap-2 -translate-y-2">
         <MediaItem data={song} />
-        <LikeButton songId={song?.id} />
         
         {/* Nút Save Tuned */}
         <button 
