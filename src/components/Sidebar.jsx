@@ -8,12 +8,14 @@ import { supabase } from "@/lib/supabaseClient";
 // Components
 import Navbar from "./Navbar";
 import CreatePlaylistModal from "./CreatePlaylistModal";
-import UploadModal from "@/components/UploadModal"; 
+import UploadModal from "@/components/UploadModal";
+import { useAuth } from "@/components/AuthWrapper";
 
 // Hooks
 import useUI from "@/hooks/useUI";
-import usePlayer from "@/hooks/usePlayer"; 
+import usePlayer from "@/hooks/usePlayer";
 import useUploadModal from "@/hooks/useUploadModal";
+import { useModal } from "@/context/ModalContext";
 import { CyberButton } from "@/components/CyberComponents"; // Import đúng đường dẫn
 
 // =========================
@@ -41,8 +43,10 @@ const PlaylistSkeleton = () => {
 const Sidebar = ({ children }) => {
   const router = useRouter();
   const { alert, confirm } = useUI();
-  
+
   // Hooks
+  const { isAuthenticated } = useAuth();
+  const { openModal } = useModal();
   const player = usePlayer();
   const uploadModal = useUploadModal();
 
@@ -176,6 +180,12 @@ const Sidebar = ({ children }) => {
   const handlePlayPlaylist = async (e, playlistId) => {
     e.stopPropagation();
 
+    if (!isAuthenticated) {
+      // Show login modal if not authenticated
+      openModal();
+      return;
+    }
+
     try {
       const { data: songsData, error } = await supabase
         .from("playlist_songs")
@@ -239,48 +249,50 @@ const Sidebar = ({ children }) => {
         {/* SIDEBAR */}
         <div className="hidden md:flex flex-col w-[220px] h-full pt-[74px] pb-4 ml-4 shrink-0 gap-y-3">
 
-          {/* PHẦN 1: USER LIBRARY & UPLOAD */}
-          <div className="bg-white/60 dark:bg-black/60 backdrop-blur-3xl border border-neutral-200 dark:border-white/5 rounded-none p-2 shadow-sm">
-              
-              {/* Header */}
-              <div className="flex items-center justify-between px-2 mb-2">
-                 <div className="flex items-center gap-x-2 text-neutral-700 dark:text-neutral-400">
-                    <Library size={16} />
-                    <p className="font-bold text-[9px] tracking-[0.2em] font-mono">LIBRARY</p>
-                 </div>
-                 
-                 {/* Nút Upload: Bỏ Rounded */}
-                 <CyberButton
-                    onClick={uploadModal.onOpen}
-                    className="
-                        flex items-center gap-1.5 !px-2 !py-1 rounded-none
-                        bg-emerald-500/10 dark:bg-emerald-500/20
-                        border border-emerald-500/30 
-                        !text-black dark:!text-emerald-400 dark:hover:!text-white
-                        hover:bg-emerald-500 hover:!text-white hover:border-emerald-500
-                        hover:shadow-[0_0_10px_rgba(16,185,129,0.4)]
-                        transition-all duration-300 group 
-                    "
-                    title="Upload New Song"
-                 >
-                    <UploadCloud size={12} className="group-hover:animate-bounce " /> 
-                    <span className="text-[9px] font-bold font-mono uppercase">Upload</span>
-                 </CyberButton>
-              </div>
+          {/* PHẦN 1: USER LIBRARY & UPLOAD - Chỉ hiện khi đã đăng nhập */}
+          {isAuthenticated && (
+            <div className="bg-white/60 dark:bg-black/60 backdrop-blur-3xl border border-neutral-200 dark:border-white/5 rounded-none p-2 shadow-sm">
 
-              <div className="flex flex-col gap-1">
-                 {/* Nút Vào Thư Viện (My Uploads) */}
-                 <button
-                    onClick={() => router.push('/user/library')}
-                    className="flex items-center gap-2 w-full p-1.5 rounded-none hover:!text-emerald-400 hover:bg-neutral-200/50 dark:hover:bg-white/5 transition text-xs text-neutral-900 dark:text-neutral-300 font-medium group"
-                 >
-                    <div className="w-6 h-6 rounded-none bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center group-hover:text-emerald-500 transition shadow-sm border border-neutral-300 dark:border-white/5">
-                        <User size={12} />
-                    </div>
-                    <span>My Uploads</span>
-                 </button>
-              </div>
-          </div>
+                {/* Header */}
+                <div className="flex items-center justify-between px-2 mb-2">
+                   <div className="flex items-center gap-x-2 text-neutral-700 dark:text-neutral-400">
+                      <Library size={16} />
+                      <p className="font-bold text-[9px] tracking-[0.2em] font-mono">LIBRARY</p>
+                   </div>
+
+                   {/* Nút Upload: Bỏ Rounded */}
+                   <CyberButton
+                      onClick={uploadModal.onOpen}
+                      className="
+                          flex items-center gap-1.5 !px-2 !py-1 rounded-none
+                          bg-emerald-500/10 dark:bg-emerald-500/20
+                          border border-emerald-500/30
+                          !text-black dark:!text-emerald-400 dark:hover:!text-white
+                          hover:bg-emerald-500 hover:!text-white hover:border-emerald-500
+                          hover:shadow-[0_0_10px_rgba(16,185,129,0.4)]
+                          transition-all duration-300 group
+                      "
+                      title="Upload New Song"
+                   >
+                      <UploadCloud size={12} className="group-hover:animate-bounce " />
+                      <span className="text-[9px] font-bold font-mono uppercase">Upload</span>
+                   </CyberButton>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                   {/* Nút Vào Thư Viện (My Uploads) */}
+                   <button
+                      onClick={() => router.push('/user/library')}
+                      className="flex items-center gap-2 w-full p-1.5 rounded-none hover:!text-emerald-400 hover:bg-neutral-200/50 dark:hover:bg-white/5 transition text-xs text-neutral-900 dark:text-neutral-300 font-medium group"
+                   >
+                      <div className="w-6 h-6 rounded-none bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center group-hover:text-emerald-500 transition shadow-sm border border-neutral-300 dark:border-white/5">
+                          <User size={12} />
+                      </div>
+                      <span>My Uploads</span>
+                   </button>
+                </div>
+            </div>
+          )}
 
           {/* PHẦN 2: PLAYLISTS */}
           <div className="flex flex-col flex-1 min-h-0 bg-white/60 dark:bg-black/60 backdrop-blur-3xl border border-neutral-200 dark:border-white/5 rounded-none p-2 shadow-sm overflow-hidden mt-2">
@@ -288,13 +300,15 @@ const Sidebar = ({ children }) => {
             {/* Header Playlist */}
             <div className="flex items-center justify-between text-neutral-700 dark:text-neutral-400 px-2 pb-2 border-b border-neutral-200 dark:border-white/5">
               <p className="font-bold text-[9px] tracking-[0.2em] font-mono">PLAYLISTS</p>
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="hover:text-emerald-500 p-1 transition hover:bg-white/10 rounded-none border border-transparent hover:border-emerald-500/50"
-                title="Create Playlist"
-              >
-                <Plus size={14} />
-              </button>
+              {isAuthenticated && (
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="hover:text-emerald-500 p-1 transition hover:bg-white/10 rounded-none border border-transparent hover:border-emerald-500/50"
+                  title="Create Playlist"
+                >
+                  <Plus size={14} />
+                </button>
+              )}
             </div>
 
             {/* Playlist List */}

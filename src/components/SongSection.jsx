@@ -2,18 +2,28 @@
 
 import SongItem from "@/components/SongItem";
 import usePlayer from "@/hooks/usePlayer";
-import Link from "next/link"; 
-import { ArrowRight, ChevronRight } from "lucide-react"; 
+import { useAuth } from "@/components/AuthWrapper";
+import { useModal } from "@/context/ModalContext";
+import Link from "next/link";
+import { ArrowRight, ChevronRight } from "lucide-react";
 // Import Cyber Components
 import { GlitchText, CyberCard } from "@/components/CyberComponents";
 
 const SongSection = ({ title, songs, moreLink }) => {
   const player = usePlayer();
+  const { isAuthenticated } = useAuth();
+  const { openModal } = useModal();
 
   const onPlay = (id) => {
+    if (!isAuthenticated) {
+      // Show login modal if not authenticated
+      openModal();
+      return;
+    }
+
     player.setId(id);
     player.setIds(songs.map((s) => s.id));
-    
+
     if (typeof window !== "undefined") {
         const songMap = {};
         songs.forEach(song => songMap[song.id] = song);
