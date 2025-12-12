@@ -209,7 +209,7 @@ const UploadModal = () => {
         <div className="absolute bottom-0 right-0 w-3 h-3 border-b-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
 
         {/* Header */}
-        <div className="p-5 flex justify-between items-center relative border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-neutral-900 sticky top-0 z-40">
+        <div className="p-5 flex justify-between items-center border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-neutral-900 sticky top-0 z-40">
             <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-transparent via-emerald-500 to-transparent"></div>
             
             <div>
@@ -335,7 +335,7 @@ const UploadModal = () => {
                         <FileText size={24} />
                     </div>
                     <span className={`text-[10px] font-mono text-center truncate w-full px-2 uppercase ${lyricFile ? 'text-purple-700 dark:text-purple-400 font-bold' : 'text-neutral-600 dark:text-neutral-400'}`}>
-                        {lyricFile ? lyricFile.name : "SELECT_LYRICS (.SRT / .TXT)"}
+                        {lyricFile ? lyricFile.name : "SELECT_LYRICS (.SRT)"}
                     </span>
                     <input
                         type="file"

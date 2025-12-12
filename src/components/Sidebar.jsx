@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Library, Plus, ListMusic, Play, Trash2, UploadCloud, User, Music } from "lucide-react";
+import { Library, Plus, ListMusic, Play, Trash2, UploadCloud, User, Music, Album, DiscAlbum, DiscAlbumIcon, Disc } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 // Components
@@ -17,9 +17,12 @@ import usePlayer from "@/hooks/usePlayer";
 import useUploadModal from "@/hooks/useUploadModal";
 import { useModal } from "@/context/ModalContext";
 import { CyberButton, ScanlineOverlay } from "@/components/CyberComponents"; 
+// Import Hover Preview
+import HoverImagePreview from "@/components/HoverImagePreview"; // <-- Đã import
+import AlbumPage from "@/app/album/[id]/page";
 
 // =========================
-//    Skeleton Loader
+//    Skeleton Loader
 // =========================
 const PlaylistSkeleton = () => {
   return (
@@ -38,7 +41,7 @@ const PlaylistSkeleton = () => {
 };
 
 // =========================
-//      Sidebar Component
+//      Sidebar Component
 // =========================
 const Sidebar = ({ children }) => {
   const router = useRouter();
@@ -64,7 +67,7 @@ const Sidebar = ({ children }) => {
   };
 
   // =========================
-  //         Fetch data
+  //         Fetch data
   // =========================
   const fetchPlaylists = async () => {
     try {
@@ -90,7 +93,7 @@ const Sidebar = ({ children }) => {
   };
 
   // =========================
-  //      Realtime Setup
+  //      Realtime Setup
   // =========================
   useEffect(() => {
     let ch1 = null;
@@ -134,7 +137,7 @@ const Sidebar = ({ children }) => {
   }, []);
 
   // =========================
-  //      Create Playlist
+  //      Create Playlist
   // =========================
   const handleNewPlaylist = async (name) => {
     try {
@@ -152,7 +155,7 @@ const Sidebar = ({ children }) => {
   };
 
   // =========================
-  //      Delete Playlist
+  //      Delete Playlist
   // =========================
   const handleDeletePlaylist = async (e, playlistId) => {
     e.stopPropagation();
@@ -177,7 +180,7 @@ const Sidebar = ({ children }) => {
   };
 
   // =========================
-  //      Play Playlist
+  //      Play Playlist
   // =========================
   const handlePlayPlaylist = async (e, playlistId) => {
     e.stopPropagation();
@@ -222,9 +225,9 @@ const Sidebar = ({ children }) => {
 
       const ids = songs.map((s) => Number(s.id));
       if (typeof window !== 'undefined') {
-           const songMap = {};
-           songs.forEach(s => songMap[s.id] = normalize(s));
-           window.__SONG_MAP__ = { ...window.__SONG_MAP__, ...songMap };
+            const songMap = {};
+            songs.forEach(s => songMap[s.id] = normalize(s));
+            window.__SONG_MAP__ = { ...window.__SONG_MAP__, ...songMap };
       }
 
       player.setIds(ids);
@@ -300,7 +303,7 @@ const Sidebar = ({ children }) => {
 
             {/* Header Playlist */}
             <div className="flex items-center justify-between text-neutral-700 dark:text-neutral-400 px-2 pb-2 border-b border-neutral-200 dark:border-white/5">
-              <p className="font-bold text-[12px] tracking-[0.2em] font-mono">PLAYLISTS</p>
+              <p className="flex gap-2 items-center font-bold text-[12px] tracking-[0.2em] font-mono"><Disc size={13} /> PLAYLISTS</p>
               {isAuthenticated && (
                 <button
                   onClick={() => setShowAddModal(true)}
@@ -334,23 +337,31 @@ const Sidebar = ({ children }) => {
                           border border-transparent hover:border-white/5
                         "
                       >
-                        {/* Cover Image + Hover Blur + Play Icon */}
-                        <div className="relative w-8 h-8 shrink-0 rounded-none overflow-hidden border border-neutral-300 dark:border-white/10 shadow-sm flex items-center justify-center bg-neutral-200 dark:bg-neutral-800">
-                             {pl.cover_url ? (
-                                <img 
-                                    src={pl.cover_url} 
-                                    alt={pl.name} 
-                                    className="w-full h-full object-cover transition-all duration-300 blur-[2px] group-hover:blur-none group-hover:scale-100" 
-                                />
-                             ) : (
-                                <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 font-mono transition-all duration-300 blur-[2px] group-hover:blur-none">
-                                    {getFirstLetter(pl.name)}
-                                </span>
-                             )}
-
-                             {/* Play Overlay */}
-                             <div className="absolute inset-0 hidden group-hover:flex items-center justify-center transition-all"></div>
-                             <ScanlineOverlay />
+                        {/* Cover Image + Hover Preview */}
+                        <div className="relative group w-8 h-8 shrink-0 rounded-none overflow-hidden border border-neutral-300 dark:border-white/10 shadow-sm flex items-center justify-center bg-neutral-200 dark:bg-neutral-800 cursor-none">
+                             {/* --- BỌC HOVER PREVIEW --- */}
+                             <HoverImagePreview 
+                                src={pl.cover_url} 
+                                alt={pl.name}
+                                className="w-full h-full"
+                                previewSize={160}
+                                fallbackIcon="disc"
+                             >
+                                 <div className="w-full h-full relative flex items-center justify-center grayscale group-hover:grayscale-0 transition-all duration-500">
+                                     {pl.cover_url ? (
+                                        <img 
+                                            src={pl.cover_url} 
+                                            alt={pl.name} 
+                                            className="w-full h-full object-cover transition-all duration-300 blur-[2px] group-hover:blur-none group-hover:scale-100" 
+                                        />
+                                     ) : (
+                                        <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 font-mono transition-all duration-300 blur-[2px] group-hover:blur-none">
+                                            {getFirstLetter(pl.name)}
+                                        </span>
+                                     )}
+                                     <ScanlineOverlay />
+                                 </div>
+                             </HoverImagePreview>
                         </div>
 
                         {/* Playlist Name & Count */}

@@ -194,7 +194,7 @@ export default function EditPlaylistModal({ playlist, onClose, onUpdated, onDele
                 <label className="text-xs font-mono font-bold uppercase mb-2 text-neutral-500 dark:text-neutral-400">
                     ACCESS_VISIBILITY
                 </label>
-                <button
+                <CyberButton
                     onClick={() => setVisibility(visibility === 1 ? 0 : 1)}
                     className={`
                     w-full px-4 py-3 font-mono text-sm font-bold rounded-none border 
@@ -205,8 +205,8 @@ export default function EditPlaylistModal({ playlist, onClose, onUpdated, onDele
                     }
                     `}
                 >
-                    {visibility === 1 ? "PUBLIC_MODE (1)" : "PRIVATE_MODE (0)"}
-                </button>
+                    {visibility === 1 ? "PUBLIC_MODE" : "PRIVATE_MODE"}
+                </CyberButton>
             </div>
         </div>
 

@@ -14,6 +14,8 @@ import { GlitchText, CyberCard, HoloButton, ScanlineOverlay, HorizontalGlitchTex
 // IMPORT AUTH & MODAL
 import { useAuth } from "@/components/AuthWrapper";
 import { useModal } from "@/context/ModalContext";
+// IMPORT HOVER PREVIEW
+import HoverImagePreview from "@/components/HoverImagePreview"; // <-- Đã thêm
 
 // --- SKELETON LOADER COMPONENT ---
 const PlaylistSkeleton = () => {
@@ -60,7 +62,7 @@ export default function PlaylistPage() {
   const router = useRouter();
   const id = searchParams.get("id");
   const { alert, confirm } = useUI();
-const player = usePlayer();
+  const player = usePlayer();
   const { isAuthenticated } = useAuth();
   const { openModal } = useModal();
 
@@ -145,19 +147,16 @@ const player = usePlayer();
     }
 
     const ids = songs.map((item) => item.songs?.id).filter(Boolean).map(Number);
-    const list = songs.map((i) => i.songs).filter(Boolean);
-    const normalize = (s) => ({
-      id: Number(s.id),
-      title: s.title ?? "",
-      author: s.author ?? "",
-image_url: s.image_url ?? null,
-      song_url: s.song_url ?? null,
-      duration: s.duration ? Number(s.duration) : 0,
-      ...s,
-    });
+    
+    // Cập nhật song map (nếu cần)
+    if (typeof window !== 'undefined') {
+        const songMap = {};
+        songs.forEach(item => { if(item.songs) songMap[item.songs.id] = item.songs });
+        window.__SONG_MAP__ = { ...window.__SONG_MAP__, ...songMap };
+    }
+
     player.setIds(ids);
     player.setId(ids[0]);
-    // player.setSongData(normalize(list[0])); // Player hook thường tự handle việc này khi id thay đổi
   };
 
   const handleRemoveSong = async (songId) => {
@@ -195,29 +194,39 @@ image_url: s.image_url ?? null,
         
         {/* Cover Image Wrapper (CyberCard + Scanline) */}
         <CyberCard className="p-0 rounded-none shadow-2xl shadow-emerald-500/10 shrink-0 border border-neutral-300 dark:border-white/10">
-            <div className="relative w-52 h-52 md:w-64 md:h-64 overflow-hidden group bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center">
-                {playlist.cover_url ? (
-                    <Image
-                        src={playlist.cover_url}
-                        fill
-                        alt="Playlist Cover"
-                        className="object-cover transition-transform duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0"
-                    />
-                ) : (
-                    <span className="text-6xl font-bold opacity-30 font-mono">{playlist.name?.[0]}</span>
-                )}
-                
-                <ScanlineOverlay />
-                <div className="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+            {/* HOVER PREVIEW CHO PLAYLIST COVER (Chỉ ảnh, không nhạc) */}
+            <div className="relative w-52 h-52 md:w-64 md:h-64 overflow-hidden group bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center cursor-none">
+                <HoverImagePreview 
+                    src={playlist.cover_url} 
+                    alt="Playlist Cover" 
+                    className="w-full h-full"
+                    previewSize={300}
+                    fallbackIcon="disc"
+                >
+                    <div className="w-full h-full relative">
+                        {playlist.cover_url ? (
+                            <Image
+                                src={playlist.cover_url}
+                                fill
+                                alt="Playlist Cover"
+                                className="object-cover transition-transform duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0"
+                            />
+                        ) : (
+                            <span className="text-6xl font-bold opacity-30 font-mono flex items-center justify-center h-full w-full">{playlist.name?.[0]}</span>
+                        )}
+                        <ScanlineOverlay />
+                        <div className="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                    </div>
+                </HoverImagePreview>
             </div>
         </CyberCard>
 
         {/* Info */}
-<div className="flex flex-col gap-2 flex-1 pb-2 w-full">
+        <div className="flex flex-col gap-2 flex-1 pb-2 w-full">
           <div className="flex items-center gap-2 mb-1">
               <span className="w-2 h-2 bg-emerald-500 animate-pulse rounded-none"></span>
               <p className="uppercase text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 tracking-[0.3em]">
-                USER_PLAYLIST
+                PRIVATE_PLAYLIST
             </p>
           </div>
           
@@ -270,7 +279,7 @@ image_url: s.image_url ?? null,
                 <th className="p-4 w-12 text-center">#</th>
                 <th className="p-4">Track_Title</th>
                 <th className="p-4 hidden md:table-cell">Artist</th>
-<th className="p-4 text-right">Duration</th>
+                <th className="p-4 text-right">Duration</th>
                 <th className="p-4 w-16 text-center">Action</th>
                 </tr>
             </thead>
@@ -289,18 +298,8 @@ image_url: s.image_url ?? null,
                           return;
                         }
                         const ids = songs.map((item) => Number(item.songs?.id)).filter(Boolean);
-                        const normalize = (s) => ({
-                             id: Number(s.id),
-                             title: s.title ?? "",
-                             author: s.author ?? "",
-                             image_url: s.image_url ?? null,
-                             song_url: s.song_url ?? null,
-                             duration: s.duration ? Number(s.duration) : 0,
-                             ...s,
-                        });
                         player.setIds(ids);
                         player.setId(Number(song.id));
-                        // player.setSongData(normalize(song));
                     }}
                     // Sử dụng group/song để tránh conflict hover
                     className="group/song hover:bg-emerald-500/10 transition-colors duration-200 cursor-pointer"
@@ -311,19 +310,36 @@ image_url: s.image_url ?? null,
 
                     <td className="p-4">
                         <div className="flex items-center gap-4">
-                            <div className="relative w-10 h-10 shrink-0 overflow-hidden rounded-none border border-neutral-300 dark:border-white/10 group-hover/song:border-emerald-500 transition-colors bg-neutral-200 dark:bg-black">
-                                <Image
-                                src={song.image_url || "/default_song.jpg"}
-                                fill
-                                alt={song.title}
-                                className="object-cover group-hover/song:scale-110 transition-transform duration-500 grayscale group-hover/song:grayscale-0"
-                                />
-                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/song:opacity-100 transition-opacity">
-                                    <Play size={16} fill="white" className="text-white"/>
-                                </div>
+                            {/* HOVER PREVIEW CHO SONG LIST (Có Audio) */}
+                            <div className="relative w-10 h-10 shrink-0 overflow-hidden rounded-none border border-neutral-300 dark:border-white/10 group-hover/song:border-emerald-500 transition-colors bg-neutral-200 dark:bg-black cursor-none">
+                                <HoverImagePreview
+                                    src={song.image_url || "/default_song.jpg"}
+                                    alt={song.title}
+                                    audioSrc={song.song_url} // Audio Preview
+                                    className="w-full h-full"
+                                    previewSize={200}
+                                    fallbackIcon="disc"
+                                >
+                                    <div className="w-full h-full relative flex items-center justify-center">
+                                        {song.image_url ? (
+                                            <Image
+                                                src={song.image_url}
+                                                fill
+                                                alt={song.title}
+                                                className="object-cover group-hover/song:scale-110 transition-transform duration-500 grayscale group-hover/song:grayscale-0"
+                                            />
+                                        ) : (
+                                            <Music2 size={16} className="text-neutral-400" />
+                                        )}
+                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/song:opacity-100 transition-opacity">
+                                            <Play size={16} fill="white" className="text-white"/>
+                                        </div>
+                                    </div>
+                                </HoverImagePreview>
                             </div>
+
                             <div className="flex flex-col min-w-0">
-<span className="font-bold text-neutral-800 dark:text-white group-hover/song:text-emerald-500 transition-colors truncate max-w-[150px] md:max-w-xs uppercase">
+                                <span className="font-bold text-neutral-800 dark:text-white group-hover/song:text-emerald-500 transition-colors truncate max-w-[150px] md:max-w-xs uppercase">
                                     {song.title}
                                 </span>
                                 <span className="text-xs text-neutral-500 md:hidden truncate">{song.author}</span>

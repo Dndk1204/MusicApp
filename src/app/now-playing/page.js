@@ -13,9 +13,9 @@ import {
   ShieldCheck,
   RotateCcw,
   Activity,
-  Cpu,
   FileText,
-  Mic2
+  Mic2,
+  AlertTriangle
 } from "lucide-react";
 
 // --- IMPORTS ---
@@ -26,6 +26,8 @@ import Slider from "@/components/Slider";
 import SpectrumVisualizer from "@/components/SpectrumVisualizer";
 import useUI from "@/hooks/useUI";
 import { GlitchText, CyberButton, GlitchButton, ScanlineOverlay } from "@/components/CyberComponents";
+// Import Hover Preview
+import HoverImagePreview from "@/components/HoverImagePreview"; 
 
 // ==================================================================================
 // --- 1. SRT PARSER (CHUYÊN XỬ LÝ ĐỊNH DẠNG PHỤ ĐỀ) ---
@@ -82,13 +84,64 @@ const getValuesForSong = (song) => {
 // --- SKELETON LOADER ---
 const NowPlayingSkeleton = () => {
   return (
-    <div className="w-full h-screen grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 pb-[100px] overflow-hidden bg-neutral-100 dark:bg-black animate-pulse transition-colors duration-500">
-        <div className="lg:col-span-6 flex flex-col items-center justify-center relative border-r border-dashed border-neutral-300 dark:border-white/10">
-             <div className="w-[250px] h-[250px] md:w-[450px] md:h-[450px] bg-neutral-300 dark:bg-neutral-800 rounded-none border border-neutral-400 dark:border-white/20"></div>
-             <div className="mt-12 h-8 w-1/2 bg-neutral-300 dark:bg-neutral-800 rounded-none"></div>
+    <div className="w-full h-[70vh] grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 pb-[100px] overflow-hidden bg-neutral-100 dark:bg-black animate-pulse transition-colors duration-500">
+        
+        {/* LEFT COL: VISUAL (6 cols) */}
+        <div className="lg:col-span-6 flex flex-col items-center justify-center relative border-r border-dashed border-neutral-300 dark:border-white/10 pr-4">
+             {/* Disk Circle (Updated Size: 220px/350px) */}
+             <div className="w-[220px] h-[220px] md:w-[350px] md:h-[350px] rounded-full bg-neutral-300 dark:bg-neutral-800 border-4 border-neutral-400 dark:border-white/5 flex items-center justify-center relative">
+                 <div className="w-[65%] h-[65%] rounded-full bg-neutral-400 dark:bg-neutral-700"></div>
+             </div>
+             
+             {/* Info Text (Updated Spacing: mt-4/mt-6) */}
+             <div className="mt-6 flex flex-col items-center gap-3 w-full max-w-md">
+                 {/* Title */}
+                 <div className="h-10 w-3/4 bg-neutral-300 dark:bg-white/10 rounded-none"></div>
+                 {/* Author */}
+                 <div className="h-4 w-1/3 bg-neutral-300 dark:bg-white/10 rounded-none"></div>
+                 {/* Uploader Badge */}
+                 <div className="mt-2 h-8 w-40 bg-neutral-200 dark:bg-white/5 border border-neutral-300 dark:border-white/10 rounded-none"></div>
+             </div>
         </div>
-        <div className="lg:col-span-3 bg-white/5 rounded-none border border-white/10"></div>
-        <div className="lg:col-span-3 bg-white/5 rounded-none border border-white/10"></div>
+
+        {/* MIDDLE COL: QUEUE (3 cols) */}
+        <div className="hidden lg:flex h-[100%] lg:col-span-3 flex-col bg-white/5 border border-neutral-200 dark:border-white/10">
+            {/* Header */}
+            <div className="h-12 border-b border-neutral-200 dark:border-white/10 flex items-center justify-center">
+                 <div className="h-3 w-24 bg-neutral-300 dark:bg-white/10"></div>
+            </div>
+            {/* List */}
+            <div className="flex-1 p-4 space-y-2 overflow-hidden">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="flex items-center gap-3 p-2 border border-transparent">
+                        <div className="w-8 h-8 bg-neutral-300 dark:bg-white/10 rounded-none"></div>
+                        <div className="flex-1 space-y-1">
+                            <div className="h-3 w-2/3 bg-neutral-300 dark:bg-white/10"></div>
+                            <div className="h-2 w-1/3 bg-neutral-300 dark:bg-white/10"></div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+
+        {/* RIGHT COL: TABS (3 cols) */}
+        <div className="hidden lg:flex lg:col-span-3 flex-col bg-white/5 border border-neutral-200 dark:border-white/10">
+             {/* Tabs Header */}
+             <div className="flex h-12 border-b border-neutral-200 dark:border-white/10">
+                 <div className="flex-1 bg-white/10 m-1"></div>
+                 <div className="flex-1 m-1"></div>
+                 <div className="flex-1 m-1"></div>
+             </div>
+             {/* Content (EQ Sliders) */}
+             <div className="flex-1 p-6 flex flex-col justify-center gap-8">
+                 <div className="h-40 w-full bg-neutral-300 dark:bg-white/5 mb-4"></div>
+                 <div className="space-y-6">
+                     <div className="h-4 w-full bg-neutral-300 dark:bg-white/10"></div>
+                     <div className="h-4 w-full bg-neutral-300 dark:bg-white/10"></div>
+                     <div className="h-4 w-full bg-neutral-300 dark:bg-white/10"></div>
+                 </div>
+             </div>
+        </div>
     </div>
   )
 }
@@ -179,7 +232,10 @@ const NowPlayingPage = () => {
         const minDelay = new Promise(resolve => setTimeout(resolve, 800));
 
         if (!player.activeId) {
-            await minDelay; setLoading(false); return;
+            setSong(null); // Clear song data
+            await minDelay;
+            setLoading(false);
+            return; 
         }
 
         try {
@@ -249,11 +305,14 @@ const NowPlayingPage = () => {
                         setSong(newSong);
                         setRealDuration(track.duration);
                         if (typeof window !== 'undefined') window.__SONG_MAP__ = { ...window.__SONG_MAP__, [newSong.id]: newSong };
+                    } else {
+                        setSong(null); // Nếu fetch thất bại, clear song
                     }
                 }
             }
         } catch (error) {
             console.error("Error fetching song:", error);
+            setSong(null);
         } finally {
             await minDelay; setLoading(false);
         }
@@ -497,147 +556,172 @@ const NowPlayingPage = () => {
 
   if (!isMounted) return null;
   if (loading) return <NowPlayingSkeleton />;
-  if (!player.activeId || !song) return null;
+  if (!player.activeId || !song) {
+      return (
+          <div className="w-full h-[70vh] flex items-center justify-center bg-neutral-100 dark:bg-black relative">
+              <button onClick={() => router.back()} className="absolute top-4 left-4 p-2 text-neutral-500 hover:text-emerald-500 z-50"><ArrowLeft size={24} /></button>
+              
+              <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-red-500/50 bg-black/50 backdrop-blur-md shadow-2xl shadow-red-500/10">
+                  <AlertTriangle size={48} className="text-red-500 mb-4 animate-pulse"/>
+                  <h1 className="text-2xl font-black font-mono text-white tracking-wider uppercase">NO_ACTIVE_TRACK</h1>
+                  <p className="text-sm font-mono text-neutral-400 mt-2">Please select a song from your library or a playlist.</p>
+                  <GlitchButton onClick={() => router.push('/')} className="mt-6 text-xs px-6 py-2 border-red-500 text-red-400 hover:text-white">GO_TO_BROWSE</GlitchButton>
+              </div>
+          </div>
+      );
+  }
 
   return (
     // MAIN CONTAINER: h-screen to fit viewport, overflow-hidden to prevent body scroll
-    <div className="w-full h-screen grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 pb-[100px] overflow-hidden bg-neutral-100 dark:bg-black transition-colors animate-in fade-in duration-500 relative">
-
-      {/* Background FUI Elements */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none opacity-50"></div>
-      <div className="absolute top-0 right-0 p-4 font-mono text-[9px] text-emerald-500/50 uppercase tracking-widest hidden lg:block">System_Ready :: Audio_Core_V2</div>
+    <div className="w-full h-[70vh] grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 overflow-hidden bg-neutral-100 dark:bg-black transition-colors animate-in fade-in duration-500 relative">
 
       {/* --- CỘT TRÁI (VISUAL - Đã chỉnh lên 6 phần) --- */}
       <div className="lg:col-span-6 flex flex-col items-center justify-center relative perspective-1000 h-full min-h-0 border-r border-dashed border-neutral-300 dark:border-white/10 pr-4">
-         
-         <div className="relative flex items-center justify-center scale-90 md:scale-100">
-             {/* FUI Circle */}
-             <div className={`relative w-[280px] h-[280px] md:w-[450px] md:h-[450px] flex items-center justify-center transition-all duration-1000 ${isPlaying ? 'animate-[spin_12s_linear_infinite]' : ''}`}>
-                <div className="absolute inset-0 rounded-full border border-dashed border-emerald-500/30"></div>
-                <div className="absolute inset-4 rounded-full border border-neutral-800 dark:border-white/10"></div>
-                <div className="absolute inset-0 m-auto w-[90%] h-[90%] rounded-full border-2 border-transparent border-t-emerald-500/50 border-b-emerald-500/50 rotate-45"></div>
-                
-                {/* Main Art Container */}
-                <div className="absolute inset-0 m-auto w-[65%] h-[65%] rounded-full overflow-hidden border-4 border-neutral-300 dark:border-neutral-800 bg-black shadow-2xl group">
-                      <img src={song.image_path || song.image_url || "/images/default_song.png"} className="w-full h-full object-cover opacity-90 transition-transform duration-1000 group-hover:scale-110" alt="Cover"/>
+          
+          <div className="relative flex items-center justify-center scale-90 md:scale-100">
+              {/* FUI Circle - ĐÃ GIẢM KÍCH THƯỚC */}
+              <div className={`relative w-[220px] h-[220px] md:w-[350px] md:h-[350px] flex items-center justify-center transition-all duration-1000 ${isPlaying ? 'animate-[spin_12s_linear_infinite]' : ''}`}>
+                 <div className="absolute inset-0 rounded-full border border-dashed border-emerald-500/30"></div>
+                 <div className="absolute inset-4 rounded-full border border-neutral-800 dark:border-white/10"></div>
+                 <div className="absolute inset-0 m-auto w-[90%] h-[90%] rounded-full border-2 border-transparent border-t-emerald-500/50 border-b-emerald-500/50 rotate-45"></div>
+                 
+                 {/* Main Art Container - ĐÃ XÓA HoverPreview */}
+                 <div className="absolute inset-0 m-auto w-[65%] h-[65%] rounded-full overflow-hidden border-4 border-neutral-300 dark:border-neutral-800 bg-black shadow-2xl group">
+                      <img 
+                        src={song.image_path || song.image_url || "/images/default_song.png"} 
+                        className="w-full h-full object-cover opacity-90 transition-all duration-1000 group-hover:scale-110 grayscale group-hover:grayscale-0" 
+                        alt="Cover"
+                      />
                       <ScanlineOverlay />
-                </div>
+                 </div>
+              </div>
+          </div>
+
+          {/* ĐÃ GIẢM MARGIN-TOP ĐỂ ĐẨY LÊN GẦN HƠN (mt-4 md:mt-6) */}
+          <div className="mt-2 md:mt-4 text-center z-20 space-y-2 max-w-lg w-full">
+             <h1 className="text-3xl md:text-5xl font-black text-neutral-900 dark:text-white tracking-tighter uppercase font-mono truncate px-4">
+                  <GlitchText text={song.title} />
+             </h1>
+             <div className="flex items-center justify-center gap-2">
+                 <span className="w-8 h-px bg-emerald-500"></span>
+                 <p className="text-sm md:text-base font-bold font-mono text-emerald-600 dark:text-emerald-500 tracking-[0.3em] uppercase">
+                     {song.author}
+                 </p>
+                 <span className="w-8 h-px bg-emerald-500"></span>
              </div>
-         </div>
 
-         <div className="mt-8 md:mt-12 text-center z-20 space-y-2 max-w-lg w-full">
-            <h1 className="text-3xl md:text-5xl font-black text-neutral-900 dark:text-white tracking-tighter uppercase font-mono truncate px-4">
-                 <GlitchText text={song.title} />
-            </h1>
-            <div className="flex items-center justify-center gap-2">
-                <span className="w-8 h-px bg-emerald-500"></span>
-                <p className="text-sm md:text-base font-bold font-mono text-emerald-600 dark:text-emerald-500 tracking-[0.3em] uppercase">
-                    {song.author}
-                </p>
-                <span className="w-8 h-px bg-emerald-500"></span>
-            </div>
-
-            <div className="flex items-center justify-center gap-2 mt-4 text-xs font-mono text-neutral-500 dark:text-neutral-400 bg-white/50 dark:bg-white/5 px-4 py-2 border border-neutral-300 dark:border-white/10 mx-auto backdrop-blur-sm w-fit">
-                <span className="uppercase tracking-widest opacity-70 border-r border-neutral-400 dark:border-white/20 pr-2 mr-2">UPLOADED_BY</span>
-                {song.uploader_id ? (
-                    <button
-                        onClick={() => router.push(`/user/${song.uploader_id}`)}
-                        className={`font-bold flex items-center gap-2 hover:opacity-80 transition-opacity ${song.uploader_role === 'admin' ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'}`}
-                    >
-                        {song.uploader_role === 'admin' ? <ShieldCheck size={14} className="text-yellow-500"/> : <UserCheck size={14} className="text-blue-500"/>}
-                        <span className="text-sm uppercase">{song.uploader}</span>
-                    </button>
-                ) : (
-                    <span className={`font-bold flex items-center gap-2 ${song.uploader_role === 'admin' ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                        {song.uploader_role === 'admin' ? <ShieldCheck size={14} className="text-yellow-500"/> : <UserCheck size={14} className="text-blue-500"/>}
-                        <span className="text-sm uppercase">{song.uploader}</span>
-                    </span>
-                )}
-            </div>
-         </div>
-         
-         <button onClick={() => router.back()} className="absolute top-0 left-0 lg:hidden p-4 text-neutral-500 hover:text-emerald-500 z-50"><ArrowLeft size={24} /></button>
+             <div className="flex items-center justify-center gap-2 mt-4 text-xs font-mono text-neutral-500 dark:text-neutral-400 bg-white/50 dark:bg-white/5 px-4 py-2 border border-neutral-300 dark:border-white/10 mx-auto backdrop-blur-sm w-fit">
+                 <span className="uppercase tracking-widest opacity-70 border-r border-neutral-400 dark:border-white/20 pr-2 mr-2">UPLOADED_BY</span>
+                 {song.uploader_id ? (
+                     <button
+                         onClick={() => router.push(`/user/${song.uploader_id}`)}
+                         className={`font-bold flex items-center gap-2 hover:opacity-80 transition-opacity ${song.uploader_role === 'admin' ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'}`}
+                     >
+                         {song.uploader_role === 'admin' ? <ShieldCheck size={14} className="text-yellow-500"/> : <UserCheck size={14} className="text-blue-500"/>}
+                         <span className="text-sm uppercase">{song.uploader}</span>
+                     </button>
+                 ) : (
+                     <span className={`font-bold flex items-center gap-2 ${song.uploader_role === 'admin' ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                         {song.uploader_role === 'admin' ? <ShieldCheck size={14} className="text-yellow-500"/> : <UserCheck size={14} className="text-blue-500"/>}
+                         <span className="text-sm uppercase">{song.uploader}</span>
+                     </span>
+                 )}
+             </div>
+          </div>
+          
+          <button onClick={() => router.back()} className="absolute top-0 left-0 lg:hidden p-4 text-neutral-500 hover:text-emerald-500 z-50"><ArrowLeft size={24} /></button>
       </div>
 
-      {/* --- CỘT GIỮA (QUEUE - Đã chỉnh lên 3 phần) --- */}
-      <div className="lg:col-span-3 flex flex-col h-full bg-white/60 dark:bg-black/30 backdrop-blur-xl border border-neutral-200 dark:border-white/10 rounded-none overflow-hidden shadow-xl z-20 relative">
+      {/* --- CỘT GIỮA (QUEUE) --- */}
+      <div className="lg:col-span-3 flex -translate-x-10 flex-col h-[103%] w-[80%] bg-white/60 dark:bg-black/30 backdrop-blur-xl border border-neutral-200 dark:border-white/10 rounded-none overflow-hidden shadow-xl z-20 relative">
 
-         {/* Decorative FUI Corners */}
-         <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-emerald-500 z-40"></div>
-         <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-emerald-500 z-40"></div>
-         <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-emerald-500 z-40"></div>
-         <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-emerald-500 z-40"></div>
+          {/* Decorative FUI Corners */}
+          <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-emerald-500 z-40"></div>
+          <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-emerald-500 z-40"></div>
+          <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-emerald-500 z-40"></div>
+          <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-emerald-500 z-40"></div>
 
-         {/* QUEUE HEADER */}
-         <div className="flex items-center justify-center border-b border-neutral-200 dark:border-white/10 shrink-0 py-4">
-            <h3 className="text-[10px] font-mono text-emerald-500 uppercase tracking-wider">
-               :: PLAY_QUEUE ::
-            </h3>
-         </div>
+          {/* QUEUE HEADER */}
+          <div className="flex items-center justify-center border-b border-neutral-200 dark:border-white/10 shrink-0 py-4">
+             <h3 className="text-[10px] font-mono text-emerald-500 uppercase tracking-wider">
+                :: PLAY_QUEUE ::
+             </h3>
+          </div>
 
-         {/* QUEUE CONTENT */}
-         <div className="flex-1 min-h-0 p-4 custom-scrollbar overflow-y-auto">
-            {/* All Songs in Queue Order */}
-            {queueSongs.length > 0 ? (
-               <div className="space-y-2">
-                  {queueSongs.map((queueSong, index) => {
-                     const isCurrentlyPlaying = queueSong.id === song.id;
-                     return (
-                        <div
-                           key={queueSong.id}
-                           className={`p-2 border rounded-none cursor-pointer hover:bg-neutral-200 dark:hover:bg-white/10 transition-colors ${
-                              isCurrentlyPlaying
-                                 ? 'bg-emerald-500/10 border-emerald-500/30'
-                                 : 'bg-neutral-100 dark:bg-white/5 border-neutral-200 dark:border-white/10'
-                           }`}
-                           onClick={() => player.setId(queueSong.id)}
-                        >
-                           <div className="flex items-center gap-3">
-                              <img
-                                 src={queueSong.image_path}
-                                 className={`w-8 h-8 object-cover border ${
-                                    isCurrentlyPlaying
-                                       ? 'border-emerald-500/50'
-                                       : 'border-neutral-300 dark:border-white/20'
-                                 }`}
-                                 alt="Queue"
-                              />
-                              <div className="flex-1 min-w-0">
-                                 <p className={`text-xs font-bold font-mono truncate ${
-                                    isCurrentlyPlaying
-                                       ? 'text-emerald-600 dark:text-emerald-400'
-                                       : 'text-neutral-800 dark:text-white'
-                                 }`}>
-                                    {queueSong.title}
-                                 </p>
-                                 <p className="text-[10px] font-mono text-neutral-500 truncate">
-                                    {queueSong.author}
-                                 </p>
-                              </div>
-                           </div>
-                        </div>
-                     );
-                  })}
-               </div>
-            ) : (
-               <div className="flex flex-col items-center justify-center h-32 text-neutral-400">
-                  <p className="text-xs font-mono">NO_QUEUE_ITEMS</p>
-               </div>
-            )}
-         </div>
+          {/* QUEUE CONTENT */}
+          <div className="flex-1 min-h-0 p-4 custom-scrollbar overflow-y-auto">
+             {queueSongs.length > 0 ? (
+                <div className="space-y-2">
+                   {queueSongs.map((queueSong, index) => {
+                      const isCurrentlyPlaying = queueSong.id === song.id;
+                      return (
+                         <div
+                            key={queueSong.id}
+                            className={`p-2 border group rounded-none cursor-pointer hover:bg-neutral-200 dark:hover:bg-white/10 ${
+                               isCurrentlyPlaying
+                                  ? 'bg-emerald-500/10 border-emerald-500/30'
+                                  : 'bg-neutral-100 dark:bg-white/5 border-neutral-200 dark:border-white/10'
+                            }`}
+                            onClick={() => player.setId(queueSong.id)}
+                         >
+                            <div className="flex items-center gap-3">
+                               {/* Hover Preview for Queue Item */}
+                               <div className="w-8 h-8 shrink-0 relative cursor-none">
+                                   <HoverImagePreview 
+                                        src={queueSong.image_path} 
+                                        alt={queueSong.title}
+                                        className="w-full h-full"
+                                        previewSize={160}
+                                        fallbackIcon="disc"
+                                   >
+                                       <img
+                                          src={queueSong.image_path}
+                                          className={`w-full h-full object-cover border transition-all duration-300
+                                                     grayscale group-hover:grayscale-0 ${
+                                             isCurrentlyPlaying
+                                                ? 'border-emerald-500/50'
+                                                : 'border-neutral-300 dark:border-white/20'
+                                          }`}
+                                          alt="Queue"
+                                       />
+                                   </HoverImagePreview>
+                               </div>
+
+                               <div className="flex-1 min-w-0">
+                                  <p className={`text-xs font-bold font-mono truncate ${
+                                     isCurrentlyPlaying
+                                        ? 'text-emerald-600 dark:text-emerald-400'
+                                        : 'text-neutral-800 dark:text-white'
+                                  }`}>
+                                     {queueSong.title}
+                                  </p>
+                                  <p className="text-[10px] font-mono text-neutral-500 truncate">
+                                     {queueSong.author}
+                                  </p>
+                               </div>
+                            </div>
+                         </div>
+                      );
+                   })}
+                </div>
+             ) : (
+                <div className="flex flex-col items-center justify-center h-32 text-neutral-400">
+                   <p className="text-xs font-mono">NO_QUEUE_ITEMS</p>
+                </div>
+             )}
+          </div>
       </div>
 
-      {/* --- CỘT PHẢI (TABS & CONTROLS - Đã chỉnh lên 3 phần) --- */}
-      <div className="lg:col-span-3 flex flex-col h-full bg-white/80 dark:bg-black/40 backdrop-blur-2xl border border-neutral-200 dark:border-white/10 rounded-none overflow-hidden shadow-2xl z-30 relative">
-         
-         {/* Decorative FUI Corners */}
-         <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-emerald-500 z-40"></div>
-         <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-emerald-500 z-40"></div>
-         <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-emerald-500 z-40"></div>
-         <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-emerald-500 z-40"></div>
+      {/* --- CỘT PHẢI (TABS & CONTROLS) --- */}
+      <div className="lg:col-span-3 flex flex-col -translate-x-24 w-[135%] h-[103%] bg-white/80 dark:bg-black/40 backdrop-blur-2xl border border-neutral-200 dark:border-white/10 rounded-none overflow-hidden shadow-2xl z-30 relative">
+          
+          <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-emerald-500 z-40"></div>
+          <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-emerald-500 z-40"></div>
+          <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-emerald-500 z-40"></div>
+          <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-emerald-500 z-40"></div>
 
-         {/* TAB HEADER */}
-         <div className="flex border-b border-neutral-200 dark:border-white/10 shrink-0">
+          {/* TAB HEADER */}
+          <div className="flex border-b border-neutral-200 dark:border-white/10 shrink-0">
                 <button onClick={() => setActiveTab('equalizer')} className={`flex-1 py-4 text-[10px] font-mono tracking-widest uppercase flex items-center justify-center gap-2 transition-all rounded-none relative ${activeTab === 'equalizer' ? 'bg-neutral-100 dark:bg-white/5 text-emerald-600 dark:text-emerald-500 font-bold' : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-white'}`}>
                     <Sliders size={14}/> EQ
                     {activeTab === 'equalizer' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-emerald-500"></div>}
@@ -646,10 +730,14 @@ const NowPlayingPage = () => {
                     <Mic2 size={14}/> LYRICS
                     {activeTab === 'lyrics' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-emerald-500"></div>}
                 </button>
-         </div>
+                <button onClick={() => setActiveTab('info')} className={`flex-1 py-4 text-[10px] font-mono tracking-widest uppercase flex items-center justify-center gap-2 transition-all rounded-none relative ${activeTab === 'info' ? 'bg-neutral-100 dark:bg-white/5 text-emerald-600 dark:text-emerald-500 font-bold' : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-white'}`}>
+                    <Info size={14}/> META
+                    {activeTab === 'info' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-emerald-500"></div>}
+                </button>
+          </div>
 
-         {/* --- MAIN CONTENT CONTAINER --- */}
-         <div className="flex-1 min-h-0 p-6 custom-scrollbar relative overflow-hidden flex flex-col w-full h-full">
+          {/* --- MAIN CONTENT CONTAINER (FULL HEIGHT) --- */}
+          <div className="flex-1 min-h-0 p-6 custom-scrollbar relative overflow-hidden flex flex-col w-full h-full">
 
             {/* 1. EQUALIZER TAB */}
             {activeTab === 'equalizer' && (
@@ -659,8 +747,8 @@ const NowPlayingPage = () => {
                         <span className="opacity-50">FREQ_MOD</span>
                     </h3>
                     
-                    <div className="flex-1 flex flex-col justify-center w-full min-h-0">
-                        <div className="h-[140px] md:h-[180px] shrink-0 w-full relative mb-6 flex items-center justify-center">
+                    <div className="flex-1 flex flex-col justify-center w-full min-h-0 overflow-y-auto custom-scrollbar">
+                        <div className="h-[140px] md:h-[180px] translate-y-20 shrink-0 w-full relative flex items-center justify-center">
                              <div className="w-full h-full absolute inset-0">
                                  <SpectrumVisualizer isPlaying={isPlaying} />
                              </div>
@@ -674,22 +762,22 @@ const NowPlayingPage = () => {
                                     { id: 'treble', label: 'High_Freq', min: -15, max: 15 },
                                 ].map((item) => (
                                     <div key={item.id} className="flex flex-col gap-y-1">
-                                        <div className="flex justify-between text-[9px] font-mono uppercase text-neutral-500 dark:text-neutral-400">
-                                            <label>{item.label}</label>
-                                            <span className="bg-neutral-200 dark:bg-white/10 px-1 text-black dark:text-white border border-neutral-300 dark:border-white/10 font-bold min-w-[30px] text-center">
-                                                {audioSettings[item.id] > 0 ? '+' : ''}{audioSettings[item.id]}dB
-                                            </span>
-                                        </div>
-                                        <Slider value={audioSettings[item.id]} max={item.max} min={item.min} step={1} onChange={(val) => handleAudioChange(item.id, val)} />
+                                            <div className="flex justify-between text-[9px] font-mono uppercase text-neutral-500 dark:text-neutral-400">
+                                                <label>{item.label}</label>
+                                                <span className="bg-neutral-200 dark:bg-white/10 px-1 text-black dark:text-white border border-neutral-300 dark:border-white/10 font-bold min-w-[30px] text-center">
+                                                    {audioSettings[item.id] > 0 ? '+' : ''}{audioSettings[item.id]}dB
+                                                </span>
+                                            </div>
+                                            <Slider value={audioSettings[item.id]} max={item.max} min={item.min} step={1} onChange={(val) => handleAudioChange(item.id, val)} />
                                     </div>
                                 ))}
                             </div>
 
                             <div className="flex gap-2 pt-2">
-                                <CyberButton onClick={handleSaveSettings} disabled={isSaving} className="flex-1 text-xs py-2 h-auto">
+                                <CyberButton onClick={handleSaveSettings} disabled={isSaving} className="flex-1 text-xs hover:!text-white py-2 h-auto">
                                     {isSaving ? <Loader2 className="animate-spin" size={14}/> : <Save size={14}/>} SAVE_CONFIG
                                 </CyberButton>
-                                <GlitchButton onClick={handleResetSettings} className="flex-1 border-red-400/50 text-red-500 bg-transparent hover:bg-red-600 hover:text-white text-xs py-2 h-auto rounded-none">
+                                <GlitchButton onClick={handleResetSettings} className="flex-1 border-red-400/50 text-red-500 bg-transparent hover:text-white text-xs py-2 h-auto rounded-none">
                                      <RotateCcw size={14} className="mr-1"/> RESET
                                 </GlitchButton>
                             </div>
@@ -698,35 +786,35 @@ const NowPlayingPage = () => {
                                 <p className="text-[8px] font-mono text-neutral-400 uppercase mb-2 tracking-widest">:: PRESET_MATRIX ::</p>
                                 <div className="overflow-x-auto custom-scrollbar pb-1">
                                     <div className="flex gap-2 min-w-max">
-                                        {['FLAT', 'BASS_BOOST', 'DYNAMIC', 'ROCK', 'POP', 'JAZZ', 'ELECTRONIC', 'INDIE', 'CLASSIC', 'HIPHOP', 'VOCAL', 'CINEMATIC'].map((name) => {
-                                            const presets = {
-                                                'FLAT': {bass: 0, mid: 0, treble: 0},
-                                                'BASS_BOOST': {bass: 10, mid: 2, treble: -3},
-                                                'DYNAMIC': {bass: 7, mid: 3, treble: 7},
-                                                'ROCK': {bass: 8, mid: 4, treble: 2},
-                                                'POP': {bass: 5, mid: 8, treble: 5},
-                                                'JAZZ': {bass: 6, mid: -2, treble: 8},
-                                                'ELECTRONIC': {bass: 12, mid: 5, treble: -4},
-                                                'INDIE': {bass: 3, mid: 7, treble: 6},
-                                                'CLASSIC': {bass: 4, mid: -3, treble: 9},
-                                                'HIPHOP': {bass: 11, mid: 6, treble: 1},
-                                                'VOCAL': {bass: 2, mid: 12, treble: 4},
-                                                'CINEMATIC': {bass: 9, mid: 3, treble: 3},
-                                            };
-                                            const values = presets[name];
-                                            return (
-                                            <button
-                                                key={name}
-                                                onClick={() => applySettings({ ...values, volume: audioSettings.volume })}
-                                                className={`text-[9px] font-mono py-1.5 px-2 border transition-all duration-300 whitespace-nowrap shrink-0 ${
-                                                    isPresetActive(values)
-                                                        ? 'bg-emerald-500 text-black border-emerald-500 font-bold shadow-[0_0_10px_rgba(16,185,129,0.4)]'
-                                                        : 'border-neutral-400 dark:border-white/20 text-neutral-500 hover:border-emerald-500 hover:text-emerald-500'
-                                                }`}
-                                            >
-                                                {name}
-                                            </button>
-                                        )})}
+                                            {['FLAT', 'BASS_BOOST', 'DYNAMIC', 'ROCK', 'POP', 'JAZZ', 'ELECTRONIC', 'INDIE', 'CLASSIC', 'HIPHOP', 'VOCAL', 'CINEMATIC'].map((name) => {
+                                                const presets = {
+                                                    'FLAT': {bass: 0, mid: 0, treble: 0},
+                                                    'BASS_BOOST': {bass: 10, mid: 2, treble: -3},
+                                                    'DYNAMIC': {bass: 7, mid: 3, treble: 7},
+                                                    'ROCK': {bass: 8, mid: 4, treble: 2},
+                                                    'POP': {bass: 5, mid: 8, treble: 5},
+                                                    'JAZZ': {bass: 6, mid: -2, treble: 8},
+                                                    'ELECTRONIC': {bass: 12, mid: 5, treble: -4},
+                                                    'INDIE': {bass: 3, mid: 7, treble: 6},
+                                                    'CLASSIC': {bass: 4, mid: -3, treble: 9},
+                                                    'HIPHOP': {bass: 11, mid: 6, treble: 1},
+                                                    'VOCAL': {bass: 2, mid: 12, treble: 4},
+                                                    'CINEMATIC': {bass: 9, mid: 3, treble: 3},
+                                                };
+                                                const values = presets[name];
+                                                return (
+                                                <button
+                                                    key={name}
+                                                    onClick={() => applySettings({ ...values, volume: audioSettings.volume })}
+                                                    className={`text-[9px] font-mono py-1.5 px-2 border transition-all duration-300 whitespace-nowrap shrink-0 ${
+                                                        isPresetActive(values)
+                                                            ? 'bg-emerald-500 text-black border-emerald-500 font-bold shadow-[0_0_10px_rgba(16,185,129,0.4)]'
+                                                            : 'border-neutral-400 dark:border-white/20 text-neutral-500 hover:border-emerald-500 hover:text-emerald-500'
+                                                    }`}
+                                                >
+                                                    {name}
+                                                </button>
+                                            )})}
                                     </div>
                                 </div>
                             </div>
@@ -792,6 +880,68 @@ const NowPlayingPage = () => {
                              </div>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* 3. INFO TAB (TECH SPECS) */}
+            {activeTab === 'info' && (
+                <div className="flex flex-col h-full w-full gap-4 text-xs font-mono text-neutral-700 dark:text-white animate-in fade-in duration-300 max-w-2xl mx-auto overflow-y-auto custom-scrollbar">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="p-3 bg-neutral-100 dark:bg-white/5 border border-neutral-200 dark:border-white/5">
+                            <p className="text-[9px] text-neutral-500 uppercase tracking-widest mb-1">ARTIST_ID</p>
+                            <p className="font-bold text-sm truncate">{song.author}</p>
+                        </div>
+
+                        <div className="p-3 bg-neutral-100 dark:bg-white/5 border border-neutral-200 dark:border-white/5">
+                            <p className="text-[9px] text-neutral-500 uppercase tracking-widest mb-1">DURATION</p>
+                            <p className="font-bold text-emerald-600 dark:text-emerald-500 text-sm">
+                                {formatTime(realDuration)}
+                            </p>
+                        </div>
+
+                        <div className="col-span-2 p-3 bg-neutral-100 dark:bg-white/5 border border-neutral-200 dark:border-white/5 flex flex-col">
+                            <p className="text-[9px] text-neutral-500 uppercase tracking-widest mb-1">UNIQUE_TRACK_ID</p>
+                            <p className="truncate text-emerald-600 dark:text-emerald-500 font-mono text-[10px]">{song.id}</p>
+                        </div>
+
+                        <div className="col-span-2 p-3 bg-neutral-100 dark:bg-white/5 border border-neutral-200 dark:border-white/5">
+                            <p className="text-[9px] text-neutral-500 uppercase tracking-widest mb-1">UPLOAD_SOURCE</p>
+                            <div className="flex items-center gap-2">
+                                {/* --- HOVER PREVIEW CHO UPLOADER AVATAR --- */}
+                                <div className="w-6 h-6 relative shrink-0">
+                                    <HoverImagePreview 
+                                        src={song.uploader_avatar} 
+                                        alt={song.uploader} 
+                                        className="w-full h-full cursor-none"
+                                        previewSize={160} // Avatar nhỏ nên preview vừa phải
+                                        fallbackIcon="user"
+                                    >
+                                        <div className="w-full h-full group relative flex items-center justify-center overflow-hidden border border-white/20 bg-neutral-200 dark:bg-neutral-800 rounded-none">
+                                            {song.uploader_avatar ? (
+                                                <img 
+                                                    src={song.uploader_avatar} 
+                                                    className="w-full h-full object-cover transition-all duration-500
+                                                     grayscale group-hover:grayscale-0" 
+                                                    alt={song.uploader}
+                                                />
+                                            ) : (
+                                                song.uploader_role === 'admin'
+                                                    ? <ShieldCheck size={14} className="text-yellow-500"/>
+                                                    : <UserCheck size={14} className="text-green-500"/>
+                                            )}
+                                            <ScanlineOverlay />
+                                        </div>
+                                    </HoverImagePreview>
+                                </div>
+
+                                <p className="font-bold">{song.uploader}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-dashed border-neutral-200 dark:border-white/10 text-center shrink-0">
+                        <p className="text-[9px] text-neutral-400 animate-pulse">:: SECURE_CONNECTION_ESTABLISHED ::</p>
+                    </div>
                 </div>
             )}
 

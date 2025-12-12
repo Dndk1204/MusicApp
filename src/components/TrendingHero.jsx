@@ -356,7 +356,7 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
                                                             className="w-full h-full relative"
                                                             previewSize={160} // Size nhỏ hơn cho list
                                                         >
-                                                            <div className="w-full h-full relative">
+                                                            <div className="w-full h-full relative flex justify-center items-center">
                                                                 {artist.image_url ? (
                                                                     <Image src={artist.image_url} alt={artist.name} fill className="object-cover grayscale group-hover/row:grayscale-0 transition"/>
                                                                 ) : (

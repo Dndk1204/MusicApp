@@ -5,8 +5,6 @@ import usePlayer from "@/hooks/usePlayer";
 import useLoadSongUrl from "@/hooks/useLoadSongUrl";
 import PlayerContent from "./PlayerContent";
 import { supabase } from "@/lib/supabaseClient";
-// Import Cyber Components nếu cần, hoặc dùng class
-import { GlitchText } from "@/components/CyberComponents";
 
 const Player = () => {
   const player = usePlayer();

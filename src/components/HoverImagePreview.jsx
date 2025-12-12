@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { ScanlineOverlay } from "@/components/CyberComponents";
-import { Volume2, VolumeX, Loader2, Disc, User } from "lucide-react"; // Import thêm Disc, User
+import { Volume2, VolumeX, Loader2, Disc, User } from "lucide-react"; 
 import usePlayer from "@/hooks/usePlayer";
 
 const HoverImagePreview = ({ 
@@ -11,7 +11,7 @@ const HoverImagePreview = ({
     audioSrc, 
     className = "",
     previewSize = 240, 
-    fallbackIcon = "disc", // "disc" | "user" - Icon mặc định khi không có ảnh
+    fallbackIcon = "disc", 
     children 
 }) => {
     const player = usePlayer();
@@ -81,14 +81,15 @@ const HoverImagePreview = ({
 
     const visualizerBars = useMemo(() => {
         return (
-            <div className="absolute bottom-0 left-0 w-full h-12 flex items-end gap-0.5 opacity-90 px-1 pb-1 z-10 bg-gradient-to-t from-black to-transparent">
+            <div className="absolute bottom-0 left-0 w-full h-12 flex items-end gap-0.5 opacity-90 px-1 pb-1 z-10 bg-gradient-to-t from-white/80 via-transparent to-transparent dark:from-black dark:to-transparent">
                 {Array.from({ length: 16 }).map((_, i) => {
                     const height = Math.random() * 60 + 20; 
                     const duration = 0.4 + Math.random() * 0.4; 
                     return (
                         <div 
                             key={i} 
-                            className="flex-1 bg-emerald-500 animate-[bounce_1s_infinite]" 
+                            // FIX: Màu xanh đậm hơn ở Light mode để dễ nhìn trên nền sáng
+                            className="flex-1 bg-emerald-600 dark:bg-emerald-500 animate-[bounce_1s_infinite]" 
                             style={{
                                 animationDuration: `${duration}s`,
                                 animationDelay: `${i * 0.05}s`, 
@@ -127,14 +128,11 @@ const HoverImagePreview = ({
             } else {
                 stopAudioImmediate();
             }
-        }, 30);
+        }, 3);
     };
 
     const playPreview = () => {
-        if (!audioSrc) {
-            // Không có nhạc -> vẫn hiện ảnh nhưng không báo lỗi audio
-            return;
-        }
+        if (!audioSrc) return;
         if (player.isPlaying) return;
 
         stopAudioImmediate();
@@ -172,9 +170,9 @@ const HoverImagePreview = ({
                     let vol = 0;
                     if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
                     fadeIntervalRef.current = setInterval(() => {
-                        if (vol < 0.4) {
+                        if (vol < 0.5) {
                             vol += 0.001;
-                            audio.volume = Math.min(vol, 0.4);
+                            audio.volume = Math.min(vol, 0.5);
                         } else {
                             clearInterval(fadeIntervalRef.current);
                         }
@@ -194,7 +192,6 @@ const HoverImagePreview = ({
         setIsHovering(true);
         isHoveringRef.current = true;
 
-        // Set vị trí ban đầu
         if (popupRef.current) {
              const offset = 20; 
              const viewportWidth = window.innerWidth;
@@ -222,18 +219,18 @@ const HoverImagePreview = ({
         stopAudioWithFade();
     };
 
-    // --- RENDER PLACEHOLDER KHI KHÔNG CÓ SRC ---
+    // --- RENDER PLACEHOLDER ---
     const renderContent = () => {
         if (src) {
             return <img src={src} alt={alt || "preview"} className="w-full h-full object-cover" />;
         }
-        // Fallback UI
         return (
-            <div className="w-full h-full bg-neutral-900 flex items-center justify-center">
+            // FIX: Background sáng ở Light mode, tối ở Dark mode
+            <div className="w-full h-full bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center">
                 {fallbackIcon === "user" ? (
-                    <User size={previewSize * 0.4} className="text-neutral-700" strokeWidth={1} />
+                    <User size={previewSize * 0.4} className="text-neutral-400 dark:text-neutral-700" strokeWidth={1} />
                 ) : (
-                    <Disc size={previewSize * 0.4} className="text-neutral-700 animate-spin-slow" strokeWidth={1} />
+                    <Disc size={previewSize * 0.4} className="text-neutral-400 dark:text-neutral-700 animate-spin-slow" strokeWidth={1} />
                 )}
             </div>
         );
@@ -249,7 +246,6 @@ const HoverImagePreview = ({
                 {children}
             </div>
 
-            {/* BỎ ĐIỀU KIỆN `&& src` ĐỂ LUÔN HIỆN POPUP */}
             {mounted && isHovering && createPortal(
                 <div 
                     ref={popupRef}
@@ -264,12 +260,17 @@ const HoverImagePreview = ({
                 >
                     <div 
                         className={`
-                            w-full h-full bg-black border-2 shadow-[0_0_30px_rgba(0,0,0,0.5)] relative overflow-hidden transition-colors duration-300
-                            ${status === "error" ? "border-red-500 shadow-red-500/20" : "border-emerald-500 shadow-emerald-500/20"}
+                            w-full h-full relative overflow-hidden transition-colors duration-300
+                            border-2 shadow-[0_0_30px_rgba(0,0,0,0.2)] dark:shadow-[0_0_30px_rgba(0,0,0,0.5)]
+                            /* FIX: Màu nền và viền thay đổi theo theme */
+                            bg-white dark:bg-black
+                            ${status === "error" 
+                                ? "border-red-600 dark:border-red-500 shadow-red-500/20" 
+                                : "border-emerald-600 dark:border-emerald-500 shadow-emerald-500/20"
+                            }
                             animate-in fade-in zoom-in-95 duration-150
                         `}
                     >
-                        {/* Render Ảnh hoặc Placeholder */}
                         {renderContent()}
 
                         <ScanlineOverlay />
@@ -277,23 +278,28 @@ const HoverImagePreview = ({
                         {/* Status Bar */}
                         <div className={`
                             absolute top-0 left-0 backdrop-blur border-b text-[10px] font-mono font-bold px-2 py-1 flex items-center gap-2 z-20 w-full
-                            ${status === "error" ? "bg-red-900/80 border-red-500/50 text-red-200" : "bg-black/90 border-emerald-500/50 text-emerald-500"}
+                            /* FIX: Status bar màu sáng/tối rõ ràng */
+                            ${status === "error" 
+                                ? "bg-red-100/90 dark:bg-red-900/80 border-red-500/50 text-red-700 dark:text-red-200" 
+                                : "bg-white/90 dark:bg-black/90 border-emerald-600/20 dark:border-emerald-500/50 text-emerald-700 dark:text-emerald-500"
+                            }
                         `}>
                             <span>PREVIEW</span>
                             <span className="flex-1"></span>
                             
                             {status === "loading" && (
-                                <span className="flex items-center gap-1 text-yellow-500"><Loader2 size={10} className="animate-spin" /> LOAD</span>
+                                <span className="flex items-center gap-1 text-yellow-600 dark:text-yellow-500"><Loader2 size={10} className="animate-spin" /> LOAD</span>
                             )}
                             {status === "error" && (
-                                <span className="flex items-center gap-1 text-red-200 font-bold"><VolumeX size={10} /> ERR</span>
+                                <span className="flex items-center gap-1 text-red-600 dark:text-red-200 font-bold"><VolumeX size={10} /> ERR</span>
                             )}
                             {status === "playing" && (
-                                <span className="flex items-center gap-1 text-emerald-400"><Volume2 size={10} className="animate-pulse" /> LIVE</span>
+                                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><Volume2 size={10} className="animate-pulse" /> LIVE</span>
                             )}
                         </div>
                         
-                        <div className={`absolute bottom-0 right-0 w-4 h-4 border-l-2 border-t-2 border-black z-20 ${status === "error" ? "bg-red-500" : "bg-emerald-500"}`}></div>
+                        {/* Decor Corner */}
+                        <div className={`absolute bottom-0 right-0 w-4 h-4 border-l-2 border-t-2 border-white dark:border-black z-20 ${status === "error" ? "bg-red-600 dark:bg-red-500" : "bg-emerald-600 dark:bg-emerald-500"}`}></div>
 
                         {status === "playing" && visualizerBars}
                     </div>

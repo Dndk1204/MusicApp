@@ -4,8 +4,8 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { Howl } from "howler";
 import {
   Play, Pause, Rewind, FastForward, SkipBack, SkipForward,
-  Volume2, VolumeX, Shuffle, Repeat, Repeat1, AlignJustify, Plus, Save, Square, X
-} from "lucide-react"; // Đã thêm Square và X
+  Volume2, VolumeX, Shuffle, Repeat, Repeat1, AlignJustify, Plus, Save, Square, X 
+} from "lucide-react"; 
 import { useRouter, usePathname } from "next/navigation";
 
 // --- CUSTOM HOOKS ---
@@ -141,6 +141,7 @@ const PlayerContent = ({ song, songUrl }) => {
     else if (sound) { sound.seek(0); setSeek(0); }
   }, [sound]);
 
+  // --- AUDIO INITIALIZATION ---
   useEffect(() => {
     if (sound) sound.unload();
     setIsLoading(true); setSeek(0); setError(null);
@@ -148,13 +149,18 @@ const PlayerContent = ({ song, songUrl }) => {
     const initialVol = clampVolume(player.volume ?? 1); 
     setVolume(initialVol);
 
+    // TỐI ƯU HÓA HOWLER ĐỂ LOAD NHANH
     const newSound = new Howl({
-      src: [songUrl], format: ["mp3", "mpeg"], volume: initialVol,
-      html5: false, 
-      preload: "metadata", autoplay: true,
+      src: [songUrl], 
+      format: ["mp3", "mpeg"], 
+      volume: initialVol,
+      html5: false, // <--- QUAN TRỌNG: Bật Streaming (không đợi tải hết)
+      preload: "auto", // <--- QUAN TRỌNG: Tải ngay lập tức
+      autoplay: true,
       loop: playerRef.current.repeatMode === 2, 
       onplay: () => {
-        setIsPlaying(true); setDuration(newSound.duration());
+        setIsPlaying(true); 
+        setDuration(newSound.duration());
         initAudioNodes();
         if (song?.id) loadSongSettings(song.id);
         const updateSeek = () => {
@@ -168,13 +174,16 @@ const PlayerContent = ({ song, songUrl }) => {
         if (playerRef.current.repeatMode === 2) { setIsPlaying(true); setSeek(0); }
         else { setIsPlaying(false); setSeek(0); onPlayNext(); }
       },
-      onload: () => { setDuration(newSound.duration()); setIsLoading(false); setError(null); },
-      // onloaderror: (id, err) => { console.error("Err:", err); setIsLoading(false); },
+      onload: () => { 
+          setDuration(newSound.duration()); 
+          setIsLoading(false); // Tắt loading ngay khi có metadata
+          setError(null); 
+      },
     });
 
     setSound(newSound);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); newSound.unload(); };
-  }, [songUrl]); 
+  }, [songUrl]); // Chỉ chạy lại khi songUrl thay đổi
 
   useEffect(() => { if (sound) sound.loop(player.repeatMode === 2); }, [player.repeatMode, sound]);
 
@@ -187,7 +196,6 @@ const PlayerContent = ({ song, songUrl }) => {
     if (syncGlobal) player.setVolume(v);
   };
 
-  // --- HÀM TẮT PLAYER ---
   const handleClearPlayer = () => {
     if (sound) {
         sound.stop();
@@ -248,6 +256,9 @@ const PlayerContent = ({ song, songUrl }) => {
       alert('Failed to save tuned song', 'error', 'ERROR');
     }
   };
+
+  // Tính toán phần trăm âm lượng (0-100) và làm tròn
+  const volumePercentage = Math.round(volume * 100);
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 h-full gap-x-6 items-center bg-white dark:bg-black border-t border-neutral-300 dark:border-white/10 px-4">
@@ -372,6 +383,10 @@ const PlayerContent = ({ song, songUrl }) => {
          <div className="flex items-center gap-2 border border-neutral-300 dark:border-white/10 px-2 py-1 bg-neutral-100 dark:bg-white/5">
              <button onClick={toggleMute}><VolumeIcon size={18} className="text-neutral-400 hover:text-emerald-500 transition"/></button>
              <div className="w-[80px]"><Slider value={volume} max={1} step={0.01} onChange={(v) => handleVolumeChange(v)}/></div>
+             {/* INDICATOR MỚI */}
+             <span className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 font-bold w-6 text-right">
+                {volumePercentage}%
+             </span>
          </div>
          
          <button 
@@ -382,7 +397,7 @@ const PlayerContent = ({ song, songUrl }) => {
             `}
             title={pathname==='/now-playing' ? "Close Player" : "Open Player"}
          >
-            {/* Nếu đang ở Now Playing thì nút này đóng, hiển thị icon X. Nhưng X ở đây là đóng chế độ View, không phải đóng nhạc. */}
+            {/* Sử dụng X và AlignJustify đã được import đúng */}
             {pathname === '/now-playing' ? <X size={20}/> : <AlignJustify size={20}/>}
          </button>
       </div>
