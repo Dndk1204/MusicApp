@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import Image from "next/image";
 import { Loader2, Search, X, Check, Music2, Disc, AlertCircle, CheckCircle2, ListPlus } from "lucide-react";
-// Import Cyber Components
-import { GlitchText, HoloButton, GlitchButton, CyberButton } from "@/components/CyberComponents";
+import { GlitchText, GlitchButton, CyberButton, ScanlineOverlay } from "@/components/CyberComponents";
+import HoverImagePreview from "@/components/HoverImagePreview";
 
 export default function AddSongModal({ playlistId, onClose, onAdded }) {
   const [allSongs, setAllSongs] = useState([]);
@@ -251,15 +251,27 @@ export default function AddSongModal({ playlistId, onClose, onAdded }) {
                                     {(isSelected || isInPlaylist) && <Check size={14} className={isInPlaylist ? "text-neutral-500 dark:text-neutral-400" : "text-white dark:text-black stroke-[3]"} />}
                                 </div>
 
-                                {/* Image */}
-                                <div className="w-10 h-10 relative flex-shrink-0 border border-neutral-300 dark:border-white/10 bg-neutral-200 dark:bg-black">
-                                    {s.image_url ? (
-                                        <Image src={s.image_url} fill alt={s.title} className="object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center">
-                                            <Music2 size={16} className="text-neutral-500 dark:text-neutral-600"/>
+                                {/* Image with Hover Preview */}
+                                <div className="w-10 h-10 relative flex-shrink-0 border border-neutral-300 dark:border-white/10 bg-neutral-200 dark:bg-black cursor-none">
+                                    <HoverImagePreview
+                                        src={s.image_url}
+                                        alt={s.title}
+                                        audioSrc={s.song_url || s.song_path} // Preview Audio
+                                        className="w-full h-full"
+                                        previewSize={160}
+                                        fallbackIcon="disc"
+                                    >
+                                        <div className="w-full h-full relative">
+                                            {s.image_url ? (
+                                                <Image src={s.image_url} fill alt={s.title} className="object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center">
+                                                    <Music2 size={16} className="text-neutral-500 dark:text-neutral-600"/>
+                                                </div>
+                                            )}
+                                            <ScanlineOverlay />
                                         </div>
-                                    )}
+                                    </HoverImagePreview>
                                 </div>
 
                                 {/* Info */}

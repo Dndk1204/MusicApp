@@ -12,6 +12,7 @@ const usePlayer = create(
       ids: [],                // Queue bài hát
       activeId: undefined,    // ID bài đang phát
       songData: null,         // Dữ liệu đầy đủ bài hát hiện tại
+      isPlaying: false,       // <--- TRẠNG THÁI PHÁT NHẠC (QUAN TRỌNG CHO PREVIEW)
 
       // ===========================================
       // VOLUME
@@ -24,7 +25,7 @@ const usePlayer = create(
       // ===========================================
       setId: (id, fromHistory = false) =>
         set((state) => {
-          const newState = { activeId: id };
+          const newState = { activeId: id, isPlaying: true }; // Mặc định khi set bài mới là phát luôn
 
           // Lưu lịch sử nếu không gọi từ "quay lại"
           if (!fromHistory && state.activeId && state.activeId !== id) {
@@ -39,6 +40,9 @@ const usePlayer = create(
       // NEW: set song data
       setSongData: (song) => set({ songData: song }),
 
+      // NEW: Setter cho isPlaying
+      setIsPlaying: (isPlaying) => set({ isPlaying }),
+
       // ===========================================
       // RESET PLAYER
       // ===========================================
@@ -49,6 +53,7 @@ const usePlayer = create(
           songData: null,
           history: [],
           seekHistory: {},
+          isPlaying: false,
         }),
 
       // ===========================================

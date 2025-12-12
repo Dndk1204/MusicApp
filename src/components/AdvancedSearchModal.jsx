@@ -5,7 +5,6 @@ import { createPortal } from "react-dom";
 import { X, Search, Sliders, RotateCcw, Tag, User, Type, CircleUser } from "lucide-react";
 import { useRouter } from "next/navigation";
 import qs from "query-string";
-// Import NEW Cyber Components
 import { GlitchText, GlitchButton, CyberButton } from "@/components/CyberComponents";
 
 const AdvancedSearchModal = ({ onClose, currentSearch }) => {

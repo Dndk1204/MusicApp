@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { X, Check, Trash2, Upload, Image as ImageIcon } from "lucide-react";
 import useUI from "@/hooks/useUI"; 
 import { GlitchText, HoloButton, GlitchButton, CyberButton, NeonButton } from "@/components/CyberComponents";
+import { Loader2 } from "lucide-react";
 
 export default function EditPlaylistModal({ playlist, onClose, onUpdated, onDeleted }) {
   const { alert, confirm } = useUI();
@@ -14,6 +15,7 @@ export default function EditPlaylistModal({ playlist, onClose, onUpdated, onDele
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(playlist.cover_url);
   const [loading, setLoading] = useState(false);
+  const [visibility, setVisibility] = useState(playlist.visibility ?? 1);
 
   useEffect(() => {
     if (!file) return;
@@ -41,7 +43,7 @@ export default function EditPlaylistModal({ playlist, onClose, onUpdated, onDele
 
       const { error } = await supabase
         .from("playlists")
-        .update({ name, description, cover_url })
+        .update({ name, description, cover_url, visibility})
         .eq("id", playlist.id);
         
       if (error) throw error;
@@ -188,6 +190,23 @@ export default function EditPlaylistModal({ playlist, onClose, onUpdated, onDele
                         placeholder="ENTER_METADATA..."
                     />
                 </div>
+
+                <label className="text-xs font-mono font-bold uppercase mb-2 text-neutral-500 dark:text-neutral-400">
+                    ACCESS_VISIBILITY
+                </label>
+                <CyberButton
+                    onClick={() => setVisibility(visibility === 1 ? 0 : 1)}
+                    className={`
+                    w-full px-4 py-3 font-mono text-sm font-bold rounded-none border 
+                    transition-all duration-200
+                    ${visibility === 1 
+                        ? "bg-emerald-600 border-emerald-400 text-white shadow-[0_0_10px_rgba(16,185,129,0.4)]" 
+                        : "bg-neutral-800 border-neutral-500 text-neutral-300 dark:bg-black dark:border-white/20"
+                    }
+                    `}
+                >
+                    {visibility === 1 ? "PUBLIC_MODE" : "PRIVATE_MODE"}
+                </CyberButton>
             </div>
         </div>
 

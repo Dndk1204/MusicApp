@@ -13,7 +13,9 @@ import useUI from "@/hooks/useUI";
 import useUploadModal from "@/hooks/useUploadModal"; 
 import UploadModal from "@/components/UploadModal"; 
 // Import Cyber Components
-import { GlitchButton, CyberButton, GlitchText, CyberCard, NeonButton } from "@/components/CyberComponents";
+import { GlitchButton, CyberButton, GlitchText, CyberCard, NeonButton, ScanlineOverlay } from "@/components/CyberComponents";
+// Import Hover Preview
+import HoverImagePreview from "@/components/HoverImagePreview"; 
 
 // --- COMPONENT SKELETON (CYBER STYLE) ---
 const AdminSkeleton = () => (
@@ -41,73 +43,93 @@ const AdminSkeleton = () => (
 
 // --- COMPONENT: ACTIVITY STREAM ---
 const ActivityStream = ({ items, getUploaderInfo }) => {
+    // Nhân đôi danh sách để tạo hiệu ứng vòng lặp vô tận (nếu ít bài thì nhân nhiều hơn)
     const recentItems = items.slice(0, 20);
-    const streamItems = [...recentItems, ...recentItems];
+    // Nhân 4 lần nếu ít item để đảm bảo đủ độ dài scroll
+    const streamItems = recentItems.length < 10 
+        ? [...recentItems, ...recentItems, ...recentItems, ...recentItems] 
+        : [...recentItems, ...recentItems];
 
     if (items.length === 0) return null;
 
     return (
         <div className="w-full mb-10 relative group overflow-hidden py-6 border-y border-dashed border-neutral-300 dark:border-white/10 bg-neutral-50/50 dark:bg-white/5">
-            <div className="absolute top-3 left-2 z-20 text-[9px] font-mono text-emerald-600 dark:text-emerald-500 uppercase tracking-widest bg-white dark:bg-black px-2 border border-emerald-500/20 -translate-y-1/2">
+            {/* Label */}
+            <div className="absolute top-3 left-2 z-20 text-[9px] font-mono text-emerald-600 dark:text-emerald-500 uppercase tracking-widest bg-white dark:bg-black px-2 border border-emerald-500/20 -translate-y-1/2 pointer-events-none">
                 :: Live_Upload_Stream ::
             </div>
 
+            {/* Gradient Mask (Che 2 bên) */}
             <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-neutral-100 dark:from-black to-transparent z-10 pointer-events-none"/>
             <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-neutral-100 dark:from-black to-transparent z-10 pointer-events-none"/>
             
-            <div className="flex gap-4 animate-flow-right w-max hover:[animation-play-state:paused] px-4">
+            {/* SCROLLING CONTAINER */}
+            {/* Thêm class 'stream-track' để target CSS */}
+            <div className="flex gap-4 animate-flow-right w-max px-4 stream-track">
                 {streamItems.map((song, idx) => {
                     const uploader = getUploaderInfo(song.user_id);
                     return (
                           <div key={`${song.id}-${idx}`} className="flex flex-col gap-2 p-3 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-white/10 rounded-none w-[280px] shadow-sm hover:border-emerald-500 transition-colors group/card relative">
-                              
-                              <div className="flex items-start gap-3">
-                                  <div className="w-12 h-12 bg-neutral-200 dark:bg-neutral-800 overflow-hidden relative shrink-0 border border-neutral-300 dark:border-white/10 group-hover/card:border-emerald-500 transition-colors">
-                                      {song.image_url ? (
-                                         <img src={song.image_url} className="w-full h-full object-cover grayscale group-hover/card:grayscale-0 transition-all" alt={song.title}/>
-                                      ) : (
-                                         <div className="w-full h-full flex items-center justify-center text-neutral-400"><Music size={16}/></div>
-                                      )}
-                                  </div>
-                                  
-                                  <div className="flex flex-col min-w-0 flex-1 justify-center">
-                                      <span className="text-xs font-bold font-mono truncate text-neutral-900 dark:text-white uppercase group-hover/card:text-emerald-600 dark:group-hover/card:text-emerald-500 transition-colors" title={song.title}>
-                                          {song.title}
-                                      </span>
-                                      <Link 
-                                         href={`/artist/${encodeURIComponent(song.author)}`}
-                                         onClick={(e) => e.stopPropagation()}
-                                         className="text-[10px] text-neutral-500 truncate font-mono hover:underline hover:text-emerald-500"
-                                      >
-                                          {song.author}
-                                      </Link>
-                                  </div>
-                              </div>
+                             
+                             <div className="flex items-start gap-3">
+                                 {/* HOVER PREVIEW */}
+                                 <div className="w-12 h-12 bg-neutral-200 dark:bg-neutral-800 overflow-hidden relative shrink-0 border border-neutral-300 dark:border-white/10 group-hover/card:border-emerald-500 transition-colors cursor-none">
+                                     <HoverImagePreview 
+                                        src={song.image_url} 
+                                        alt={song.title}
+                                        audioSrc={song.song_url} 
+                                        className="w-full h-full"
+                                        previewSize={200}
+                                     >
+                                         <div className="w-full h-full relative">
+                                             {song.image_url ? (
+                                                <img src={song.image_url} className="w-full h-full object-cover grayscale group-hover/card:grayscale-0 transition-all duration-500" alt={song.title}/>
+                                             ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-neutral-400"><Music size={16}/></div>
+                                             )}
+                                             <ScanlineOverlay />
+                                         </div>
+                                     </HoverImagePreview>
+                                 </div>
+                                 
+                                 <div className="flex flex-col min-w-0 flex-1 justify-center">
+                                     <span className="text-xs font-bold font-mono truncate text-neutral-900 dark:text-white uppercase group-hover/card:text-emerald-600 dark:group-hover/card:text-emerald-500 transition-colors" title={song.title}>
+                                         {song.title}
+                                     </span>
+                                     <Link 
+                                        href={`/artist/${encodeURIComponent(song.author)}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="text-[10px] text-neutral-500 truncate font-mono hover:underline hover:text-emerald-500"
+                                     >
+                                         {song.author}
+                                     </Link>
+                                 </div>
+                             </div>
 
-                              <div className="flex justify-between items-center pt-2 border-t border-dashed border-neutral-200 dark:border-white/10 mt-1">
-                                  <div className="flex items-center gap-2">
-                                      <div className={`w-5 h-5 rounded-none overflow-hidden border flex items-center justify-center ${uploader.role === 'admin' ? 'border-yellow-500 bg-yellow-500/10' : 'border-blue-500 bg-blue-500/10'}`}>
-                                          {uploader.avatar_url ? (
-                                              <img src={uploader.avatar_url} alt={uploader.name} className="w-full h-full object-cover"/>
-                                          ) : (
-                                              <User size={12} className={uploader.role === 'admin' ? 'text-yellow-600' : 'text-blue-600'}/>
-                                          )}
-                                      </div>
+                             <div className="flex justify-between items-center pt-2 border-t border-dashed border-neutral-200 dark:border-white/10 mt-1">
+                                 <div className="flex items-center gap-2">
+                                     <div className={`w-5 h-5 rounded-none overflow-hidden border flex items-center justify-center ${uploader.role === 'admin' ? 'border-yellow-500 bg-yellow-500/10' : 'border-blue-500 bg-blue-500/10'}`}>
+                                         {uploader.avatar_url ? (
+                                             <img src={uploader.avatar_url} alt={uploader.name} className="w-full h-full object-cover"/>
+                                         ) : (
+                                             <User size={12} className={uploader.role === 'admin' ? 'text-yellow-600' : 'text-blue-600'}/>
+                                         )}
+                                     </div>
 
-                                      <div className="flex flex-col">
-                                          <span className={`text-[9px] font-bold uppercase leading-none ${uploader.role === 'admin' ? 'text-yellow-700 dark:text-yellow-500' : 'text-blue-700 dark:text-blue-400'}`}>
-                                              {uploader.name.split(' ')[0]}
-                                          </span>
-                                          <span className="text-[8px] text-neutral-400 leading-none scale-90 origin-top-left">
-                                              ID:{song.user_id ? song.user_id.slice(0,4) : 'SYS'}
-                                          </span>
-                                      </div>
-                                  </div>
+                                     <div className="flex flex-col">
+                                         <span className={`text-[9px] font-bold uppercase leading-none ${uploader.role === 'admin' ? 'text-yellow-700 dark:text-yellow-500' : 'text-blue-700 dark:text-blue-400'}`}>
+                                             {uploader.name.split(' ')[0]}
+                                         </span>
+                                         <span className="text-[8px] text-neutral-400 leading-none scale-90 origin-top-left">
+                                             ID:{song.user_id ? song.user_id.slice(0,4) : 'SYS'}
+                                         </span>
+                                     </div>
+                                 </div>
 
-                                  <span className="text-[9px] text-neutral-400 font-mono bg-neutral-100 dark:bg-white/5 px-1">
-                                      {new Date(song.created_at).toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute:'2-digit', day: '2-digit', month: '2-digit'})}
-                                  </span>
-                              </div>
+                                 <span className="text-[9px] text-neutral-400 font-mono bg-neutral-100 dark:bg-white/5 px-1">
+                                     {new Date(song.created_at).toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute:'2-digit', day: '2-digit', month: '2-digit'})}
+                                 </span>
+                             </div>
                           </div>
                     )
                 })}
@@ -119,7 +141,12 @@ const ActivityStream = ({ items, getUploaderInfo }) => {
                     100% { transform: translateX(0); }
                 }
                 .animate-flow-right {
-                    animation: flowRight 80s linear infinite;
+                    animation: flowRight 120s linear infinite; /* Chậm lại một chút cho dễ nhìn */
+                }
+                
+                /* FIX QUAN TRỌNG: Khi hover vào container cha (.group), dừng animation của con (.stream-track) */
+                .group:hover .stream-track {
+                    animation-play-state: paused !important;
                 }
             `}</style>
         </div>
@@ -258,9 +285,6 @@ const AdminDashboard = () => {
             const newState = channel.presenceState();
             const onlineIds = new Set();
             
-            // Duyệt qua state để lấy user_id (Giả sử client gửi user_id trong payload tracking)
-            // Lưu ý: Cần Client (Layout) gửi presence track thì Admin mới thấy được.
-            // Ở đây ta chỉ handle phần hiển thị của Admin.
             for (const id in newState) {
                 const users = newState[id];
                 users.forEach(u => {
@@ -271,7 +295,6 @@ const AdminDashboard = () => {
         })
         .subscribe(async (status) => {
             if (status === 'SUBSCRIBED') {
-                // Admin tự track chính mình để test
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) {
                     await channel.track({ user_id: user.id, online_at: new Date().toISOString() });
@@ -447,46 +470,116 @@ const AdminDashboard = () => {
 
             {/* STATS SECTIONS */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                {/* TOP STREAMED */}
-                <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden">
-                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5">
+                {/* --- TABLE 1: TOP STREAMED TRACKS (TOP 5) --- */}
+                <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-full">
+                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0">
                         <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center">
-                            <TrendingUp size={16} className="text-emerald-500"/> Top_Streamed_Tracks
+                            <TrendingUp size={16} className="text-emerald-500" /> Top_5_Streamed
                         </h4>
+                        <button onClick={() => { setSongSortType('plays'); setCurrentView('songs_list'); }} className="text-[9px] text-emerald-600 dark:text-emerald-500 hover:underline font-mono uppercase">
+                            VIEW_FULL
+                        </button>
                     </div>
-                    <div className="p-4 space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
-                        {stats.topSongs.map((s,i)=>(
-                            <div key={s.id} className="flex justify-between items-center text-xs font-mono p-2 hover:bg-neutral-100 dark:hover:bg-white/5 border border-transparent hover:border-neutral-300 dark:hover:border-white/10 transition">
-                                <span className="truncate w-40 text-neutral-700 dark:text-neutral-300 flex gap-2">
-                                    <span className="text-neutral-400">0{i+1}</span> {s.title}
-                                </span>
-                                <span className="text-emerald-600 dark:text-emerald-500 font-bold bg-emerald-500/10 px-2 py-0.5">{s.play_count}</span>
+                    
+                    {/* List Container */}
+                    <div className="p-0 overflow-y-auto custom-scrollbar">
+                        {stats.topSongs.slice(0, 5).map((s, i) => (
+                            <div key={s.id} className="group flex justify-between items-center text-xs font-mono p-3 border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-emerald-500/5 dark:hover:bg-emerald-500/10 transition-colors relative">
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                    {/* Rank Number */}
+                                    <span className={`text-[10px] font-bold w-6 shrink-0 ${i < 3 ? 'text-emerald-600 dark:text-emerald-400' : 'text-neutral-400'}`}>
+                                        #{String(i + 1).padStart(2, '0')}
+                                    </span>
+
+                                    {/* Static Image (No Hover Preview) */}
+                                    <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 shrink-0 relative flex items-center justify-center overflow-hidden">
+                                        {s.image_url ? (
+                                            <img src={s.image_url} alt={s.title} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <Music size={14} className="text-neutral-400" />
+                                        )}
+                                        {/* Giữ lại hiệu ứng vân ngang cho đẹp (tùy chọn) */}
+                                        <ScanlineOverlay />
+                                    </div>
+
+                                    {/* Song Info */}
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors" title={s.title}>
+                                            {s.title}
+                                        </span>
+                                        <span className="truncate text-[10px] text-neutral-500 dark:text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300">
+                                            {s.author}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Play Count */}
+                                <div className="flex items-center gap-2 pl-2 shrink-0">
+                                    <div className="h-[1px] w-4 bg-emerald-500/30 hidden sm:block"></div>
+                                    <span className="text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-500/20 px-2 py-0.5 text-[10px]">
+                                        {s.play_count}
+                                    </span>
+                                </div>
                             </div>
                         ))}
+                        {stats.topSongs.length === 0 && <div className="p-4 text-center text-neutral-400 italic text-[10px]">No data available</div>}
                     </div>
                 </CyberCard>
-                
-                {/* TOP ARTISTS */}
-                <CyberCard className="relative bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 hover:border-pink-500/30 transition backdrop-blur-md overflow-hidden">
-                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center">
+
+                {/* --- TABLE 2: MOST FOLLOWED ARTISTS (TOP 5) --- */}
+                <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-full">
+                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0">
                         <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center">
-                            <Mic2 size={16} className="text-pink-500"/> Most_Followed_Artists
+                            <Mic2 size={16} className="text-pink-500" /> Top_5_Artists
                         </h4>
+                        <button onClick={() => setCurrentView('db_artists_list')} className="text-[9px] text-pink-600 dark:text-pink-500 hover:underline font-mono uppercase">
+                            VIEW_FULL
+                        </button>
                     </div>
-                    <div className="p-4 space-y-2">
+
+                    {/* List Container */}
+                    <div className="p-0 overflow-y-auto custom-scrollbar">
                         {popularArtistsList.slice(0, 5).map((artist, i) => (
-                            <div key={i} className="flex justify-between items-center text-xs font-mono p-2 hover:bg-neutral-100 dark:hover:bg-white/5 border border-transparent hover:border-pink-500/30 transition">
-                                <div className="flex items-center gap-3">
-                                    <span className="text-pink-600 dark:text-pink-500 font-bold text-[10px]">#0{i+1}</span>
-                                    <div className="w-6 h-6 rounded-none overflow-hidden bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/20">
-                                        {artist.image_url && <img src={artist.image_url} className="w-full h-full object-cover"/>}
+                            <div key={i} className="group flex justify-between items-center text-xs font-mono p-3 border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-pink-500/5 dark:hover:bg-pink-500/10 transition-colors relative">
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                    {/* Rank Number */}
+                                    <span className={`text-[10px] font-bold w-6 shrink-0 ${i < 3 ? 'text-pink-600 dark:text-pink-400' : 'text-neutral-400'}`}>
+                                        #{String(i + 1).padStart(2, '0')}
+                                    </span>
+
+                                    {/* Static Image (No Hover Preview) */}
+                                    <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 shrink-0 relative flex items-center justify-center overflow-hidden">
+                                        {artist.image_url ? (
+                                            <img src={artist.image_url} alt={artist.originalName} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <User size={14} className="text-neutral-400" />
+                                        )}
+                                        <ScanlineOverlay />
                                     </div>
-                                    <span className="text-neutral-700 dark:text-neutral-300 truncate w-32">{artist.originalName}</span>
-                                    {!artist.inDB && <span className="text-[8px] text-red-500 dark:text-red-400 ml-1 border border-red-500/30 px-1">SYNC</span>}
+
+                                    {/* Artist Info */}
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors">
+                                            {artist.originalName}
+                                        </span>
+                                        {!artist.inDB && (
+                                            <span className="text-[8px] text-red-500 dark:text-red-400 border border-red-500/30 px-1 w-fit mt-0.5">
+                                                SYNC_REQ
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
-                                <span className="text-[10px] text-pink-600 dark:text-pink-500 flex items-center gap-1 font-bold"><Heart size={10} fill="currentColor"/> {artist.followers}</span>
+
+                                {/* Follow Count */}
+                                <div className="flex items-center gap-2 pl-2 shrink-0">
+                                    <div className="h-[1px] w-4 bg-pink-500/30 hidden sm:block"></div>
+                                    <span className="text-pink-700 dark:text-pink-400 font-bold bg-pink-100 dark:bg-pink-900/30 border border-pink-200 dark:border-pink-500/20 px-2 py-0.5 text-[10px] flex items-center gap-1">
+                                        <Heart size={8} fill="currentColor" /> {artist.followers}
+                                    </span>
+                                </div>
                             </div>
                         ))}
+                        {popularArtistsList.length === 0 && <div className="p-4 text-center text-neutral-400 italic text-[10px]">No artist data</div>}
                     </div>
                 </CyberCard>
             </div>
@@ -508,8 +601,20 @@ const AdminDashboard = () => {
                                 return (
                                     <tr key={user.id} className="hover:bg-neutral-50 dark:hover:bg-white/5 transition">
                                         <td className="px-6 py-3 flex items-center gap-3 align-middle">
-                                            <div className="w-8 h-8 rounded-none bg-neutral-300 dark:bg-neutral-800 border border-neutral-400 dark:border-white/10 overflow-hidden flex items-center justify-center">
-                                                {user.avatar_url ? <img src={user.avatar_url} className="w-full h-full object-cover"/> : <Users size={12}/>}
+                                            {/* HOVER PREVIEW CHO USER LIST */}
+                                            <div className="w-8 h-8 rounded-none bg-neutral-300 dark:bg-neutral-800 border border-neutral-400 dark:border-white/10 overflow-hidden flex items-center justify-center shrink-0 cursor-none relative">
+                                                <HoverImagePreview 
+                                                    src={user.avatar_url} 
+                                                    alt={user.full_name} 
+                                                    className="w-full h-full"
+                                                    previewSize={200}
+                                                    fallbackIcon="user"
+                                                >
+                                                    <div className="w-full h-full relative flex items-center justify-center">
+                                                        {user.avatar_url ? <img src={user.avatar_url} className="w-full h-full object-cover"/> : <Users size={12} className="text-neutral-400"/>}
+                                                        <ScanlineOverlay />
+                                                    </div>
+                                                </HoverImagePreview>
                                             </div>
                                             <div className="flex flex-col">
                                                 <span className="text-neutral-800 dark:text-neutral-200 font-bold">{user.full_name || "Unknown"}</span>
@@ -583,25 +688,37 @@ const AdminDashboard = () => {
                                 const uploader = getUploaderInfo(song.user_id);
                                 return (
                                     <tr key={song.id} className="hover:bg-neutral-50 dark:hover:bg-white/5 transition">
-                                        <td className="px-6 py-3 flex items-center gap-3 align-middle">
-                                            <div className="w-8 h-8 rounded-none bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 overflow-hidden flex-shrink-0">
-                                                {song.image_url ? <img src={song.image_url} className="w-full h-full object-cover"/> : <Music size={12} className="m-auto"/>}
-                                            </div>
-                                            <span className="text-neutral-800 dark:text-neutral-200 truncate max-w-[150px] font-bold">{song.title}</span>
-                                        </td>
-                                        <td className="px-6 py-3 text-neutral-600 dark:text-neutral-400 align-middle uppercase">{song.author}</td>
-                                        <td className="px-6 py-3 align-middle">
-                                            <span className={`text-[9px] px-2 py-0.5 rounded-none border font-bold uppercase ${uploader.role === 'admin' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-600' : 'bg-blue-500/10 border-blue-500/30 text-blue-600'}`}>
-                                                {uploader.name}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-3 align-middle font-bold text-[10px] uppercase">
-                                            {song.is_public ? <span className="text-blue-500 flex items-center gap-1"><Globe size={12}/> PUB</span> : <span className="text-red-500 flex items-center gap-1"><Lock size={12}/> PVT</span>}
-                                        </td>
-                                        <td className="px-6 py-3 align-middle"><span className="text-emerald-600 dark:text-emerald-500 font-bold bg-emerald-500/10 px-2">{song.play_count}</span></td>
-                                        <td className="px-6 py-3 text-right align-middle">
-                                            <button onClick={() => handleDeleteSong(song.id)} className="text-neutral-500 hover:text-red-500 transition p-2 hover:bg-red-500/10 rounded-none border border-transparent hover:border-red-500/20"><Trash2 size={14} /></button>
-                                        </td>
+                                            <td className="px-6 py-3 flex items-center gap-3 align-middle">
+                                                {/* HOVER PREVIEW CHO SONGS TABLE */}
+                                                <div className="w-8 h-8 rounded-none bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 overflow-hidden flex-shrink-0 cursor-none relative">
+                                                    <HoverImagePreview 
+                                                        src={song.image_url} 
+                                                        alt={song.title} 
+                                                        audioSrc={song.song_url} // PREVIEW NHẠC
+                                                        className="w-full h-full"
+                                                        previewSize={200}
+                                                    >
+                                                        <div className="w-full h-full relative">
+                                                            {song.image_url ? <img src={song.image_url} className="w-full h-full object-cover"/> : <Music size={12} className="m-auto text-neutral-400"/>}
+                                                            <ScanlineOverlay />
+                                                        </div>
+                                                    </HoverImagePreview>
+                                                </div>
+                                                <span className="text-neutral-800 dark:text-neutral-200 truncate max-w-[150px] font-bold">{song.title}</span>
+                                            </td>
+                                            <td className="px-6 py-3 text-neutral-600 dark:text-neutral-400 align-middle uppercase">{song.author}</td>
+                                            <td className="px-6 py-3 align-middle">
+                                                <span className={`text-[9px] px-2 py-0.5 rounded-none border font-bold uppercase ${uploader.role === 'admin' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-600' : 'bg-blue-500/10 border-blue-500/30 text-blue-600'}`}>
+                                                    {uploader.name}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-3 align-middle font-bold text-[10px] uppercase">
+                                                {song.is_public ? <span className="text-blue-500 flex items-center gap-1"><Globe size={12}/> PUB</span> : <span className="text-red-500 flex items-center gap-1"><Lock size={12}/> PVT</span>}
+                                            </td>
+                                            <td className="px-6 py-3 align-middle"><span className="text-emerald-600 dark:text-emerald-500 font-bold bg-emerald-500/10 px-2">{song.play_count}</span></td>
+                                            <td className="px-6 py-3 text-right align-middle">
+                                                <button onClick={() => handleDeleteSong(song.id)} className="text-neutral-500 hover:text-red-500 transition p-2 hover:bg-red-500/10 rounded-none border border-transparent hover:border-red-500/20"><Trash2 size={14} /></button>
+                                            </td>
                                     </tr>
                                 );
                             })}
@@ -655,7 +772,27 @@ const AdminDashboard = () => {
                             {filteredArtists.map((artist, i) => (
                                 <tr key={i} className="hover:bg-neutral-50 dark:hover:bg-white/5 transition">
                                     <td className="px-4 py-3 flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-none bg-neutral-200 dark:bg-neutral-800 overflow-hidden border border-neutral-300 dark:border-white/10">{artist.image_url && <img src={artist.image_url} className="w-full h-full object-cover"/>}</div>
+                                        {/* HOVER PREVIEW CHO DB ARTIST LIST */}
+                                        <div className="w-8 h-8 rounded-none bg-neutral-200 dark:bg-neutral-800 overflow-hidden border border-neutral-300 dark:border-white/10 cursor-none relative">
+                                            <HoverImagePreview 
+                                                src={artist.image_url} 
+                                                alt={artist.originalName} 
+                                                className="w-full h-full"
+                                                previewSize={160}
+                                                fallbackIcon="user"
+                                            >
+                                                {/* FIX: Thêm 'flex items-center justify-center' vào đây */}
+                                                <div className="w-full h-full relative flex items-center justify-center">
+                                                    {artist.image_url ? (
+                                                        <img src={artist.image_url} className="w-full h-full object-cover"/>
+                                                    ) : (
+                                                        /* Bỏ 'm-auto' vì cha đã flex center rồi */
+                                                        <User size={14} className="text-neutral-400"/>
+                                                    )}
+                                                    <ScanlineOverlay />
+                                                </div>
+                                            </HoverImagePreview>
+                                        </div>
                                         <div className="flex flex-col"><span className="text-neutral-800 dark:text-neutral-200 font-bold uppercase">{artist.originalName}</span>{!artist.inDB && <span className="text-[8px] text-red-500 dark:text-red-400 border border-red-500/20 px-1 w-fit">SYNC_REQ</span>}</div>
                                     </td>
                                     <td className="px-4 py-3"><span className="text-pink-600 dark:text-pink-500 font-bold">{artist.followers}</span></td>

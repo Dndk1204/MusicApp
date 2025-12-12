@@ -4,27 +4,28 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { Howl } from "howler";
 import {
   Play, Pause, Rewind, FastForward, SkipBack, SkipForward,
-  Volume2, VolumeX, Shuffle, Repeat, Repeat1, AlignJustify, Plus, X, Save
-} from "lucide-react";
+  Volume2, VolumeX, Shuffle, Repeat, Repeat1, AlignJustify, Plus, Save, Square, X 
+} from "lucide-react"; 
 import { useRouter, usePathname } from "next/navigation";
 
 // --- CUSTOM HOOKS ---
 import usePlayer from "@/hooks/usePlayer";
 import useTrackStats from "@/hooks/useTrackStats";
 import useAudioFilters from "@/hooks/useAudioFilters";
+import useUI from "@/hooks/useUI"; 
 import { supabase } from "@/lib/supabaseClient";
 import { addSongToPlaylist } from "@/lib/addSongToPlaylist";
 
 // --- COMPONENTS ---
-import LikeButton from "./LikeButton";
 import MediaItem from "./MediaItem";
 import Slider from "./Slider";
-import { AudioVisualizer } from "./CyberComponents";
+import { AudioVisualizer, ScanlineOverlay } from "./CyberComponents";
 
 const PlayerContent = ({ song, songUrl }) => {
   const player = usePlayer();
   const router = useRouter();
   const pathname = usePathname();
+  const { alert } = useUI(); 
 
   const { initAudioNodes, setBass, setMid, setTreble } = useAudioFilters();
   useTrackStats(song);
@@ -46,6 +47,11 @@ const PlayerContent = ({ song, songUrl }) => {
   useEffect(() => { playerRef.current = player; }, [player]);
 
   const clampVolume = (val) => Math.max(0, Math.min(1, val));
+
+  // Sync playing state
+  useEffect(() => {
+    player.setIsPlaying(isPlaying);
+  }, [isPlaying]);
 
   useEffect(() => {
     const getUser = async () => {
@@ -135,6 +141,7 @@ const PlayerContent = ({ song, songUrl }) => {
     else if (sound) { sound.seek(0); setSeek(0); }
   }, [sound]);
 
+  // --- AUDIO INITIALIZATION ---
   useEffect(() => {
     if (sound) sound.unload();
     setIsLoading(true); setSeek(0); setError(null);
@@ -142,13 +149,18 @@ const PlayerContent = ({ song, songUrl }) => {
     const initialVol = clampVolume(player.volume ?? 1); 
     setVolume(initialVol);
 
+    // TỐI ƯU HÓA HOWLER ĐỂ LOAD NHANH
     const newSound = new Howl({
-      src: [songUrl], format: ["mp3", "mpeg"], volume: initialVol,
-      html5: false, 
-      preload: "metadata", autoplay: true,
+      src: [songUrl], 
+      format: ["mp3", "mpeg"], 
+      volume: initialVol,
+      html5: false, // <--- QUAN TRỌNG: Bật Streaming (không đợi tải hết)
+      preload: "auto", // <--- QUAN TRỌNG: Tải ngay lập tức
+      autoplay: true,
       loop: playerRef.current.repeatMode === 2, 
       onplay: () => {
-        setIsPlaying(true); setDuration(newSound.duration());
+        setIsPlaying(true); 
+        setDuration(newSound.duration());
         initAudioNodes();
         if (song?.id) loadSongSettings(song.id);
         const updateSeek = () => {
@@ -162,13 +174,16 @@ const PlayerContent = ({ song, songUrl }) => {
         if (playerRef.current.repeatMode === 2) { setIsPlaying(true); setSeek(0); }
         else { setIsPlaying(false); setSeek(0); onPlayNext(); }
       },
-      onload: () => { setDuration(newSound.duration()); setIsLoading(false); setError(null); },
-      onloaderror: (id, err) => { console.error("Err:", err); setIsLoading(false); },
+      onload: () => { 
+          setDuration(newSound.duration()); 
+          setIsLoading(false); // Tắt loading ngay khi có metadata
+          setError(null); 
+      },
     });
 
     setSound(newSound);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); newSound.unload(); };
-  }, [songUrl]); 
+  }, [songUrl]); // Chỉ chạy lại khi songUrl thay đổi
 
   useEffect(() => { if (sound) sound.loop(player.repeatMode === 2); }, [player.repeatMode, sound]);
 
@@ -179,6 +194,14 @@ const PlayerContent = ({ song, songUrl }) => {
     setVolume(v);
     if (sound) sound.volume(v);
     if (syncGlobal) player.setVolume(v);
+  };
+
+  const handleClearPlayer = () => {
+    if (sound) {
+        sound.stop();
+        sound.unload();
+    }
+    player.reset();
   };
 
   const handleSeekChange = (nv) => { isDraggingRef.current = true; setSeek(nv); };
@@ -227,21 +250,23 @@ const PlayerContent = ({ song, songUrl }) => {
       const { success, error } = await addSongToPlaylist(modifiedSong, playlistId);
       if (error) throw error;
 
-      alert('Song saved as tuned song successfully!'); 
+      alert('Song saved as tuned song successfully!', 'success', 'SAVED'); 
     } catch (err) {
       console.error('Save tuned song error:', err);
-      setError('Failed to save tuned song');
+      alert('Failed to save tuned song', 'error', 'ERROR');
     }
   };
+
+  // Tính toán phần trăm âm lượng (0-100) và làm tròn
+  const volumePercentage = Math.round(volume * 100);
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 h-full gap-x-6 items-center bg-white dark:bg-black border-t border-neutral-300 dark:border-white/10 px-4">
       {error && <div className="absolute -top-12 bg-red-500 text-white text-xs py-1 px-3 rounded-none z-50 font-mono">Error</div>}
       
       {/* LEFT: Media Info + Actions */}
-      <div className="flex w-full md:w-[20em] justify-start items-center gap-2 -translate-y-2">
+      <div className="flex w-full md:w-[20em] justify-start items-center gap-2 -translate-y-1">
         <MediaItem data={song} />
-        <LikeButton songId={song?.id} />
         
         {/* Nút Save Tuned */}
         <button 
@@ -258,6 +283,7 @@ const PlayerContent = ({ song, songUrl }) => {
             onClick={() => { 
                 if(song) {
                     const normalizedSong = {
+                        id: song.id || song.encodeId,
                         title: song.title,
                         author: song.artistsNames || song.author,
                         song_url: song.streaming?.mp3 || song.song_url,
@@ -280,63 +306,87 @@ const PlayerContent = ({ song, songUrl }) => {
             <Plus size={16} />
         </button>
 
-        <div className="  sm:block ml-2 border-l border-neutral-600 pl-3 h-8 flex items-center">
+        {/* --- NÚT TẮT PLAYER (STOP/CLEAR) --- */}
+        <button 
+            onClick={handleClearPlayer} 
+            className="
+                group relative flex items-center justify-center w-7 h-7 rounded-none
+                border border-neutral-400 dark:border-neutral-600 hover:border-red-500 
+                bg-transparent hover:bg-red-500/10 
+                text-neutral-400 hover:text-red-500 
+                transition-all duration-200
+            "
+            title="Stop & Clear"
+        >
+            <Square size={14} fill="currentColor" />
+        </button>
+
+        <div className="sm:block ml-2 border-l border-neutral-600 pl-3 h-8 flex items-center">
             <AudioVisualizer isPlaying={isPlaying}/>
         </div>
       </div>
 
       {/* CENTER: CONTROLS */}
       <div className="hidden md:flex flex-col items-center w-full max-w-[722px] gap-y-1">
-        <div className="flex items-center gap-x-6 translate-y-1">
-          <button onClick={() => player.setIsShuffle(!player.isShuffle)} className={`transition p-1 ${player.isShuffle ? "text-emerald-500" : "text-neutral-400 hover:text-white"}`} title="Shuffle"><Shuffle size={16}/></button>
-          
-          <button onClick={onPlayPrevious} className="text-neutral-400 hover:text-white transition hover:scale-110 p-1"><SkipBack size={20}/></button>
-          
-          <button onClick={() => { if(sound) sound.seek(Math.max(0, seek - 5)); }} className="text-neutral-400 hover:text-white transition hover:scale-110 p-1">
-             <Rewind size={18}/>
-          </button>
-          
-          {/* Main Play Button - Tech Style */}
-          <button 
-            onClick={handlePlay} 
-            disabled={!sound || isLoading} 
-            className="
-                flex items-center justify-center h-10 w-10 
-                bg-neutral-900 dark:bg-emerald-400 text-white dark:text-black 
-                hover:bg-emerald-500 hover:text-black dark:hover:bg-emerald-500
-                transition-all duration-200 rounded-none border border-neutral-500 dark:border-transparent
-                shadow-[0_0_10px_rgba(0,0,0,0.2)] hover:shadow-[0_0_15px_rgba(16,185,129,0.6)]
-            "
-          >
-             {isLoading ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"/> : <Icon size={20} fill="currentColor"/>}
-          </button>
+          <div className="flex items-center gap-x-6 translate-y-1.5">
+            <button onClick={() => player.setIsShuffle(!player.isShuffle)} className={`transition p-1 ${player.isShuffle ? "text-emerald-500" : "text-neutral-400 hover:text-white"}`} title="Shuffle"><Shuffle size={16}/></button>
+            
+            <button onClick={onPlayPrevious} className="text-neutral-400 hover:text-white transition hover:scale-110 p-1"><SkipBack size={20}/></button>
+            
+            <button onClick={() => { if(sound) sound.seek(Math.max(0, seek - 5)); }} className="text-neutral-400 hover:text-white transition hover:scale-110 p-1">
+              <Rewind size={18}/>
+            </button>
+            
+            {/* Main Play Button - Tech Style */}
+            <button 
+              onClick={handlePlay} 
+              disabled={!sound || isLoading} 
+              className="
+                  relative
+                  flex items-center justify-center h-8 !w-16 
+                  bg-neutral-900 dark:bg-emerald-400/50 text-white dark:text-emerald-300 !border-emerald-300
+                  hover:bg-emerald-500 hover:!text-emerald-200 dark:hover:bg-emerald-300/50 hover:!border-emerald-200
+                  transition-all duration-200 rounded-none border dark:border-transparent
+                  shadow-[0_0_10px_rgba(0,0,0,0.2)] hover:shadow-[0_0_15px_rgba(16,185,129,0.6)]
+              "
+            >
+                <div className="relative w-full h-full flex items-center justify-center">
+                    {isLoading ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin relative z-20"/> : <Icon size={20} fill="currentColor" className="relative z-20"/>}
+                    
+                    <ScanlineOverlay className="absolute inset-0 z-10"/> 
+                </div>
+            </button>
 
-          <button onClick={() => { if(sound) sound.seek(Math.min(duration, seek + 5)); }} className="text-neutral-400 hover:text-white transition hover:scale-110 p-1">
-             <FastForward size={18}/>
-          </button>
+            <button onClick={() => { if(sound) sound.seek(Math.min(duration, seek + 5)); }} className="text-neutral-400 hover:text-white transition hover:scale-110 p-1">
+              <FastForward size={18}/>
+            </button>
 
-          <button onClick={onPlayNext} className="text-neutral-400 hover:text-white transition hover:scale-110 p-1"><SkipForward size={20}/></button>
+            <button onClick={onPlayNext} className="text-neutral-400 hover:text-white transition hover:scale-110 p-1"><SkipForward size={20}/></button>
+            
+            <button onClick={() => player.setRepeatMode((player.repeatMode+1)%3)} className={`transition p-1 ${player.repeatMode!==0 ? "text-emerald-500" : "text-neutral-400 hover:text-white"}`} title="Repeat">
+              {player.repeatMode===2 ? <Repeat1 size={16}/> : <Repeat size={16}/>}
+            </button>
+          </div>
           
-          <button onClick={() => player.setRepeatMode((player.repeatMode+1)%3)} className={`transition p-1 ${player.repeatMode!==0 ? "text-emerald-500" : "text-neutral-400 hover:text-white"}`} title="Repeat">
-             {player.repeatMode===2 ? <Repeat1 size={16}/> : <Repeat size={16}/>}
-          </button>
-        </div>
-        
-        {/* Progress Bar - Cyber Style */}
-        <div className="w-full flex items-center gap-3 -translate-y-3">
-            <span className="text-[10px] font-mono text-neutral-500 w-10 text-right">{formatTime(seek)}</span>
-            <div className="flex-1 h-full flex items-center">
-                <Slider value={seek} max={duration || 100} onCommit={handleSeekCommit} onChange={handleSeekChange}/>
-            </div>
-            <span className="text-[10px] font-mono text-neutral-500 w-10">{formatTime(duration)}</span>
-        </div>
+          {/* Progress Bar - Cyber Style */}
+          <div className="w-full flex items-center gap-3 -translate-y-2">
+              <span className="text-[10px] font-mono text-neutral-500 w-10 text-right">{formatTime(seek)}</span>
+              <div className="flex-1 h-full flex items-center">
+                  <Slider value={seek} max={duration || 100} onCommit={handleSeekCommit} onChange={handleSeekChange}/>
+              </div>
+              <span className="text-[10px] font-mono text-neutral-500 w-10">{formatTime(duration)}</span>
+          </div>
       </div>
 
       {/* RIGHT: Volume & View Switcher */}
-      <div className="hidden md:flex justify-end pr-2 gap-4 w-full items-center -translate-y-[0.7rem]">
+      <div className="hidden md:flex justify-end pr-2 gap-4 w-full items-center -translate-y-[0.25rem]">
          <div className="flex items-center gap-2 border border-neutral-300 dark:border-white/10 px-2 py-1 bg-neutral-100 dark:bg-white/5">
              <button onClick={toggleMute}><VolumeIcon size={18} className="text-neutral-400 hover:text-emerald-500 transition"/></button>
              <div className="w-[80px]"><Slider value={volume} max={1} step={0.01} onChange={(v) => handleVolumeChange(v)}/></div>
+             {/* INDICATOR MỚI */}
+             <span className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 font-bold w-6 text-right">
+                {volumePercentage}%
+             </span>
          </div>
          
          <button 
@@ -347,6 +397,7 @@ const PlayerContent = ({ song, songUrl }) => {
             `}
             title={pathname==='/now-playing' ? "Close Player" : "Open Player"}
          >
+            {/* Sử dụng X và AlignJustify đã được import đúng */}
             {pathname === '/now-playing' ? <X size={20}/> : <AlignJustify size={20}/>}
          </button>
       </div>

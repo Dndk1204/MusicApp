@@ -107,22 +107,56 @@ body::before {
   border-opacity: 0.2;
 }
 
-/* --- SCROLLBAR TÙY CHỈNH (GLOBAL) --- */
-/* Áp dụng cho tất cả các thành phần có scrollbar */
-*::-webkit-scrollbar {
-  width: 6px; /* w-2 tương đương 8px */
-  height: 8px; /* Cho thanh ngang nếu có */
+
+/* =========================================
+   BONUS: CUSTOM SCROLLBAR (THANH CUỘN)
+   Để hợp với theme Cyber luôn
+   ========================================= */
+
+/* Độ rộng thanh cuộn */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-*::-webkit-scrollbar-track {
-  background-color: var(--scrollbar-track);
+/* Nền của thanh trượt (Track) */
+::-webkit-scrollbar-track {
+  background: #000000; /* Màu đen */
 }
 
-*::-webkit-scrollbar-thumb {
-  background-color: var(--scrollbar-thumb);
-  border-radius: 9999px; /* rounded-full */
+/* Tay cầm kéo (Thumb) */
+::-webkit-scrollbar-thumb {
+  background: #333333; /* Màu xám đậm */
+  border: 1px solid #10b981; /* Viền xanh Emerald cực chất */
+  border-radius: 0px; /* Vuông vức đúng chất Brutalism */
+}
+
+/* Khi hover vào tay cầm */
+::-webkit-scrollbar-thumb:hover {
+  background: #10b981; /* Full xanh khi hover */
+  border-color: #059669;
 }
 
 *::-webkit-scrollbar-thumb:hover {
   background-color: var(--scrollbar-thumb-hover);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  body, a, button, input, select, textarea, .cursor-pointer {
+    cursor: none !important;
+  }
+}
+
+/* Dành cho hầu hết các trình duyệt (Chrome, Edge, Safari, Opera) */
+::selection {
+  background-color: #10b981; /* Emerald-500 (Màu xanh chủ đạo của bạn) */
+  color: #000000;            /* Màu chữ chuyển thành đen để tạo độ tương phản cao */
+  text-shadow: none;
+}
+
+/* Dành riêng cho Firefox */
+::-moz-selection {
+  background-color: #10b981;
+  color: #000000;
+  text-shadow: none;
 }

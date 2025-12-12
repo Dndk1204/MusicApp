@@ -4,11 +4,12 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Heart, Check, Loader2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-// Import HoloButton để tái sử dụng style nếu muốn, hoặc dùng class trực tiếp
-import { HoloButton } from "@/components/CyberComponents";
+import useUI from "@/hooks/useUI"; // Import useUI
 
 const FollowButton = ({ artistName, artistImage, onFollowChange }) => {
   const router = useRouter();
+  const { alert } = useUI(); // Lấy hàm alert từ hook
+  
   const [isFollowing, setIsFollowing] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -31,7 +32,7 @@ const FollowButton = ({ artistName, artistImage, onFollowChange }) => {
 
         if (data) setIsFollowing(true);
       } catch (error) {
-        // Không tìm thấy => chưa follow
+        // Không tìm thấy => chưa follow (bình thường)
       } finally {
         setLoading(false);
       }
@@ -45,8 +46,10 @@ const FollowButton = ({ artistName, artistImage, onFollowChange }) => {
     e.stopPropagation();
 
     const { data: { session } } = await supabase.auth.getSession();
+    
+    // Thay thế alert mặc định bằng useUI
     if (!session) {
-        alert("ACCESS DENIED: PLEASE LOGIN TO FOLLOW");
+        alert("ACCESS_DENIED: LOGIN_REQUIRED", "error");
         return;
     }
 
@@ -77,12 +80,15 @@ const FollowButton = ({ artistName, artistImage, onFollowChange }) => {
             
             if (error) throw error;
             if (onFollowChange) onFollowChange(true);
+            
+            // Thông báo thành công (tùy chọn, có thể bỏ nếu muốn trải nghiệm nhanh)
+            // alert(`FOLLOWING: ${artistName}`, "success");
         }
         router.refresh();
     } catch (error) {
         console.error("Follow Error:", error);
-        setIsFollowing(previousState); 
-        alert("SYSTEM ERROR: ACTION FAILED");
+        setIsFollowing(previousState); // Revert UI nếu lỗi
+        alert("SYSTEM_ERROR: ACTION_FAILED", "error");
     }
   };
 

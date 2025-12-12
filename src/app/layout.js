@@ -7,6 +7,8 @@ import SupabaseProvider from "@/providers/SupabaseProvider";
 import { ModalProvider } from "@/context/ModalContext";
 import GlobalPopup from "@/components/GlobalPopup";
 import AuthWrapper from "@/components/AuthWrapper";
+import CyberCursor from "@/components/CyberCursor";
+import CyberContextMenu from "@/components/CyberContextMenu";
 
 export const metadata = {
   title: "V O I D - Music App",
@@ -55,6 +57,8 @@ export default function RootLayout({ children }) {
               <AuthModal />
               <UploadModal /> {/* <--- Đảm bảo thành phần này xuất hiện */}
               <GlobalPopup />
+              <CyberCursor />
+              <CyberContextMenu />
               {/* -------------------------------- */}
             </AuthWrapper>
           </ModalProvider>

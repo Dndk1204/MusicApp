@@ -8,6 +8,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 // Import Cyber Components
 import { HoloButton, ScanlineOverlay, CyberCard } from "@/components/CyberComponents";
+// Import Hover Preview
+import HoverImagePreview from "@/components/HoverImagePreview"; // Đảm bảo đường dẫn đúng
 
 // Helper Format Time
 const formatDuration = (sec) => {
@@ -91,40 +93,52 @@ const SearchContent = ({ songs }) => {
              {/* ẢNH CONTAINER (group/img) */}
              <div onClick={() => handlePlay(song.id)} className="relative w-full aspect-square bg-neutral-200 dark:bg-neutral-800 overflow-hidden border-b border-neutral-300 dark:border-white/10 group/img">
                 
-                {/* ẢNH BÌA */}
-                <img
-                  src={song.image_url || song.image_path || '/images/music-placeholder.png'}
-                  alt={song.title}
-                  className="
-                    w-full h-full object-cover transition-all duration-700 
-                    
-                    /* Mặc định: Trắng đen */
-                    grayscale 
-                    
-                    /* Hover vào THẺ (group): Hết trắng đen */
-                    group-hover:grayscale-0 
-                    
-                    /* Hover vào ẢNH (group/img): Phóng to + Mờ */
-                    group-hover/img:scale-110 
-                    group-hover/img:blur-[2px]
-                  "
-                />
-                
-                {/* SCANLINE & OVERLAY */}
-                <ScanlineOverlay />
-                <div className="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover/img:opacity-100 transition-opacity"></div>
+                {/* --- BỌC HOVER PREVIEW --- */}
+                <HoverImagePreview
+                    src={song.image_url || song.image_path || '/images/music-placeholder.png'}
+                    alt={song.title}
+                    audioSrc={song.song_url || song.song_path} // Ưu tiên song_url
+                    className="w-full h-full relative"
+                    previewSize={240}
+                >
+                    {/* NỘI DUNG HIỂN THỊ (ẢNH + OVERLAY) */}
+                    <div className="w-full h-full relative">
+                        {/* ẢNH BÌA */}
+                        <img
+                          src={song.image_url || song.image_path || '/images/music-placeholder.png'}
+                          alt={song.title}
+                          className="
+                            w-full h-full object-cover transition-all duration-700 
+                            
+                            /* Mặc định: Trắng đen */
+                            grayscale 
+                            
+                            /* Hover vào THẺ (group): Hết trắng đen */
+                            group-hover:grayscale-0 
+                            
+                            /* Hover vào ẢNH (group/img): Phóng to + Mờ */
+                            group-hover/img:scale-110 
+                            group-hover/img:blur-[2px]
+                          "
+                        />
+                        
+                        {/* SCANLINE & OVERLAY */}
+                        <ScanlineOverlay />
+                        <div className="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover/img:opacity-100 transition-opacity"></div>
 
-                {/* PLAY ICON OVERLAY (Chỉ hiện khi hover vào ảnh) */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-all duration-300 backdrop-blur-none group-hover/img:backdrop-blur-[2px] bg-black/20">
-                   <div className="bg-emerald-500 text-black p-3 shadow-[0_0_20px_rgba(16,185,129,0.4)] transform scale-50 group-hover/img:scale-100 transition duration-300 border border-emerald-400">
-                      <Play size={24} fill="black" className="ml-1"/>
-                   </div>
-                </div>
+                        {/* PLAY ICON OVERLAY (Chỉ hiện khi hover vào ảnh) */}
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-all duration-300 backdrop-blur-none group-hover/img:backdrop-blur-[2px] bg-black/20">
+                            <div className="bg-emerald-500 text-black p-3 shadow-[0_0_20px_rgba(16,185,129,0.4)] transform scale-50 group-hover/img:scale-100 transition duration-300 border border-emerald-400">
+                              <Play size={24} fill="black" className="ml-1"/>
+                            </div>
+                        </div>
 
-                {/* DECOR INDEX */}
-                <span className="absolute top-2 right-2 text-[40px] font-black font-mono text-white/10 pointer-events-none leading-none z-10">
-                   {idx + 1 < 10 ? `0${idx+1}` : idx+1}
-                </span>
+                        {/* DECOR INDEX */}
+                        <span className="absolute top-2 right-2 text-[40px] font-black font-mono text-white/10 pointer-events-none leading-none z-10">
+                            {idx + 1 < 10 ? `0${idx+1}` : idx+1}
+                        </span>
+                    </div>
+                </HoverImagePreview>
              </div>
 
              {/* INFO SECTION */}

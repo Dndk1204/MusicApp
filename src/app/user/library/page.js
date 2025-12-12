@@ -315,7 +315,7 @@ const MyUploadsPage = () => {
              </div>
              <div className="flex gap-2 mt-1">
                 <CyberButton onClick={saveEdit} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold py-1 flex items-center justify-center gap-1 rounded-none"><Save size={10}/> SAVE</CyberButton>
-                <GlitchButton onClick={cancelEditing} className="flex-1 bg-neutral-700 hover:bg-neutral-600 hover:!text-white text-[10px] font-bold py-1 flex items-center justify-center gap-1 rounded-none"><X size={10}/> CANCEL</GlitchButton>
+                <GlitchButton onClick={cancelEditing} className="flex-1 bg-neutral-700 hover:!bg-neutral-600/10 hover:!text-white text-[10px] font-bold py-1 flex items-center justify-center gap-1 rounded-none"><X size={10}/> CANCEL</GlitchButton>
              </div>
            </div>
          ) : (
