@@ -472,7 +472,6 @@ const AdminDashboard = () => {
                         <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center">
                             <Mic2 size={16} className="text-pink-500"/> Most_Followed_Artists
                         </h4>
-                        <button onClick={() => setCurrentView('db_artists_list')} className="text-[9px] text-blue-600 dark:text-blue-500 hover:underline font-mono uppercase">VIEW_ALL</button>
                     </div>
                     <div className="p-4 space-y-2">
                         {popularArtistsList.slice(0, 5).map((artist, i) => (

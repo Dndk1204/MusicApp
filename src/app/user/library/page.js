@@ -5,6 +5,9 @@ import { supabase } from "@/lib/supabaseClient";
 import { Lock, Globe, Music, Edit2, Trash2, Upload, X, Save, Image as ImageIcon, FileAudio, FileText, LayoutGrid, Disc } from "lucide-react";
 import useUI from "@/hooks/useUI";
 import useUploadModal from "@/hooks/useUploadModal";
+import usePlayer from "@/hooks/usePlayer";
+import { useAuth } from "@/components/AuthWrapper";
+import { useModal } from "@/context/ModalContext";
 // Import Full Cyber Components
 import { GlitchText, HoloButton, GlitchButton, CyberButton, CyberCard, ScanlineOverlay } from "@/components/CyberComponents";
 
@@ -50,6 +53,9 @@ const MyUploadsPage = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedLyricFile, setSelectedLyricFile] = useState(null);
   const [newDuration, setNewDuration] = useState(0);
+  const [currentSRT, setCurrentSRT] = useState('');
+  const [originalSRT, setOriginalSRT] = useState('');
+  const [loadingSRT, setLoadingSRT] = useState(false);
 
   // UI State
   const [activeTab, setActiveTab] = useState('uploads');
@@ -58,6 +64,9 @@ const MyUploadsPage = () => {
   // --- HOOKS ---
   const { alert, confirm } = useUI();
   const { onOpen } = useUploadModal();
+  const player = usePlayer();
+  const { isAuthenticated } = useAuth();
+  const { openModal } = useModal();
 
   useEffect(() => { getMyUploads(); }, []);
   useEffect(() => { if (activeTab === 'tuned' && loadingTuned) getMyTunedSongs(); }, [activeTab]);
@@ -93,14 +102,24 @@ const MyUploadsPage = () => {
     setLoadingTuned(false);
   };
 
-  // const handleSelectedFileChange = async (e) => {
-  //   const file = e.target.files[0];
-  //   setSelectedFile(file);
-  //   if (file) {
-  //     try { const duration = await extractAudioDuration(file); setNewDuration(Math.floor(duration)); } 
-  //     catch (error) { setNewDuration(0); }
-  //   } else { setNewDuration(0); }
-  // };
+
+
+
+  const onPlay = (id) => {
+    if (!isAuthenticated) {
+      openModal();
+      return;
+    }
+
+    player.setId(id);
+    player.setIds(filteredSongs.map((s) => s.id));
+
+    if (typeof window !== "undefined") {
+        const songMap = {};
+        filteredSongs.forEach(song => songMap[song.id] = song);
+        window.__SONG_MAP__ = { ...window.__SONG_MAP__, ...songMap };
+    }
+  };
 
   const handleDeleteSong = async (songId) => {
     if (!await confirm("WARNING: PERMANENT DELETION.", "DELETE_CONFIRMATION")) return;
@@ -113,9 +132,35 @@ const MyUploadsPage = () => {
     } catch (err) { alert(err.message, 'error'); }
   };
 
-  const startEditing = (song) => {
+  const startEditing = async (song) => {
     setEditingSong(song.id);
     setEditForm({ title: song.title, author: song.author, isPublic: song.is_public ?? false });
+
+    // Fetch current SRT if exists
+    if (song.lyric_url) {
+      setLoadingSRT(true);
+      try {
+        const res = await fetch(song.lyric_url);
+        if (res.ok) {
+          const text = await res.text();
+          setCurrentSRT(text);
+          setOriginalSRT(text);
+        } else {
+          setCurrentSRT('');
+          setOriginalSRT('');
+        }
+      } catch (err) {
+        console.error('Error fetching SRT:', err);
+        setCurrentSRT('');
+        setOriginalSRT('');
+      } finally {
+        setLoadingSRT(false);
+      }
+    } else {
+      setCurrentSRT('');
+      setOriginalSRT('');
+      setLoadingSRT(false);
+    }
   };
 
   const cancelEditing = () => {
@@ -135,7 +180,6 @@ const MyUploadsPage = () => {
       if (selectedFile || selectedImage || selectedLyricFile) {
         uniqueID = crypto.randomUUID();
         safeTitle = editForm.title.trim().replace(/[^a-zA-Z0-9-]/g, "").toLowerCase();
-
         if (selectedFile) {
           const { data: sData, error: sErr } = await supabase.storage.from('songs').upload(`song-${safeTitle}-${uniqueID}`, selectedFile);
           if (sErr) throw sErr;
@@ -179,12 +223,14 @@ const MyUploadsPage = () => {
   }, [songsUploads, songsTuned, filter, activeTab]);
 
   // --- COMPONENT: USER SONG CARD (CYBER BRUTALISM & HOVER FIX) ---
-  const UserSongCard = ({ song, isEditing, isEditable }) => (
-    <CyberCard 
+  const UserSongCard = ({ song, isEditing, isEditable, onClick }) => (
+    <CyberCard
         className={`
-            group relative p-0 bg-white dark:bg-neutral-900/40 
+            group relative p-0 bg-white dark:bg-neutral-900/40
             ${isEditing ? 'border-emerald-500 ring-1 ring-emerald-500' : 'hover:border-emerald-500/50'}
+            ${!isEditing ? 'cursor-pointer' : ''}
         `}
+        onClick={() => !isEditing && onClick && onClick(song.id)}
     >
        {/* IMAGE AREA */}
        {/* group/img: dùng để điều khiển hiệu ứng khi hover vào ảnh
@@ -351,7 +397,7 @@ const MyUploadsPage = () => {
                       )}
 
                       {filteredSongs.map(song => (
-                         <UserSongCard key={song.id} song={song} isEditing={editingSong === song.id} isEditable={isEditable}/>
+                         <UserSongCard key={song.id} song={song} isEditing={editingSong === song.id} isEditable={isEditable} onClick={onPlay}/>
                       ))}
                    </div>
                 </div>
