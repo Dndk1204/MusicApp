@@ -376,7 +376,7 @@ const UploadModal = () => {
                     disabled={isLoading} 
                     className="
                         w-full py-4 text-xs tracking-widest disabled:opacity-50 disabled:cursor-not-allowed rounded-none
-                        border-emerald-500 bg-emerald-600 hover:bg-emerald-500 text-white
+                        border-emerald-500 bg-emerald-600 hover:bg-emerald-500 text-white hover:!text-white
                     "
                 >
                     {isLoading ? (

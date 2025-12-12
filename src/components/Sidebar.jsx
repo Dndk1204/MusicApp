@@ -255,7 +255,7 @@ const Sidebar = ({ children }) => {
 
           {/* PHẦN 1: USER LIBRARY & UPLOAD */}
           {isAuthenticated && (
-            <div className="bg-white/60 dark:bg-black/60 backdrop-blur-3xl border border-neutral-200 dark:border-white/5 rounded-none p-2 shadow-sm">
+            <div className="bg-white/60 mt-6 dark:bg-black/60 backdrop-blur-3xl border border-neutral-200 dark:border-white/5 rounded-none p-2 shadow-sm">
 
                 {/* Header */}
                 <div className="flex items-center justify-between px-2 mb-2">

@@ -426,7 +426,7 @@ export default function AddToPlaylistPage() {
           <div className="flex gap-3">
             <GlitchButton
               onClick={() => router.back()}
-              className="text-xs px-4 py-2 border-red-400 text-red-600"
+              className="text-xs px-4 py-2 border-red-400 text-white"
             >
               ABORT
             </GlitchButton>
