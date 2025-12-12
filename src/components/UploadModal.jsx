@@ -6,9 +6,10 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import useUploadModal from "@/hooks/useUploadModal";
 import useUI from "@/hooks/useUI";
-import { X, UploadCloud, Lock, Globe, Loader2, Image as ImageIcon, FileAudio, Music, FileType } from "lucide-react";
+// SỬA LỖI Ở ĐÂY: Đã xóa 'FileSubtitles' và dùng 'FileText'
+import { X, UploadCloud, Lock, Globe, Loader2, Image as ImageIcon, FileAudio, Music, FileText } from "lucide-react";
 // Import Cyber Components
-import { GlitchText, CyberButton, CyberCard } from "@/components/CyberComponents";
+import { GlitchText, CyberButton } from "@/components/CyberComponents";
 
 // Function to handle safe filenames
 const sanitizeString = (str) => {
@@ -37,6 +38,7 @@ const UploadModal = () => {
   const [isPublic, setIsPublic] = useState("true");
   const [songFile, setSongFile] = useState(null);
   const [imageFile, setImageFile] = useState(null);
+  const [lyricFile, setLyricFile] = useState(null); 
   const [songDuration, setSongDuration] = useState(0);
 
   useEffect(() => {
@@ -46,6 +48,7 @@ const UploadModal = () => {
       setIsPublic("true");
       setSongFile(null);
       setImageFile(null);
+      setLyricFile(null);
       setSongDuration(0);
       setIsLoading(false);
     }
@@ -101,7 +104,7 @@ const UploadModal = () => {
       setIsLoading(true);
 
       if (!songFile || !imageFile || !title || !author) {
-        error("Missing required fields or files.");
+        error("Missing required fields (Song, Image, Title, Artist).");
         setIsLoading(false);
         return;
       }
@@ -129,19 +132,37 @@ const UploadModal = () => {
       const { data: imageData, error: imageError } = await supabase.storage
         .from('images')
         .upload(imagePath, imageFile, { cacheControl: '3600', upsert: false });
-      
+
       if (imageError) throw new Error("Image upload failed: " + imageError.message);
+
+      // 3. Upload Lyric (File .srt hoặc .txt)
+      let lyricUrl = null;
+      if (lyricFile) {
+        // Lấy đuôi file gốc (vd: .srt) hoặc mặc định là .txt
+        const fileExt = lyricFile.name.split('.').pop() || 'txt';
+        const lyricPath = `lyric-${safeTitle}-${uniqueID}.${fileExt}`;
+        
+        const { data: lyricData, error: lyricError } = await supabase.storage
+          .from('songs')
+          .upload(lyricPath, lyricFile, { cacheControl: '3600', upsert: false });
+
+        if (lyricError) throw new Error("Lyric upload failed: " + lyricError.message);
+
+        const { data: lyricUrlData } = supabase.storage.from('songs').getPublicUrl(lyricData.path);
+        lyricUrl = lyricUrlData.publicUrl;
+      }
 
       const { data: songUrlData } = supabase.storage.from('songs').getPublicUrl(songData.path);
       const { data: imageUrlData } = supabase.storage.from('images').getPublicUrl(imageData.path);
 
-      // 3. Insert DB
+      // 4. Insert DB
       const { error: dbError } = await supabase.from('songs').insert({
         user_id: user.id,
         title: title,
         author: author,
         image_url: imageUrlData.publicUrl,
         song_url: songUrlData.publicUrl,
+        lyric_url: lyricUrl, 
         is_public: isAdmin ? true : (isPublic === 'true'),
         play_count: 0,
         duration: songDuration
@@ -179,6 +200,7 @@ const UploadModal = () => {
           border-2 border-neutral-400 dark:border-white/20 
           shadow-[0_0_50px_rgba(0,0,0,0.5)] dark:shadow-[0_0_50px_rgba(16,185,129,0.15)]
           rounded-none
+          max-h-[90vh] overflow-y-auto custom-scrollbar
       ">
         {/* Decoration Corners */}
         <div className="absolute top-0 left-0 w-3 h-3 border-t-4 border-l-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
@@ -187,7 +209,7 @@ const UploadModal = () => {
         <div className="absolute bottom-0 right-0 w-3 h-3 border-b-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
 
         {/* Header */}
-        <div className="p-5 flex justify-between items-center relative border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-neutral-900">
+        <div className="p-5 flex justify-between items-center relative border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-neutral-900 sticky top-0 z-40">
             <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-transparent via-emerald-500 to-transparent"></div>
             
             <div>
@@ -208,7 +230,7 @@ const UploadModal = () => {
         <div className="p-6 md:p-8 bg-neutral-50 dark:bg-black/80">
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                 
-                {/* Inputs */}
+                {/* 1. Track Info Inputs */}
                 <div className="space-y-4">
                     <div className="group relative">
                         <label className="text-[10px] font-mono uppercase mb-1 block group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-500 text-neutral-600 dark:text-neutral-500 font-bold transition-colors">
@@ -232,7 +254,7 @@ const UploadModal = () => {
                     </div>
                     <div className="group relative">
                         <label className="text-[10px] font-mono uppercase mb-1 block group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-500 text-neutral-600 dark:text-neutral-500 font-bold transition-colors">
-                            <FileType size={12} className="inline mr-1"/> Artist_Identity
+                            <Music size={12} className="inline mr-1"/> Artist_Identity
                         </label>
                         <input 
                             disabled={isLoading} 
@@ -252,13 +274,13 @@ const UploadModal = () => {
                     </div>
                 </div>
 
-                {/* File Uploads Grid */}
+                {/* 2. File Uploads Grid */}
                 <div className="grid grid-cols-2 gap-4">
                     {/* Audio Upload */}
                     <div className={`
                         relative p-4 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-col items-center justify-center gap-2
-                        ${songFile 
-                            ? 'border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/5' 
+                        ${songFile
+                            ? 'border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/5'
                             : 'border-neutral-300 bg-white hover:bg-neutral-50 hover:border-emerald-500/50 dark:border-white/20 dark:bg-black/30 dark:hover:bg-white/5'}
                     `}>
                         <div className={`p-3 rounded-none border ${songFile ? 'border-emerald-500 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'border-neutral-300 bg-neutral-100 text-neutral-500 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400 group-hover:text-emerald-500 group-hover:border-emerald-500'}`}>
@@ -280,8 +302,8 @@ const UploadModal = () => {
                     {/* Image Upload */}
                     <div className={`
                         relative p-4 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-col items-center justify-center gap-2
-                        ${imageFile 
-                            ? 'border-pink-500 bg-pink-500/10 dark:bg-pink-500/5' 
+                        ${imageFile
+                            ? 'border-pink-500 bg-pink-500/10 dark:bg-pink-500/5'
                             : 'border-neutral-300 bg-white hover:bg-neutral-50 hover:border-pink-500/50 dark:border-white/20 dark:bg-black/30 dark:hover:bg-white/5'}
                     `}>
                         <div className={`p-3 rounded-none border ${imageFile ? 'border-pink-500 bg-pink-500/20 text-pink-600 dark:text-pink-400' : 'border-neutral-300 bg-neutral-100 text-neutral-500 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400 group-hover:text-pink-500 group-hover:border-pink-500'}`}>
@@ -290,10 +312,10 @@ const UploadModal = () => {
                         <span className={`text-[10px] font-mono text-center truncate w-full px-2 uppercase ${imageFile ? 'text-pink-700 dark:text-pink-400 font-bold' : 'text-neutral-600 dark:text-neutral-400'}`}>
                             {imageFile ? imageFile.name : "SELECT_COVER_ART"}
                         </span>
-                        <input 
-                            type="file" 
-                            accept="image/*" 
-                            disabled={isLoading} 
+                        <input
+                            type="file"
+                            accept="image/*"
+                            disabled={isLoading}
                             onChange={(e) => setImageFile(e.target.files[0])}
                             className="absolute inset-0 opacity-0 cursor-pointer"
                             required
@@ -301,7 +323,30 @@ const UploadModal = () => {
                     </div>
                 </div>
 
-                {/* Visibility Toggle */}
+                {/* 3. Lyrics Upload (.SRT or .TXT) - ĐÃ SỬA: Dùng FileText */}
+                <div className={`
+                    relative p-4 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-col items-center justify-center gap-2
+                    ${lyricFile
+                        ? 'border-purple-500 bg-purple-500/10 dark:bg-purple-500/5'
+                        : 'border-neutral-300 bg-white hover:bg-neutral-50 hover:border-purple-500/50 dark:border-white/20 dark:bg-black/30 dark:hover:bg-white/5'}
+                `}>
+                    <div className={`p-3 rounded-none border ${lyricFile ? 'border-purple-500 bg-purple-500/20 text-purple-600 dark:text-purple-400' : 'border-neutral-300 bg-neutral-100 text-neutral-500 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400 group-hover:text-purple-500 group-hover:border-purple-500'}`}>
+                        {/* Dùng FileText thay vì FileSubtitles */}
+                        <FileText size={24} />
+                    </div>
+                    <span className={`text-[10px] font-mono text-center truncate w-full px-2 uppercase ${lyricFile ? 'text-purple-700 dark:text-purple-400 font-bold' : 'text-neutral-600 dark:text-neutral-400'}`}>
+                        {lyricFile ? lyricFile.name : "SELECT_LYRICS (.SRT / .TXT)"}
+                    </span>
+                    <input
+                        type="file"
+                        accept=".srt,.txt" 
+                        disabled={isLoading}
+                        onChange={(e) => setLyricFile(e.target.files[0])}
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                    />
+                </div>
+
+                {/* 4. Visibility Toggle */}
                 {!isAdmin && (
                     <div className="flex p-1 rounded-none border border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-black/40">
                         <label className={`
@@ -325,7 +370,7 @@ const UploadModal = () => {
                     </div>
                 )}
 
-                {/* Submit Button */}
+                {/* 5. Submit Button */}
                 <CyberButton 
                     type="submit" 
                     disabled={isLoading} 

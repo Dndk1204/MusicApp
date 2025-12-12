@@ -217,7 +217,7 @@ image_url: s.image_url ?? null,
           <div className="flex items-center gap-2 mb-1">
               <span className="w-2 h-2 bg-emerald-500 animate-pulse rounded-none"></span>
               <p className="uppercase text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 tracking-[0.3em]">
-                PRIVATE_PLAYLIST
+                USER_PLAYLIST
             </p>
           </div>
           

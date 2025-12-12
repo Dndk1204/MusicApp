@@ -4,8 +4,8 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { Howl } from "howler";
 import {
   Play, Pause, Rewind, FastForward, SkipBack, SkipForward,
-  Volume2, VolumeX, Shuffle, Repeat, Repeat1, AlignJustify, Plus, Save, Square
-} from "lucide-react"; // Đã thêm Square, bỏ X
+  Volume2, VolumeX, Shuffle, Repeat, Repeat1, AlignJustify, Plus, Save, Square, X
+} from "lucide-react"; // Đã thêm Square và X
 import { useRouter, usePathname } from "next/navigation";
 
 // --- CUSTOM HOOKS ---

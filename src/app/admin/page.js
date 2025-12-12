@@ -470,61 +470,116 @@ const AdminDashboard = () => {
 
             {/* STATS SECTIONS */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                {/* TOP STREAMED */}
-                <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden">
-                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5">
+                {/* --- TABLE 1: TOP STREAMED TRACKS (TOP 5) --- */}
+                <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-full">
+                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0">
                         <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center">
-                            <TrendingUp size={16} className="text-emerald-500"/> Top_Streamed_Tracks
+                            <TrendingUp size={16} className="text-emerald-500" /> Top_5_Streamed
                         </h4>
+                        <button onClick={() => { setSongSortType('plays'); setCurrentView('songs_list'); }} className="text-[9px] text-emerald-600 dark:text-emerald-500 hover:underline font-mono uppercase">
+                            VIEW_FULL
+                        </button>
                     </div>
-                    <div className="p-4 space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
-                        {stats.topSongs.map((s,i)=>(
-                            <div key={s.id} className="flex justify-between items-center text-xs font-mono p-2 hover:bg-neutral-100 dark:hover:bg-white/5 border border-transparent hover:border-neutral-300 dark:hover:border-white/10 transition">
-                                <span className="truncate w-40 text-neutral-700 dark:text-neutral-300 flex gap-2">
-                                    <span className="text-neutral-400">0{i+1}</span> {s.title}
-                                </span>
-                                <span className="text-emerald-600 dark:text-emerald-500 font-bold bg-emerald-500/10 px-2 py-0.5">{s.play_count}</span>
-                            </div>
-                        ))}
-                    </div>
-                </CyberCard>
-                
-                {/* TOP ARTISTS */}
-                <CyberCard className="relative bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 hover:border-pink-500/30 transition backdrop-blur-md overflow-hidden">
-                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center">
-                        <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center">
-                            <Mic2 size={16} className="text-pink-500"/> Most_Followed_Artists
-                        </h4>
-                        <button onClick={() => setCurrentView('db_artists_list')} className="text-[9px] text-blue-600 dark:text-blue-500 hover:underline font-mono uppercase">VIEW_ALL</button>
-                    </div>
-                    <div className="p-4 space-y-2">
-                        {popularArtistsList.slice(0, 5).map((artist, i) => (
-                            <div key={i} className="flex justify-between items-center text-xs font-mono p-2 hover:bg-neutral-100 dark:hover:bg-white/5 border border-transparent hover:border-pink-500/30 transition">
-                                <div className="flex items-center gap-3">
-                                    <span className="text-pink-600 dark:text-pink-500 font-bold text-[10px]">#0{i+1}</span>
-                                    
-                                    {/* HOVER PREVIEW CHO TOP ARTISTS (Chỉ ảnh) */}
-                                    <div className="w-6 h-6 rounded-none overflow-hidden bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/20 shrink-0 cursor-none relative">
-                                         <HoverImagePreview 
-                                            src={artist.image_url} 
-                                            alt={artist.originalName} 
-                                            className="w-full h-full"
-                                            previewSize={160}
-                                            fallbackIcon="user"
-                                         >
-                                            <div className="w-full h-full relative flex items-center justify-center">
-                                                {artist.image_url ? <img src={artist.image_url} className="w-full h-full object-cover"/> : <User size={12} className="text-neutral-400"/>}
-                                                <ScanlineOverlay />
-                                            </div>
-                                         </HoverImagePreview>
+                    
+                    {/* List Container */}
+                    <div className="p-0 overflow-y-auto custom-scrollbar">
+                        {stats.topSongs.slice(0, 5).map((s, i) => (
+                            <div key={s.id} className="group flex justify-between items-center text-xs font-mono p-3 border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-emerald-500/5 dark:hover:bg-emerald-500/10 transition-colors relative">
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                    {/* Rank Number */}
+                                    <span className={`text-[10px] font-bold w-6 shrink-0 ${i < 3 ? 'text-emerald-600 dark:text-emerald-400' : 'text-neutral-400'}`}>
+                                        #{String(i + 1).padStart(2, '0')}
+                                    </span>
+
+                                    {/* Static Image (No Hover Preview) */}
+                                    <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 shrink-0 relative flex items-center justify-center overflow-hidden">
+                                        {s.image_url ? (
+                                            <img src={s.image_url} alt={s.title} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <Music size={14} className="text-neutral-400" />
+                                        )}
+                                        {/* Giữ lại hiệu ứng vân ngang cho đẹp (tùy chọn) */}
+                                        <ScanlineOverlay />
                                     </div>
 
-                                    <span className="text-neutral-700 dark:text-neutral-300 truncate w-32">{artist.originalName}</span>
-                                    {!artist.inDB && <span className="text-[8px] text-red-500 dark:text-red-400 ml-1 border border-red-500/30 px-1">SYNC</span>}
+                                    {/* Song Info */}
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors" title={s.title}>
+                                            {s.title}
+                                        </span>
+                                        <span className="truncate text-[10px] text-neutral-500 dark:text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300">
+                                            {s.author}
+                                        </span>
+                                    </div>
                                 </div>
-                                <span className="text-[10px] text-pink-600 dark:text-pink-500 flex items-center gap-1 font-bold"><Heart size={10} fill="currentColor"/> {artist.followers}</span>
+
+                                {/* Play Count */}
+                                <div className="flex items-center gap-2 pl-2 shrink-0">
+                                    <div className="h-[1px] w-4 bg-emerald-500/30 hidden sm:block"></div>
+                                    <span className="text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-500/20 px-2 py-0.5 text-[10px]">
+                                        {s.play_count}
+                                    </span>
+                                </div>
                             </div>
                         ))}
+                        {stats.topSongs.length === 0 && <div className="p-4 text-center text-neutral-400 italic text-[10px]">No data available</div>}
+                    </div>
+                </CyberCard>
+
+                {/* --- TABLE 2: MOST FOLLOWED ARTISTS (TOP 5) --- */}
+                <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-full">
+                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0">
+                        <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center">
+                            <Mic2 size={16} className="text-pink-500" /> Top_5_Artists
+                        </h4>
+                        <button onClick={() => setCurrentView('db_artists_list')} className="text-[9px] text-pink-600 dark:text-pink-500 hover:underline font-mono uppercase">
+                            VIEW_FULL
+                        </button>
+                    </div>
+
+                    {/* List Container */}
+                    <div className="p-0 overflow-y-auto custom-scrollbar">
+                        {popularArtistsList.slice(0, 5).map((artist, i) => (
+                            <div key={i} className="group flex justify-between items-center text-xs font-mono p-3 border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-pink-500/5 dark:hover:bg-pink-500/10 transition-colors relative">
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                    {/* Rank Number */}
+                                    <span className={`text-[10px] font-bold w-6 shrink-0 ${i < 3 ? 'text-pink-600 dark:text-pink-400' : 'text-neutral-400'}`}>
+                                        #{String(i + 1).padStart(2, '0')}
+                                    </span>
+
+                                    {/* Static Image (No Hover Preview) */}
+                                    <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 shrink-0 relative flex items-center justify-center overflow-hidden">
+                                        {artist.image_url ? (
+                                            <img src={artist.image_url} alt={artist.originalName} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <User size={14} className="text-neutral-400" />
+                                        )}
+                                        <ScanlineOverlay />
+                                    </div>
+
+                                    {/* Artist Info */}
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors">
+                                            {artist.originalName}
+                                        </span>
+                                        {!artist.inDB && (
+                                            <span className="text-[8px] text-red-500 dark:text-red-400 border border-red-500/30 px-1 w-fit mt-0.5">
+                                                SYNC_REQ
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Follow Count */}
+                                <div className="flex items-center gap-2 pl-2 shrink-0">
+                                    <div className="h-[1px] w-4 bg-pink-500/30 hidden sm:block"></div>
+                                    <span className="text-pink-700 dark:text-pink-400 font-bold bg-pink-100 dark:bg-pink-900/30 border border-pink-200 dark:border-pink-500/20 px-2 py-0.5 text-[10px] flex items-center gap-1">
+                                        <Heart size={8} fill="currentColor" /> {artist.followers}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                        {popularArtistsList.length === 0 && <div className="p-4 text-center text-neutral-400 italic text-[10px]">No artist data</div>}
                     </div>
                 </CyberCard>
             </div>
