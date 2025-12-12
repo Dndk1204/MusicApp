@@ -24,7 +24,7 @@ import { CyberButton, ScanlineOverlay } from "@/components/CyberComponents";
 const PlaylistSkeleton = () => {
   return (
     <div className="flex flex-col gap-y-2 mt-2 px-1">
-      {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+      {[1, 2, 3, 4, 5, 6].map((i) => (
         <div key={i} className="flex items-center gap-x-3 p-2 rounded-none animate-pulse">
           <div className="w-10 h-10 bg-neutral-300 dark:bg-neutral-800 rounded-none shrink-0 border border-white/5"></div>
           <div className="flex-1 space-y-2">

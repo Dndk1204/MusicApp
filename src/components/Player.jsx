@@ -20,6 +20,7 @@ const Player = () => {
     // Reset player every time page reloads
     player.setId(null);
     player.setIds([]);
+    player.setIsPlaying(false); // Reset playing state
     setSong(null);
 
     setIsMounted(true);
@@ -28,6 +29,7 @@ const Player = () => {
       if (event === "SIGNED_OUT") {
         player.setId(null);
         player.setIds([]);
+        player.setIsPlaying(false);
         setSong(null);
       }
     });
@@ -44,6 +46,7 @@ const Player = () => {
     const loadSongData = async () => {
       if (!player.activeId) {
         setSong(null);
+        player.setIsPlaying(false); // Không có bài -> không phát
         return;
       }
 
@@ -127,6 +130,18 @@ const Player = () => {
   }, [player.activeId, isMounted]);
 
   const songUrl = useLoadSongUrl(song);
+
+  // --- QUAN TRỌNG: CẬP NHẬT TRẠNG THÁI PHÁT CHO ZUSTAND ---
+  // Khi đã có songUrl và activeId, ta giả định Player sẽ tự động phát (autoPlay)
+  // Điều này sẽ kích hoạt useEffect trong HoverImagePreview để tắt nhạc preview
+  useEffect(() => {
+      if (songUrl && player.activeId) {
+          player.setIsPlaying(true);
+      } else {
+          player.setIsPlaying(false);
+      }
+  }, [songUrl, player.activeId]);
+
 
   if (!isMounted) return null;
 
