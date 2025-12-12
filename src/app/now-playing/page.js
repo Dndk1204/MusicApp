@@ -331,7 +331,7 @@ const NowPlayingPage = () => {
   if (!player.activeId || !song) return null;
 
   return (
-    <div className="w-full h-[80vh] grid grid-cols-1 lg:grid-cols-10 gap-6 p-4 pb-[100px] overflow-hidden bg-neutral-100 dark:bg-black transition-colors animate-in fade-in duration-500 relative">
+    <div className="w-full h-[100vh] grid grid-cols-1 lg:grid-cols-10 gap-6 p-4 pb-[100px] overflow-hidden bg-neutral-100 dark:bg-black transition-colors animate-in fade-in duration-500 relative">
       
       {/* Background FUI Elements */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none opacity-50"></div>
@@ -390,7 +390,7 @@ const NowPlayingPage = () => {
       </div>
 
       {/* --- CỘT PHẢI (TABS & CONTROLS) --- */}
-      <div className="lg:col-span-4 flex flex-col h-full bg-white/80 dark:bg-black/40 backdrop-blur-2xl border border-neutral-200 dark:border-white/10 rounded-none overflow-hidden shadow-2xl z-30 relative">
+      <div className="lg:col-span-4 flex flex-col h-[105%] bg-white/80 dark:bg-black/40 backdrop-blur-2xl border border-neutral-200 dark:border-white/10 rounded-none overflow-hidden shadow-2xl z-30 relative">
          
          {/* Decorative FUI Corners */}
          <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-emerald-500 z-40"></div>

@@ -54,7 +54,7 @@ const Slider = ({ value = 0, max = 1, onChange, onCommit, disabled }) => {
       {!disabled && (
         <RadixSlider.Thumb 
             className="
-            block w-3 h-3 
+            block w-1.5 h-4 
             rounded-none /* Vuông góc */
             bg-neutral-900 dark:bg-white 
             border border-emerald-500 
@@ -74,4 +74,4 @@ const Slider = ({ value = 0, max = 1, onChange, onCommit, disabled }) => {
   );
 };
 
-export default Slider;
+export default Slider;  

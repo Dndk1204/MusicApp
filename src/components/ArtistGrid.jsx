@@ -5,6 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { ChevronDown, Mic2, User } from "lucide-react";
 import FollowButton from "@/components/FollowButton";
+// Import HoverImagePreview (Đảm bảo đường dẫn đúng với cấu trúc dự án của bạn)
+import HoverImagePreview from "@/components/HoverImagePreview";
 // Import Cyber Components
 import { CyberCard, HoloButton, ScanlineOverlay } from "@/components/CyberComponents";
 
@@ -53,8 +55,14 @@ const ArtistGrid = ({ artists }) => {
                     ">
                         <div className="flex items-center gap-0 h-full">
                             
-                            {/* CỘT TRÁI: ẢNH (Vuông vức + Scanline) */}
-                            <div className="relative w-20 h-full shrink-0 border-r border-neutral-300 dark:border-white/10 bg-neutral-200 dark:bg-neutral-800 overflow-hidden group/img min-h-[5rem]">
+                            {/* CỘT TRÁI: ẢNH (Vuông vức + Scanline + Hover Preview) */}
+                            <HoverImagePreview 
+                                src={artist.image} 
+                                alt={artist.name}
+                                className="relative w-20 h-full shrink-0 border-r hover:cursor-none border-neutral-300 dark:border-white/10 bg-neutral-200 dark:bg-neutral-800 overflow-hidden group/img min-h-[5rem]"
+                                previewSize={240} // Kích thước ảnh to khi hover
+                                fallbackIcon="user"
+                            >
                                 {artist.image ? (
                                     <Image 
                                         src={artist.image} 
@@ -69,7 +77,7 @@ const ArtistGrid = ({ artists }) => {
                                 )}
                                 {/* Hiệu ứng quét */}
                                 <ScanlineOverlay />
-                            </div>
+                            </HoverImagePreview>
 
                             {/* CỘT PHẢI: INFO */}
                             <div className="flex-1 p-3 flex flex-col justify-center min-w-0"> 
