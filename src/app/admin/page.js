@@ -59,56 +59,56 @@ const ActivityStream = ({ items, getUploaderInfo }) => {
                 {streamItems.map((song, idx) => {
                     const uploader = getUploaderInfo(song.user_id);
                     return (
-                         <div key={`${song.id}-${idx}`} className="flex flex-col gap-2 p-3 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-white/10 rounded-none w-[280px] shadow-sm hover:border-emerald-500 transition-colors group/card relative">
-                             
-                             <div className="flex items-start gap-3">
-                                 <div className="w-12 h-12 bg-neutral-200 dark:bg-neutral-800 overflow-hidden relative shrink-0 border border-neutral-300 dark:border-white/10 group-hover/card:border-emerald-500 transition-colors">
-                                     {song.image_url ? (
-                                        <img src={song.image_url} className="w-full h-full object-cover grayscale group-hover/card:grayscale-0 transition-all" alt={song.title}/>
-                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-neutral-400"><Music size={16}/></div>
-                                     )}
-                                 </div>
-                                 
-                                 <div className="flex flex-col min-w-0 flex-1 justify-center">
-                                     <span className="text-xs font-bold font-mono truncate text-neutral-900 dark:text-white uppercase group-hover/card:text-emerald-600 dark:group-hover/card:text-emerald-500 transition-colors" title={song.title}>
-                                         {song.title}
-                                     </span>
-                                     <Link 
-                                        href={`/artist/${encodeURIComponent(song.author)}`}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="text-[10px] text-neutral-500 truncate font-mono hover:underline hover:text-emerald-500"
-                                     >
-                                         {song.author}
-                                     </Link>
-                                 </div>
-                             </div>
+                          <div key={`${song.id}-${idx}`} className="flex flex-col gap-2 p-3 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-white/10 rounded-none w-[280px] shadow-sm hover:border-emerald-500 transition-colors group/card relative">
+                              
+                              <div className="flex items-start gap-3">
+                                  <div className="w-12 h-12 bg-neutral-200 dark:bg-neutral-800 overflow-hidden relative shrink-0 border border-neutral-300 dark:border-white/10 group-hover/card:border-emerald-500 transition-colors">
+                                      {song.image_url ? (
+                                         <img src={song.image_url} className="w-full h-full object-cover grayscale group-hover/card:grayscale-0 transition-all" alt={song.title}/>
+                                      ) : (
+                                         <div className="w-full h-full flex items-center justify-center text-neutral-400"><Music size={16}/></div>
+                                      )}
+                                  </div>
+                                  
+                                  <div className="flex flex-col min-w-0 flex-1 justify-center">
+                                      <span className="text-xs font-bold font-mono truncate text-neutral-900 dark:text-white uppercase group-hover/card:text-emerald-600 dark:group-hover/card:text-emerald-500 transition-colors" title={song.title}>
+                                          {song.title}
+                                      </span>
+                                      <Link 
+                                         href={`/artist/${encodeURIComponent(song.author)}`}
+                                         onClick={(e) => e.stopPropagation()}
+                                         className="text-[10px] text-neutral-500 truncate font-mono hover:underline hover:text-emerald-500"
+                                      >
+                                          {song.author}
+                                      </Link>
+                                  </div>
+                              </div>
 
-                             <div className="flex justify-between items-center pt-2 border-t border-dashed border-neutral-200 dark:border-white/10 mt-1">
-                                 <div className="flex items-center gap-2">
-                                     <div className={`w-5 h-5 rounded-none overflow-hidden border flex items-center justify-center ${uploader.role === 'admin' ? 'border-yellow-500 bg-yellow-500/10' : 'border-blue-500 bg-blue-500/10'}`}>
-                                         {uploader.avatar_url ? (
-                                             <img src={uploader.avatar_url} alt={uploader.name} className="w-full h-full object-cover"/>
-                                         ) : (
-                                             <User size={12} className={uploader.role === 'admin' ? 'text-yellow-600' : 'text-blue-600'}/>
-                                         )}
-                                     </div>
+                              <div className="flex justify-between items-center pt-2 border-t border-dashed border-neutral-200 dark:border-white/10 mt-1">
+                                  <div className="flex items-center gap-2">
+                                      <div className={`w-5 h-5 rounded-none overflow-hidden border flex items-center justify-center ${uploader.role === 'admin' ? 'border-yellow-500 bg-yellow-500/10' : 'border-blue-500 bg-blue-500/10'}`}>
+                                          {uploader.avatar_url ? (
+                                              <img src={uploader.avatar_url} alt={uploader.name} className="w-full h-full object-cover"/>
+                                          ) : (
+                                              <User size={12} className={uploader.role === 'admin' ? 'text-yellow-600' : 'text-blue-600'}/>
+                                          )}
+                                      </div>
 
-                                     <div className="flex flex-col">
-                                         <span className={`text-[9px] font-bold uppercase leading-none ${uploader.role === 'admin' ? 'text-yellow-700 dark:text-yellow-500' : 'text-blue-700 dark:text-blue-400'}`}>
-                                             {uploader.name.split(' ')[0]}
-                                         </span>
-                                         <span className="text-[8px] text-neutral-400 leading-none scale-90 origin-top-left">
-                                             ID:{song.user_id ? song.user_id.slice(0,4) : 'SYS'}
-                                         </span>
-                                     </div>
-                                 </div>
+                                      <div className="flex flex-col">
+                                          <span className={`text-[9px] font-bold uppercase leading-none ${uploader.role === 'admin' ? 'text-yellow-700 dark:text-yellow-500' : 'text-blue-700 dark:text-blue-400'}`}>
+                                              {uploader.name.split(' ')[0]}
+                                          </span>
+                                          <span className="text-[8px] text-neutral-400 leading-none scale-90 origin-top-left">
+                                              ID:{song.user_id ? song.user_id.slice(0,4) : 'SYS'}
+                                          </span>
+                                      </div>
+                                  </div>
 
-                                 <span className="text-[9px] text-neutral-400 font-mono bg-neutral-100 dark:bg-white/5 px-1">
-                                     {new Date(song.created_at).toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute:'2-digit', day: '2-digit', month: '2-digit'})}
-                                 </span>
-                             </div>
-                         </div>
+                                  <span className="text-[9px] text-neutral-400 font-mono bg-neutral-100 dark:bg-white/5 px-1">
+                                      {new Date(song.created_at).toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute:'2-digit', day: '2-digit', month: '2-digit'})}
+                                  </span>
+                              </div>
+                          </div>
                     )
                 })}
             </div>
