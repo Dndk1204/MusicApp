@@ -350,6 +350,11 @@ const SearchPage = async ({ searchParams }) => {
             {/* 1. SONGS TAB */}
             {activeTab === 'songs' && (
                 <>
+                    {/* Artists Found Grid */}
+                    {params.title && artists && artists.length > 0 && (
+                        <ArtistGrid artists={artists} />
+                    )}
+
                     {/* Songs Found Header */}
                     {songs.length > 0 && (
                         <div className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -363,11 +368,6 @@ const SearchPage = async ({ searchParams }) => {
                                 </span>
                             </div>
                         </div>
-                    )}
-
-                    {/* Artists Found Grid */}
-                    {params.title && artists && artists.length > 0 && (
-                        <ArtistGrid artists={artists} />
                     )}
 
                     {/* Songs List */}

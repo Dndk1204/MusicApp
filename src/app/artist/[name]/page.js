@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
-import { ListMusic, User, Play, Loader2, Heart, Calendar, Library, Mic2, Disc, Users, BarChart3, Clock } from "lucide-react";
+import { Music, User, Play, Loader2, Heart, Calendar, Library, Mic2, Disc, Users, BarChart3, Clock } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import getSongs from "@/app/actions/getSongs";

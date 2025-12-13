@@ -40,11 +40,13 @@ const HoverImagePreview = ({
         if (!isHovering) return;
 
         const handleWindowMouseMove = (e) => {
-            if (!popupRef.current) return;
-            
+            // Hủy frame cũ nếu có để tránh queue
             if (requestRef.current) cancelAnimationFrame(requestRef.current);
             
             requestRef.current = requestAnimationFrame(() => {
+                // KIỂM TRA LẠI REF TRONG CALLBACK
+                if (!popupRef.current) return;
+
                 const offset = 20; 
                 const viewportWidth = window.innerWidth;
                 const viewportHeight = window.innerHeight;
@@ -59,7 +61,10 @@ const HoverImagePreview = ({
                 const isFlippedY = y + previewSize > viewportHeight;
                 const translateY = isFlippedY ? `-${previewSize}px` : '0px';
 
-                popupRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) translateY(${translateY})`;
+                // Gán style an toàn
+                if (popupRef.current) {
+                    popupRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) translateY(${translateY})`;
+                }
             });
         };
 
@@ -88,7 +93,6 @@ const HoverImagePreview = ({
                     return (
                         <div 
                             key={i} 
-                            // FIX: Màu xanh đậm hơn ở Light mode để dễ nhìn trên nền sáng
                             className="flex-1 bg-emerald-600 dark:bg-emerald-500 animate-[bounce_1s_infinite]" 
                             style={{
                                 animationDuration: `${duration}s`,
@@ -192,17 +196,8 @@ const HoverImagePreview = ({
         setIsHovering(true);
         isHoveringRef.current = true;
 
-        if (popupRef.current) {
-             const offset = 20; 
-             const viewportWidth = window.innerWidth;
-             const viewportHeight = window.innerHeight;
-             let x = e.clientX + offset;
-             let y = e.clientY + offset;
-             if (x + previewSize > viewportWidth - 20) x = e.clientX - previewSize - offset;
-             const isFlippedY = y + previewSize > viewportHeight;
-             const translateY = isFlippedY ? `-${previewSize}px` : '0px';
-             popupRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) translateY(${translateY})`;
-        }
+        // Cập nhật vị trí ngay lập tức (Direct DOM update nếu có thể, hoặc qua requestAnimationFrame ở trên)
+        // Không cần set style ở đây vì useEffect sẽ bắt mousemove ngay lập tức
         
         if (playTimeoutRef.current) clearTimeout(playTimeoutRef.current);
         playTimeoutRef.current = setTimeout(() => {
@@ -225,7 +220,6 @@ const HoverImagePreview = ({
             return <img src={src} alt={alt || "preview"} className="w-full h-full object-cover" />;
         }
         return (
-            // FIX: Background sáng ở Light mode, tối ở Dark mode
             <div className="w-full h-full bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center">
                 {fallbackIcon === "user" ? (
                     <User size={previewSize * 0.4} className="text-neutral-400 dark:text-neutral-700" strokeWidth={1} />
@@ -262,7 +256,6 @@ const HoverImagePreview = ({
                         className={`
                             w-full h-full relative overflow-hidden transition-colors duration-300
                             border-2 shadow-[0_0_30px_rgba(0,0,0,0.2)] dark:shadow-[0_0_30px_rgba(0,0,0,0.5)]
-                            /* FIX: Màu nền và viền thay đổi theo theme */
                             bg-white dark:bg-black
                             ${status === "error" 
                                 ? "border-red-600 dark:border-red-500 shadow-red-500/20" 
@@ -278,7 +271,6 @@ const HoverImagePreview = ({
                         {/* Status Bar */}
                         <div className={`
                             absolute top-0 left-0 backdrop-blur border-b text-[10px] font-mono font-bold px-2 py-1 flex items-center gap-2 z-20 w-full
-                            /* FIX: Status bar màu sáng/tối rõ ràng */
                             ${status === "error" 
                                 ? "bg-red-100/90 dark:bg-red-900/80 border-red-500/50 text-red-700 dark:text-red-200" 
                                 : "bg-white/90 dark:bg-black/90 border-emerald-600/20 dark:border-emerald-500/50 text-emerald-700 dark:text-emerald-500"

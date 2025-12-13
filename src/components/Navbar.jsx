@@ -1,7 +1,7 @@
-
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link"; // Import Link
 import { User, LogOut, LogIn, UserPlus, ShieldCheck, Search, Disc, Sun, Moon, SlidersHorizontal, X } from "lucide-react"; 
 import { supabase } from "@/lib/supabaseClient";
 import { useEffect, useState, useRef, useCallback } from "react";
@@ -104,10 +104,13 @@ const Navbar = () => {
     setShowMenu(false);
     const { error } = await supabase.auth.signOut();
     if (error) console.error("Lỗi đăng xuất:", error.message);
+    
+    // Reset state local ngay lập tức để UI phản hồi nhanh
     setUser(null);
     setAvatarUrl(null);
     setIsAdmin(false);
-    router.refresh();
+    
+    // Không cần router.refresh() ở đây, chuyển trang là đủ
     window.location.href = '/'; 
   }
 
@@ -162,9 +165,10 @@ const Navbar = () => {
       
       {/* LEFT: LOGO (VOID) */}
       <div className="flex items-center gap-x-6">
-        <div 
+        {/* SỬ DỤNG LINK ĐỂ PREFETCH VÀ TĂNG TỐC ĐỘ CHUYỂN TRANG */}
+        <Link 
+          href="/"
           className="hidden md:flex items-center gap-x-4 cursor-pointer group" 
-          onClick={() => router.push('/')}
         >
           {/* THE PORTAL ICON */}
           <div className="relative w-10 h-10 bg-neutral-900 dark:bg-black flex items-center justify-center overflow-hidden border border-neutral-400 dark:border-white/20 group-hover:border-emerald-500 transition-colors duration-300 rounded-none">
@@ -197,7 +201,7 @@ const Navbar = () => {
                   </span>
               </div>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* CENTER: SEARCH BAR */}
@@ -304,8 +308,6 @@ const Navbar = () => {
                       >
                         <User size={14} /> My_Profile
                       </div>
-
-                      {/* ĐÃ XÓA Config_Account */}
 
                       {isAdmin && (
                         <div onClick={() => { router.push('/admin'); setShowMenu(false); }} className="px-3 py-2 text-xs font-mono uppercase text-emerald-600 dark:text-emerald-500 hover:bg-emerald-500/10 cursor-pointer flex items-center gap-3 transition-colors border border-transparent hover:border-emerald-500/30">

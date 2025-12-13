@@ -648,7 +648,7 @@ const NowPlayingPage = () => {
       </div>
 
       {/* --- CỘT GIỮA (QUEUE) --- */}
-      <div className="lg:col-span-3 flex -translate-x-10 flex-col h-[103%] w-[80%] bg-white/60 dark:bg-black/30 backdrop-blur-xl border border-neutral-200 dark:border-white/10 rounded-none overflow-hidden shadow-xl z-20 relative">
+      <div className="lg:col-span-3 flex -translate-x-16 flex-col h-[103%] w-[80%] bg-white/60 dark:bg-black/30 backdrop-blur-xl border border-neutral-200 dark:border-white/10 rounded-none overflow-hidden shadow-xl z-20 relative">
 
           {/* Decorative FUI Corners */}
           <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-emerald-500 z-40"></div>
@@ -728,7 +728,7 @@ const NowPlayingPage = () => {
       </div>
 
       {/* --- CỘT PHẢI (TABS & CONTROLS) --- */}
-      <div className="lg:col-span-3 flex flex-col -translate-x-24 w-[135%] h-[103%] bg-white/80 dark:bg-black/40 backdrop-blur-2xl border border-neutral-200 dark:border-white/10 rounded-none overflow-hidden shadow-2xl z-30 relative">
+      <div className="lg:col-span-3 flex flex-col -translate-x-32 w-[145%] h-[103%] bg-white/80 dark:bg-black/40 backdrop-blur-2xl border border-neutral-200 dark:border-white/10 rounded-none overflow-hidden shadow-2xl z-30 relative">
           
           <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-emerald-500 z-40"></div>
           <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-emerald-500 z-40"></div>

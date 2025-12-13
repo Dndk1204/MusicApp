@@ -216,7 +216,7 @@ const AdminDashboard = () => {
         const { count: userCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
         const { count: songCount } = await supabase.from('songs').select('*', { count: 'exact', head: true });
         
-        const { data: topSongs } = await supabase.from('songs').select('id, title, author, play_count').order('play_count', { ascending: false }).limit(10);
+        const { data: topSongs } = await supabase.from('songs').select('id, title, author, play_count, image_url').order('play_count', { ascending: false }).limit(10);
         
         const { data: allUsers } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
         const { data: allSongs } = await supabase.from('songs').select('*').order('created_at', { ascending: false }).range(0, 1999); 

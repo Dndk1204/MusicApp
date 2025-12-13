@@ -10,7 +10,7 @@ import FollowButton from "@/components/FollowButton";
 import HoverImagePreview from "@/components/HoverImagePreview"; // Import component Preview
 
 // Icons
-import { Play, Music, Disc, ArrowLeft, PlayCircle, Edit3, Heart, User, Camera, Save, X, Loader2, FileText, LayoutGrid, Lock, Mail, Phone } from "lucide-react";
+import { Play, Music, Disc, ArrowLeft, Edit3, Heart, User, Camera, Save, X, Loader2, FileText, LayoutGrid, Lock, Mail, Phone } from "lucide-react";
 
 // Hooks
 import usePlayer from "@/hooks/usePlayer";
@@ -32,6 +32,7 @@ const formatDuration = (sec) => {
 
 // --- COMPONENT: EDIT PROFILE MODAL (FULL CLICKABLE AREA) ---
 const EditProfileModal = ({ user, email, onClose, onUpdate }) => {
+    // ... (Giữ nguyên logic EditProfileModal) ...
     const { alert: showAlert } = useUI();
     const [isLoading, setIsLoading] = useState(false);
     
@@ -247,7 +248,9 @@ const ArtistCardView = ({ name, image, onUnfollow }) => (
 
 // --- COMPONENT: SONG ROW (WITH HOVER PREVIEW & AUDIO) ---
 const SongRow = ({ song, onClick }) => (
+    // --- THÊM DATA-SONG-JSON VÀO ĐÂY ---
     <div 
+      data-song-json={JSON.stringify(song)} 
       onClick={onClick} 
       className="group flex items-center gap-4 p-3 bg-white dark:bg-neutral-900/40 border border-neutral-200 dark:border-white/5 hover:border-emerald-500/50 hover:bg-neutral-50 dark:hover:bg-white/5 transition-all cursor-pointer"
     >
@@ -298,6 +301,7 @@ const SongRow = ({ song, onClick }) => (
 
 // --- MAIN PAGE ---
 const UserProfilePage = () => {
+    // ... (Giữ nguyên logic của Main Page)
     const params = useParams();
     const router = useRouter();
     const player = usePlayer();
@@ -479,7 +483,7 @@ const UserProfilePage = () => {
                                                 </div>
                                             </>
                                         ) : (
-                                            <div className="flex items-center gap-2 text-[10px] font-mono text-neutral-500 dark:text-neutral-400 opacity-70">
+                                            <div className="flex items-center gap-2 disabled text-[10px] font-mono text-neutral-500 dark:text-neutral-400 opacity-70">
                                                 <Lock size={10}/> <span className="tracking-widest">[CONTACT_INFO_ENCRYPTED]</span>
                                             </div>
                                         )}

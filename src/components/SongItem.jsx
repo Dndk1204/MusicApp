@@ -33,7 +33,7 @@ const SongItem = ({ data, onClick }) => {
         overflow-hidden
       "
     >
-      <div onClick={() => onClick(data.id)} className="w-full">
+      <div onClick={() => onClick(data.id)} className="w-full" data-song-json={JSON.stringify(data)}>
           
           {/* 1. ẢNH CONTAINER */}
           <div className="relative w-full aspect-square bg-neutral-200 dark:bg-neutral-800 overflow-hidden border-b border-neutral-300 dark:border-white/10 group/img">
