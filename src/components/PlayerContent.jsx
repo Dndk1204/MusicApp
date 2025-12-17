@@ -27,7 +27,7 @@ const PlayerContent = ({ song, songUrl }) => {
   const pathname = usePathname();
   const { alert } = useUI(); 
 
-  const { initAudioNodes, setBass, setMid, setTreble, connectHTML5 } = useAudioFilters();
+  const { initAudioNodes, setBass, setMid, setTreble } = useAudioFilters();
   
   useTrackStats(song);
 
@@ -40,14 +40,29 @@ const PlayerContent = ({ song, songUrl }) => {
   const [error, setError] = useState(null);
   const [volume, setVolume] = useState(1);
   const [userId, setUserId] = useState(null);
+  const [isError, setIsError] = useState(false);
 
   const isDraggingRef = useRef(false);
   const rafRef = useRef(null);
   const playerRef = useRef(player);
+  
+  // Ref để theo dõi sound hiện tại
+  const soundRef = useRef(null);
 
   useEffect(() => { playerRef.current = player; }, [player]);
 
   const clampVolume = (val) => Math.max(0, Math.min(1, val));
+
+  // --- GLOBAL UNLOCK: Đánh thức Audio Context khi click ---
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (Howler.ctx && Howler.ctx.state === 'suspended') {
+        Howler.ctx.resume().then(() => console.log("🔓 Audio Unlocked"));
+      }
+    };
+    ['click', 'touchstart', 'keydown'].forEach(e => document.addEventListener(e, unlockAudio, { once: true }));
+    return () => ['click', 'touchstart', 'keydown'].forEach(e => document.removeEventListener(e, unlockAudio));
+  }, []);
 
   useEffect(() => {
     player.setIsPlaying(isPlaying);
@@ -68,7 +83,7 @@ const PlayerContent = ({ song, songUrl }) => {
     }
   }, [player.volume]);
 
-  // Hàm load EQ Settings
+  // Load Settings
   const loadSongSettings = useCallback(async (songId) => {
     if (!songId) return;
     try {
@@ -80,17 +95,13 @@ const PlayerContent = ({ song, songUrl }) => {
           return;
       }
       if (session?.user) {
-        const { data: songData } = await supabase
-          .from('user_song_settings').select('settings')
-          .eq('user_id', session.user.id).eq('song_id', songId).single();
-
+        const { data: songData } = await supabase.from('user_song_settings').select('settings').eq('user_id', session.user.id).eq('song_id', songId).single();
         if (songData?.settings) {
            const s = songData.settings;
            setBass(s.bass || 0); setMid(s.mid || 0); setTreble(s.treble || 0);
            return;
         }
-        const { data: profileData } = await supabase
-          .from('profiles').select('audio_settings').eq('id', session.user.id).single();
+        const { data: profileData } = await supabase.from('profiles').select('audio_settings').eq('id', session.user.id).single();
         if (profileData?.audio_settings) {
            const s = profileData.audio_settings;
            setBass(s.bass || 0); setMid(s.mid || 0); setTreble(s.treble || 0);
@@ -99,7 +110,6 @@ const PlayerContent = ({ song, songUrl }) => {
     } catch (err) { console.error("Load Settings:", err); }
   }, [setBass, setMid, setTreble]);
 
-  // Realtime EQ sync
   useEffect(() => {
     if (!userId) return;
     const channel = supabase.channel('realtime-player')
@@ -117,7 +127,6 @@ const PlayerContent = ({ song, songUrl }) => {
     return () => { supabase.removeChannel(channel); };
   }, [userId, song?.id]);
 
-  // Logic chuyển bài
   const onPlayNext = useCallback(() => {
     const { ids, activeId, isShuffle, setId, repeatMode } = playerRef.current;
     if (ids.length === 0) return;
@@ -144,58 +153,58 @@ const PlayerContent = ({ song, songUrl }) => {
     else if (sound) { sound.seek(0); setSeek(0); }
   }, [sound]);
 
-  // Media Session
-  useEffect(() => {
-    if ('mediaSession' in navigator && song) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: song.title,
-        artist: song.author,
-        album: "CyberMusic System",
-        artwork: [
-          { src: song.image_path || song.image_url || '/images/default_song.png', sizes: '512x512', type: 'image/png' },
-        ]
-      });
-      navigator.mediaSession.setActionHandler('play', () => { if(sound) { sound.play(); setIsPlaying(true); } });
-      navigator.mediaSession.setActionHandler('pause', () => { if(sound) { sound.pause(); setIsPlaying(false); } });
-      navigator.mediaSession.setActionHandler('previoustrack', onPlayPrevious);
-      navigator.mediaSession.setActionHandler('nexttrack', onPlayNext);
-    }
-  }, [song, sound, onPlayNext, onPlayPrevious]);
-
-  // Audio Initialization
+  // --- AUDIO INITIALIZATION ---
   useEffect(() => {
     if (!song || !songUrl) return;
 
-    if (sound) sound.unload();
-    setIsLoading(true); setSeek(0); setError(null);
+    if (soundRef.current) {
+        soundRef.current.unload();
+    }
+
+    setIsLoading(true); setSeek(0); setError(null); setIsError(false);
+
+    // Force resume trước khi load
+    if (Howler.ctx && Howler.ctx.state === 'suspended') {
+        Howler.ctx.resume();
+    }
 
     const initialVol = clampVolume(player.volume ?? 1); 
     setVolume(initialVol);
 
     const newSound = new Howl({
       src: [songUrl], 
-      format: ["mp3", "mpeg", "webm"], 
+      // ⚠️ Quan trọng: Định dạng file rõ ràng để Howler không đoán sai
+      format: ["mp3", "mpeg", "webm", "wav"], 
       volume: initialVol,
-      html5: true, 
-      xhr: { method: 'GET' },
-      html5Props: { crossOrigin: 'anonymous' }, // Giữ nguyên để hỗ trợ EQ nếu server cho phép
-      preload: "auto", 
+      
+      // ⚠️ BUFFER MODE (Fix lỗi CORS & EQ)
+      html5: false, 
+      
+      // ⚠️ Cấu hình XHR để tránh lỗi bảo mật
+      xhr: { 
+          method: 'GET',
+          headers: {
+              'Access-Control-Allow-Origin': '*',
+          },
+          withCredentials: false // Quan trọng: Tắt cái này để tránh lỗi CORS strict
+      },
+
+      preload: true, 
       autoplay: true,
       loop: playerRef.current.repeatMode === 2, 
       
       onplay: () => {
         setIsPlaying(true); 
         setDuration(newSound.duration());
+        setIsLoading(false);
 
         if (Howler.ctx && Howler.ctx.state === 'suspended') {
-            Howler.ctx.resume().then(() => {
-                console.log("Audio Context Resumed!");
-            });
+            Howler.ctx.resume().then(() => console.log("Resumed onplay"));
         }
         
-        initAudioNodes();
+        // Khởi tạo EQ nodes
+        if(initAudioNodes) initAudioNodes(); 
         if (song?.id) loadSongSettings(song.id);
-        if (connectHTML5) connectHTML5(newSound);
 
         const updateSeek = () => {
           if (!isDraggingRef.current && newSound.playing()) setSeek(newSound.seek());
@@ -205,7 +214,6 @@ const PlayerContent = ({ song, songUrl }) => {
       },
       onpause: () => { setIsPlaying(false); if (rafRef.current) cancelAnimationFrame(rafRef.current); },
       onend: () => {
-        console.log(":: TRACK ENDED - AUTO SKIPPING ::");
         if (playerRef.current.repeatMode === 2) { 
             newSound.seek(0);
             newSound.play();
@@ -218,24 +226,44 @@ const PlayerContent = ({ song, songUrl }) => {
           setDuration(newSound.duration()); 
           setIsLoading(false); 
           setError(null); 
+          // Fix autoplay bị chặn: Nếu state là playing mà sound chưa chạy, kích hoạt lại
+          if (playerRef.current.isPlaying && !newSound.playing()) {
+              newSound.play();
+          }
       },
       onloaderror: (id, err) => {
-          setError("Failed to load");
-          setTimeout(() => onPlayNext(), 2000);
+          setIsLoading(false);
+          // Không auto-next để tránh loop, user phải tự bấm
+      },
+      onplayerror: (id, err) => {
+          console.warn("Autoplay blocked:", err);
+          setIsPlaying(false);
+          newSound.once('unlock', () => {
+            newSound.play();
+          });
       }
     });
 
     setSound(newSound);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); newSound.unload(); };
+    soundRef.current = newSound;
+
+    return () => { 
+        if (rafRef.current) cancelAnimationFrame(rafRef.current); 
+    };
   }, [songUrl, song]); 
 
+  // Sync Loop
   useEffect(() => { if (sound) sound.loop(player.repeatMode === 2); }, [player.repeatMode, sound]);
 
   const handlePlay = () => { 
       if (!sound) return; 
+      
+      if (Howler.ctx && Howler.ctx.state === 'suspended') {
+          Howler.ctx.resume();
+      }
+
       if (!isPlaying) { 
           sound.play(); 
-          if(connectHTML5) connectHTML5(sound); 
       } else {
           sound.pause(); 
       }
@@ -306,9 +334,14 @@ const PlayerContent = ({ song, songUrl }) => {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 h-full gap-x-6 items-center bg-white dark:bg-black border-t border-neutral-300 dark:border-white/10 px-4 transition-colors duration-300">
-      {error && <div className="absolute -top-12 bg-red-500 text-white text-xs py-1 px-3 rounded-none z-50 font-mono">Error</div>}
+      {/* Hiển thị lỗi rõ ràng */}
+      {isError && (
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[10px] font-mono px-3 py-1 z-50 shadow-lg border border-red-400">
+              ERROR: CORS BLOCKED / NETWORK FAIL
+          </div>
+      )}
       
-      {/* LEFT: Media Info + Actions */}
+      {/* LEFT */}
       <div className="flex w-full md:w-[20em] justify-start items-center gap-2 -translate-y-1">
         {song ? (
             <MediaItem data={song} />
@@ -346,13 +379,7 @@ const PlayerContent = ({ song, songUrl }) => {
                 }
             }} 
             disabled={!song} 
-            className="
-                group relative flex items-center justify-center w-7 h-7 rounded-none
-                border border-neutral-400 dark:border-neutral-600 hover:border-emerald-500 
-                bg-transparent hover:bg-emerald-500/10 
-                text-neutral-500 dark:text-neutral-400 hover:text-emerald-600 dark:hover:text-emerald-500 
-                transition-all duration-200
-            "
+            className="group relative flex items-center justify-center w-7 h-7 rounded-none border border-neutral-400 dark:border-neutral-600 hover:border-emerald-500 bg-transparent hover:bg-emerald-500/10 text-neutral-500 dark:text-neutral-400 hover:text-emerald-600 dark:hover:text-emerald-500 transition-all duration-200"
             title="Add to Playlist"
         >
             <Plus size={16} />
@@ -360,115 +387,57 @@ const PlayerContent = ({ song, songUrl }) => {
 
         <button 
             onClick={handleClearPlayer} 
-            className="
-                group relative flex items-center justify-center w-7 h-7 rounded-none
-                border border-neutral-400 dark:border-neutral-600 hover:border-red-500 
-                bg-transparent hover:bg-red-500/10 
-                text-neutral-500 dark:text-neutral-400 hover:text-red-600 dark:hover:text-red-500 
-                transition-all duration-200
-            "
+            className="group relative flex items-center justify-center w-7 h-7 rounded-none border border-neutral-400 dark:border-neutral-600 hover:border-red-500 bg-transparent hover:bg-red-500/10 text-neutral-500 dark:text-neutral-400 hover:text-red-600 dark:hover:text-red-500 transition-all duration-200"
             title="Stop & Clear"
         >
             <Square size={14} fill="currentColor" />
         </button>
 
         <div className="sm:block ml-2 border-l border-neutral-300 dark:border-neutral-600 pl-3 h-8 flex items-center">
-            {/* Visualizer */}
+            {/* Visualizer hoạt động tốt với html5: false */}
             <AudioVisualizer isPlaying={isPlaying}/>
         </div>
       </div>
 
-      {/* CENTER: CONTROLS */}
+      {/* CENTER */}
       <div className="hidden md:flex flex-col items-center w-full max-w-[722px] gap-y-1">
           <div className="flex items-center gap-x-6 translate-y-1.5">
-            <button 
-                onClick={() => player.setIsShuffle(!player.isShuffle)} 
-                className={`transition p-1 ${player.isShuffle ? "text-emerald-600 dark:text-emerald-500" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"}`} 
-                title="Shuffle"
-            >
-                <Shuffle size={16}/>
-            </button>
-            
+            <button onClick={() => player.setIsShuffle(!player.isShuffle)} className={`transition p-1 ${player.isShuffle ? "text-emerald-600 dark:text-emerald-500" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"}`} title="Shuffle"><Shuffle size={16}/></button>
             <button onClick={onPlayPrevious} className="text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition hover:scale-110 p-1"><SkipBack size={20}/></button>
+            <button onClick={() => { if(sound) sound.seek(Math.max(0, seek - 5)); }} className="text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition hover:scale-110 p-1"><Rewind size={18}/></button>
             
-            <button onClick={() => { if(sound) sound.seek(Math.max(0, seek - 5)); }} className="text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition hover:scale-110 p-1">
-              <Rewind size={18}/>
-            </button>
-            
-            <button 
-              onClick={handlePlay} 
-              disabled={!sound || isLoading} 
-              className="
-                  relative
-                  flex items-center justify-center h-8 !w-16 
-                  bg-neutral-900 dark:bg-emerald-400/50 text-white dark:text-emerald-300 !border-emerald-300
-                  hover:bg-neutral-800 dark:hover:bg-emerald-300/50 
-                  transition-all duration-200 rounded-none border dark:border-transparent
-                  shadow-[0_0_10px_rgba(0,0,0,0.2)] hover:shadow-[0_0_15px_rgba(16,185,129,0.6)]
-              "
-            >
+            <button onClick={handlePlay} disabled={!sound || isLoading} className="relative flex items-center justify-center h-8 !w-16 bg-neutral-900 dark:bg-emerald-400/50 text-white dark:text-emerald-300 !border-emerald-300 hover:bg-neutral-800 dark:hover:bg-emerald-300/50 transition-all duration-200 rounded-none border dark:border-transparent shadow-[0_0_10px_rgba(0,0,0,0.2)] hover:shadow-[0_0_15px_rgba(16,185,129,0.6)]">
                 <div className="relative w-full h-full flex items-center justify-center">
                     {isLoading ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin relative z-20"/> : <Icon size={20} fill="currentColor" className="relative z-20"/>}
                     <ScanlineOverlay className="absolute inset-0 z-10"/> 
                 </div>
             </button>
 
-            <button onClick={() => { if(sound) sound.seek(Math.min(duration, seek + 5)); }} className="text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition hover:scale-110 p-1">
-              <FastForward size={18}/>
-            </button>
-
+            <button onClick={() => { if(sound) sound.seek(Math.min(duration, seek + 5)); }} className="text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition hover:scale-110 p-1"><FastForward size={18}/></button>
             <button onClick={onPlayNext} className="text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition hover:scale-110 p-1"><SkipForward size={20}/></button>
-            
-            <button 
-                onClick={() => player.setRepeatMode((player.repeatMode+1)%3)} 
-                className={`transition p-1 ${player.repeatMode!==0 ? "text-emerald-600 dark:text-emerald-500" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"}`} 
-                title="Repeat"
-            >
-              {player.repeatMode===2 ? <Repeat1 size={16}/> : <Repeat size={16}/>}
-            </button>
+            <button onClick={() => player.setRepeatMode((player.repeatMode+1)%3)} className={`transition p-1 ${player.repeatMode!==0 ? "text-emerald-600 dark:text-emerald-500" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"}`} title="Repeat">{player.repeatMode===2 ? <Repeat1 size={16}/> : <Repeat size={16}/>}</button>
           </div>
           
           <div className="w-full flex items-center gap-3 -translate-y-2">
               <span className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 w-10 text-right">{formatTime(seek)}</span>
-              <div className="flex-1 h-full flex items-center">
-                  <Slider value={seek} max={duration || 100} onCommit={handleSeekCommit} onChange={handleSeekChange}/>
-              </div>
+              <div className="flex-1 h-full flex items-center"><Slider value={seek} max={duration || 100} onCommit={handleSeekCommit} onChange={handleSeekChange}/></div>
               <span className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 w-10">{formatTime(duration)}</span>
           </div>
       </div>
 
-      {/* RIGHT: Volume & View Switcher */}
+      {/* RIGHT */}
       <div className="hidden md:flex justify-end pr-2 gap-4 w-full items-center -translate-y-[0.25rem]">
          <div className="flex items-center gap-2 border border-neutral-300 dark:border-white/10 px-2 py-1 bg-neutral-100 dark:bg-white/5">
              <button onClick={toggleMute}><VolumeIcon size={18} className="text-neutral-500 dark:text-neutral-400 hover:text-emerald-600 dark:hover:text-emerald-500 transition"/></button>
              <div className="w-[80px]"><Slider value={volume} max={1} step={0.01} onChange={(v) => handleVolumeChange(v)}/></div>
-             <span className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 font-bold w-6 text-right">
-                {volumePercentage}%
-             </span>
+             <span className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 font-bold w-6 text-right">{volumePercentage}%</span>
          </div>
-         
-         <button 
-            onClick={toggleNowPlaying} 
-            className={`
-                p-2 border border-transparent hover:border-emerald-500 transition-all rounded-none
-                ${pathname==='/now-playing' 
-                    ? "text-emerald-600 dark:text-emerald-500 border-emerald-500/50 bg-emerald-500/10" 
-                    : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-200 dark:hover:bg-white/5"
-                }
-            `}
-            title={pathname==='/now-playing' ? "Close Player" : "Open Player"}
-         >
-            {pathname === '/now-playing' ? <X size={20}/> : <AlignJustify size={20}/>}
-         </button>
+         <button onClick={toggleNowPlaying} className={`p-2 border border-transparent hover:border-emerald-500 transition-all rounded-none ${pathname==='/now-playing' ? "text-emerald-600 dark:text-emerald-500 border-emerald-500/50 bg-emerald-500/10" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-200 dark:hover:bg-white/5"}`} title={pathname==='/now-playing' ? "Close Player" : "Open Player"}>{pathname === '/now-playing' ? <X size={20}/> : <AlignJustify size={20}/>}</button>
       </div>
 
-      {/* MOBILE PLAY BUTTON */}
+      {/* MOBILE PLAY */}
       <div className="flex md:hidden col-auto justify-end items-center">
-        <button 
-            onClick={handlePlay} 
-            disabled={!sound || isLoading} 
-            className="h-10 w-10 bg-neutral-900 dark:bg-white text-white dark:text-black flex items-center justify-center shadow-lg active:scale-95 transition"
-        >
+        <button onClick={handlePlay} disabled={!sound || isLoading} className="h-10 w-10 bg-neutral-900 dark:bg-white text-white dark:text-black flex items-center justify-center shadow-lg active:scale-95 transition">
            {isLoading ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"/> : <Icon size={20} fill="currentColor"/>}
         </button>
       </div>

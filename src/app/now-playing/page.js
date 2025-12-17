@@ -5,18 +5,8 @@ import { useRouter } from "next/navigation";
 import { Howler } from "howler"; 
 import { motion } from "framer-motion"; 
 import { 
-  Info, 
-  Loader2, 
-  Save, 
-  ArrowLeft, 
-  Sliders,
-  UserCheck,
-  ShieldCheck,
-  RotateCcw,
-  Activity,
-  FileText,
-  Mic2,
-  AlertTriangle
+  Info, Loader2, Save, ArrowLeft, Sliders, UserCheck, ShieldCheck,
+  RotateCcw, Activity, FileText, Mic2, AlertTriangle, Globe, User
 } from "lucide-react";
 
 // --- IMPORTS ---
@@ -29,9 +19,7 @@ import useUI from "@/hooks/useUI";
 import { GlitchText, CyberButton, GlitchButton, ScanlineOverlay } from "@/components/CyberComponents";
 import HoverImagePreview from "@/components/HoverImagePreview"; 
 
-// ==================================================================================
-// --- LOCAL CYBER MARQUEE (CHROMATIC ABERRATION VERSION) ---
-// ==================================================================================
+// --- CYBER MARQUEE (GIỮ NGUYÊN) ---
 const CyberMarquee = ({ text, className = "", speed = 40 }) => {
   const containerRef = useRef(null);
   const ghostRef = useRef(null);
@@ -45,117 +33,31 @@ const CyberMarquee = ({ text, className = "", speed = 40 }) => {
       const containerWidth = containerRef.current.offsetWidth;
       const textRealWidth = ghostRef.current.offsetWidth;
       setContentWidth(textRealWidth);
-      // Thêm 1px buffer để chắc chắn
       setIsOverflow(textRealWidth > containerWidth + 1);
     };
-
     checkOverflow();
-    const timer = setTimeout(checkOverflow, 100); // Đợi render
+    const timer = setTimeout(checkOverflow, 100); 
     window.addEventListener("resize", checkOverflow);
-    
-    return () => {
-      window.removeEventListener("resize", checkOverflow);
-      clearTimeout(timer);
-    };
+    return () => { window.removeEventListener("resize", checkOverflow); clearTimeout(timer); };
   }, [text]);
 
   const gap = 32; 
   const duration = (contentWidth + gap) / speed;
 
   return (
-    <div 
-      ref={containerRef}
-      className={`
-        relative w-full overflow-hidden whitespace-nowrap 
-        font-mono uppercase tracking-wider
-        border-y border-dashed border-neutral-400/50 dark:border-white/20
-        bg-neutral-200/30 dark:bg-neutral-900/30
-        py-1 select-none cursor-help group
-        ${className}
-      `}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <style jsx>{`
-        /* Hiệu ứng rung nhẹ (Jitter) */
-        @keyframes chromatic-buzz {
-          0% { transform: translate(0, 0); }
-          20% { transform: translate(-1px, 0); }
-          40% { transform: translate(1px, 0); }
-          60% { transform: translate(-0.5px, 0.5px); }
-          80% { transform: translate(0.5px, -0.5px); }
-          100% { transform: translate(0, 0); }
-        }
-        
-        /* Layer Đỏ */
-        .group:hover .cyber-text::before {
-          content: attr(data-text);
-          position: absolute;
-          left: -1px; top: 0; width: 100%; height: 100%;
-          color: rgba(239, 68, 68, 0.6); /* Red opacity */
-          z-index: -1;
-          animation: chromatic-buzz 2s infinite reverse;
-        }
-        
-        /* Layer Xanh */
-        .group:hover .cyber-text::after {
-          content: attr(data-text);
-          position: absolute;
-          left: 1px; top: 0; width: 100%; height: 100%;
-          color: rgba(6, 182, 212, 0.6); /* Cyan opacity */
-          z-index: -2;
-          animation: chromatic-buzz 3s infinite;
-        }
-      `}</style>
-
-      {/* Ghost Element (Để đo kích thước) */}
-      <span ref={ghostRef} className="absolute opacity-0 pointer-events-none z-[-1] font-mono uppercase tracking-wider py-1" aria-hidden="true">
-        {text}
-      </span>
-
-      {/* Visible Content */}
-      <motion.div
-        className="inline-flex items-center gap-8"
-        animate={
-          isHovered && isOverflow
-            ? { x: [0, -(contentWidth + gap)] } 
-            : { x: 0 }
-        }
-        transition={
-          isHovered && isOverflow
-            ? { repeat: Infinity, repeatType: "loop", duration: duration > 1 ? duration : 1, ease: "linear" }
-            : { type: "spring", stiffness: 200, damping: 25 }
-        }
-      >
-        {/* TEXT CHÍNH */}
-        <span 
-            className="cyber-text whitespace-nowrap relative z-10 transition-colors" 
-            data-text={text}
-        >
-            {text}
-        </span>
-
-        {/* TEXT LOOP (Chỉ hiện khi tràn) */}
-        {isOverflow && (
-          <span 
-            className="cyber-text shrink-0 whitespace-nowrap relative z-10 transition-colors" 
-            data-text={text} 
-            aria-hidden="true"
-          >
-            {text}
-          </span>
-        )}
+    <div ref={containerRef} className={`relative w-full overflow-hidden whitespace-nowrap font-mono uppercase tracking-wider border-y border-dashed border-neutral-400/50 dark:border-white/20 bg-neutral-200/30 dark:bg-neutral-900/30 py-1 select-none cursor-help group ${className}`} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+      <style jsx>{` @keyframes chromatic-buzz { 0% { transform: translate(0, 0); } 20% { transform: translate(-1px, 0); } 40% { transform: translate(1px, 0); } 60% { transform: translate(-0.5px, 0.5px); } 80% { transform: translate(0.5px, -0.5px); } 100% { transform: translate(0, 0); } } .group:hover .cyber-text::before { content: attr(data-text); position: absolute; left: -1px; top: 0; width: 100%; height: 100%; color: rgba(239, 68, 68, 0.6); z-index: -1; animation: chromatic-buzz 2s infinite reverse; } .group:hover .cyber-text::after { content: attr(data-text); position: absolute; left: 1px; top: 0; width: 100%; height: 100%; color: rgba(6, 182, 212, 0.6); z-index: -2; animation: chromatic-buzz 3s infinite; } `}</style>
+      <span ref={ghostRef} className="absolute opacity-0 pointer-events-none z-[-1] font-mono uppercase tracking-wider py-1" aria-hidden="true">{text}</span>
+      <motion.div className="inline-flex items-center gap-8" animate={isHovered && isOverflow ? { x: [0, -(contentWidth + gap)] } : { x: 0 }} transition={isHovered && isOverflow ? { repeat: Infinity, repeatType: "loop", duration: duration > 1 ? duration : 1, ease: "linear" } : { type: "spring", stiffness: 200, damping: 25 }}>
+        <span className="cyber-text whitespace-nowrap relative z-10 transition-colors" data-text={text}>{text}</span>
+        {isOverflow && ( <span className="cyber-text shrink-0 whitespace-nowrap relative z-10 transition-colors" data-text={text} aria-hidden="true">{text}</span> )}
       </motion.div>
-
-      {/* Mask mờ 2 bên */}
       <div className="absolute inset-0 pointer-events-none z-20 bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(0,0,0,0.05)_3px)] dark:bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(255,255,255,0.05)_3px)] mix-blend-overlay"></div>
     </div>
   );
 };
 
-// ==================================================================================
-// --- 1. SRT PARSER ---
-// ==================================================================================
+// --- SRT PARSER ---
 const parseSRT = (text) => {
     if (!text) return [];
     const normalized = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
@@ -181,26 +83,10 @@ const parseSRT = (text) => {
     return results;
 };
 
-// --- CONFIG ---
-const SONG_DEFAULTS = {
-    '1873426': { bass: 8, mid: 2, treble: -2 }, 
-    '1873427': { bass: -2, mid: 6, treble: 4 }, 
-};
-
-const getValuesForSong = (song) => {
-    if (!song) return null;
-    if (SONG_DEFAULTS[song.id]) return SONG_DEFAULTS[song.id];
-    if (song.author && (song.author.toLowerCase().includes('alan walker'))) {
-        return { bass: 10, mid: 2, treble: 5 };
-    }
-    return null; 
-};
-
 // --- SKELETON LOADER ---
 const NowPlayingSkeleton = () => {
   return (
     <div className="w-full h-[70vh] grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 pb-[100px] overflow-hidden bg-neutral-100 dark:bg-black animate-pulse transition-colors duration-500">
-        {/* Visual Skeleton */}
         <div className="lg:col-span-6 flex flex-col items-center justify-center relative border-r border-dashed border-neutral-300 dark:border-white/10 pr-4">
              <div className="w-[220px] h-[220px] rounded-full bg-neutral-300 dark:bg-neutral-800 border-4 border-neutral-400 dark:border-white/5"></div>
              <div className="mt-6 flex flex-col items-center gap-3 w-full max-w-md">
@@ -208,7 +94,6 @@ const NowPlayingSkeleton = () => {
                  <div className="h-4 w-1/3 bg-neutral-300 dark:bg-white/10"></div>
              </div>
         </div>
-        {/* Queue Skeleton */}
         <div className="hidden lg:flex h-[100%] lg:col-span-3 flex-col bg-white/5 border border-neutral-200 dark:border-white/10">
             <div className="h-12 border-b border-neutral-200 dark:border-white/10 flex items-center justify-center">
                  <div className="h-3 w-24 bg-neutral-300 dark:bg-white/10"></div>
@@ -224,7 +109,6 @@ const NowPlayingSkeleton = () => {
                 ))}
             </div>
         </div>
-        {/* Tabs Skeleton */}
         <div className="hidden lg:flex lg:col-span-3 flex-col bg-white/5 border border-neutral-200 dark:border-white/10">
              <div className="flex h-12 border-b border-neutral-200 dark:border-white/10">
                  <div className="flex-1 bg-white/10 m-1"></div>
@@ -244,7 +128,6 @@ const NowPlayingPage = () => {
   const { alert } = useUI();
   const { initAudioNodes, setBass, setMid, setTreble, initAnalyzer } = useAudioFilters();
 
-  // --- STATE ---
   const [song, setSong] = useState(null);
   const [realDuration, setRealDuration] = useState(0); 
   const [seek, setSeek] = useState(0); 
@@ -260,100 +143,30 @@ const NowPlayingPage = () => {
   const [isSaving, setIsSaving] = useState(false); 
   const [isPlaying, setIsPlaying] = useState(true);
 
-  // Refs
   const audioHandlers = useRef({ setBass, setMid, setTreble });
   const durationCheckRef = useRef(null);
-  const seekRef = useRef(0); 
   const lyricsContainerRef = useRef(null);
   const queueContainerRef = useRef(null);
 
-  // --- NEW: MEDIA SESSION API INTERGRATION (FIX BACKGROUND PLAY) ---
+  // --- AUTO SCROLL QUEUE ---
   useEffect(() => {
-    if (!song || !player) return;
-
-    if ('mediaSession' in navigator) {
-      // 1. Cập nhật thông tin bài hát lên hệ thống (Màn hình khóa / Thanh thông báo)
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: song.title,
-        artist: song.author,
-        album: "CyberMusic System",
-        artwork: [
-          { src: song.image_path || '/images/default_song.png', sizes: '96x96', type: 'image/png' },
-          { src: song.image_path || '/images/default_song.png', sizes: '128x128', type: 'image/png' },
-          { src: song.image_path || '/images/default_song.png', sizes: '192x192', type: 'image/png' },
-          { src: song.image_path || '/images/default_song.png', sizes: '512x512', type: 'image/png' },
-        ]
-      });
-
-      // 2. Đăng ký các sự kiện điều khiển từ phần cứng (Tai nghe, Phím Media)
-      // Việc đăng ký này giúp trình duyệt hiểu tab này đang phát media quan trọng -> Không được "giết" nó khi chạy ngầm.
-      
-      navigator.mediaSession.setActionHandler('play', () => {
-        // Gọi hàm play trong hook player của bạn (cần đảm bảo player có expose hàm này)
-        // Ví dụ: player.play();
-        Howler.ctx.resume(); // Hack nhỏ để đánh thức AudioContext
-      });
-
-      navigator.mediaSession.setActionHandler('pause', () => {
-        // player.pause();
-      });
-
-      navigator.mediaSession.setActionHandler('previoustrack', () => {
-        // Logic tìm bài trước trong queueSongs
-        if (queueSongs.length > 0) {
-            const currentIndex = queueSongs.findIndex(s => String(s.id) === String(song.id));
-            if (currentIndex > 0) {
-                player.setId(queueSongs[currentIndex - 1].id);
-            }
-        }
-      });
-
-      navigator.mediaSession.setActionHandler('nexttrack', () => {
-        // Logic tìm bài tiếp theo trong queueSongs
-        if (queueSongs.length > 0) {
-            const currentIndex = queueSongs.findIndex(s => String(s.id) === String(song.id));
-            if (currentIndex !== -1 && currentIndex < queueSongs.length - 1) {
-                player.setId(queueSongs[currentIndex + 1].id);
-            }
-        }
-      });
-    }
-  }, [song, queueSongs, player]);
-  
-  // --- AUTO SCROLL QUEUE (FIXED LAYOUT SHIFT) ---
-  useEffect(() => {
-    // 1. Chỉ chạy khi có activeId VÀ danh sách queue đã có dữ liệu
     if (player.activeId && queueSongs.length > 0) {
-        
         const scrollToActive = () => {
             const container = queueContainerRef.current;
             const elementId = `queue-item-${player.activeId}`;
             const activeItem = document.getElementById(elementId);
             
             if (container && activeItem) {
-                // --- TÍNH TOÁN VỊ TRÍ CUỘN THỦ CÔNG ---
-                // Công thức: Vị trí của Item - (1/2 Chiều cao Container) + (1/2 Chiều cao Item)
-                // Điều này giúp Item luôn nằm chính giữa Container mà không ảnh hưởng trang web
-                
                 const itemTop = activeItem.offsetTop;
                 const containerHeight = container.clientHeight;
                 const itemHeight = activeItem.clientHeight;
-
                 const targetScrollTop = itemTop - (containerHeight / 2) + (itemHeight / 2);
-
-                container.scrollTo({ 
-                    top: targetScrollTop, 
-                    behavior: 'smooth' 
-                });
+                container.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
             } else {
-                // Retry mechanism nếu DOM chưa kịp render
                 setTimeout(scrollToActive, 100); 
             }
         };
-
-        // Delay nhẹ để DOM ổn định
         const timer = setTimeout(scrollToActive, 300);
-
         return () => clearTimeout(timer);
     }
   }, [player.activeId, queueSongs]);
@@ -393,18 +206,21 @@ const NowPlayingPage = () => {
     return () => { if (durationCheckRef.current) clearInterval(durationCheckRef.current); };
   }, [player.activeId]);
 
-  // --- FETCH SONG ---
+  // --- FETCH CURRENT SONG ---
   useEffect(() => {
     if (!isMounted) return;
     const updateSong = async () => {
         setLoading(true);
-        const minDelay = new Promise(resolve => setTimeout(resolve, 800));
+        const minDelay = new Promise(resolve => setTimeout(resolve, 500));
+        
         if (!player.activeId) {
             setSong(null);
             await minDelay; setLoading(false);
             return; 
         }
+
         try {
+            // 1. Tìm trong Supabase
             const { data: dbSong } = await supabase
                 .from('songs')
                 .select(`*, profiles (full_name, role, avatar_url)`)
@@ -433,7 +249,29 @@ const NowPlayingPage = () => {
                     lyrics: dbSong.lyrics
                 });
             } else {
-                setSong(null); 
+                // 2. Fallback API
+                const CLIENT_ID = "3501caaa"; 
+                const res = await fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=json&id=${player.activeId}&audioformat=mp31`);
+                const json = await res.json();
+
+                if (json.results && json.results[0]) {
+                    const track = json.results[0];
+                    setSong({
+                        id: player.activeId,
+                        title: track.name,
+                        author: track.artist_name,
+                        image_path: track.image || track.album_image || "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600",
+                        song_url: track.audio,
+                        uploader: "Jamendo API",
+                        uploader_role: "api",
+                        uploader_avatar: null,
+                        source: 'api',
+                        lyric_url: null,
+                        lyrics: null
+                    });
+                } else {
+                    setSong(null);
+                }
             }
         } catch (error) {
             console.error("Error fetching song:", error);
@@ -449,6 +287,7 @@ const NowPlayingPage = () => {
   useEffect(() => {
     if (song) {
       setRawLyrics(null); setParsedLyrics([]); setActiveLineIndex(-1); setLoadingLyrics(false);
+      setActiveTab('equalizer');
     }
   }, [song?.id]);
 
@@ -479,10 +318,9 @@ const NowPlayingPage = () => {
     }
   }, [activeTab, song]);
 
-  // --- FETCH QUEUE SONGS (FIXED LIMIT) ---
+  // --- FETCH QUEUE SONGS (FIX LỖI UNKNOWN) ---
   useEffect(() => {
     const fetchQueueSongs = async () => {
-      // 1. Kiểm tra danh sách ID
       if (!player.ids || player.ids.length === 0) {
         setQueueSongs([]);
         return;
@@ -491,34 +329,89 @@ const NowPlayingPage = () => {
       try {
         const queueIds = player.ids;
         
-        // 2. Fetch dữ liệu từ DB
-        const { data: queueData, error } = await supabase
+        // 1. Lấy dữ liệu từ DB (Chỉ những ID hợp lệ của DB)
+        const { data: queueData } = await supabase
           .from('songs')
           .select('id, title, author, image_url')
           .in('id', queueIds);
 
-        if (error) {
-          console.error("Error fetching queue:", error);
-          // Không set rỗng ngay mà giữ data cũ nếu lỗi mạng nhất thời
-          return;
+        const dbSongsMap = {};
+        if (queueData) {
+            queueData.forEach(s => dbSongsMap[String(s.id)] = s);
         }
 
-        if (!queueData) return;
+        // 2. Tìm những ID không có trong DB (Giả định là API ID)
+        // Lưu ý: ID của Jamendo thường là chuỗi số (vd: "1873426")
+        const missingIds = queueIds.filter(id => !dbSongsMap[String(id)]);
+        
+        // 3. Fetch Bulk từ Jamendo API cho các ID thiếu
+        let apiSongsMap = {};
+        if (missingIds.length > 0) {
+            const CLIENT_ID = "3501caaa";
+            // Jamendo cho phép fetch nhiều ID cách nhau bằng dấu + hoặc space
+            // Giới hạn khoảng 50 ID một lần để tránh lỗi URL quá dài
+            const idsToFetch = missingIds.slice(0, 20).join('+'); 
+            
+            try {
+                const res = await fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=json&id=${idsToFetch}`);
+                const json = await res.json();
+                if (json.results) {
+                    json.results.forEach(track => {
+                        apiSongsMap[String(track.id)] = {
+                            id: track.id,
+                            title: track.name,
+                            author: track.artist_name,
+                            image_url: track.image || track.album_image || "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600"
+                        };
+                    });
+                }
+            } catch (e) {
+                console.warn("Failed to fetch API queue details", e);
+            }
+        }
 
-        // 3. Sắp xếp & Map dữ liệu (QUAN TRỌNG: Ép kiểu String để so sánh)
+        // 4. Map lại toàn bộ queue theo đúng thứ tự
         const sortedQueueData = queueIds.map(queueId => {
-          // Ép cả 2 về String để đảm bảo tìm thấy dù là số hay chuỗi
-          const songData = queueData.find(song => String(song.id) === String(queueId));
+          const idStr = String(queueId);
           
-          if (!songData) return null;
+          // Ưu tiên 1: DB
+          if (dbSongsMap[idStr]) {
+              return {
+                id: dbSongsMap[idStr].id,
+                title: dbSongsMap[idStr].title,
+                author: dbSongsMap[idStr].author,
+                image_path: dbSongsMap[idStr].image_url || '/images/default_song.png'
+              };
+          }
 
+          // Ưu tiên 2: API vừa fetch được
+          if (apiSongsMap[idStr]) {
+              return {
+                  id: apiSongsMap[idStr].id,
+                  title: apiSongsMap[idStr].title,
+                  author: apiSongsMap[idStr].author,
+                  image_path: apiSongsMap[idStr].image_url
+              };
+          }
+
+          // Ưu tiên 3: Nếu là bài đang phát (lấy từ state song)
+          if (song && String(song.id) === idStr) {
+              return {
+                  id: song.id,
+                  title: song.title,
+                  author: song.author,
+                  image_path: song.image_path || '/images/default_song.png'
+              };
+          }
+
+          // Fallback cuối cùng
           return {
-            id: songData.id,
-            title: songData.title,
-            author: songData.author,
-            image_path: songData.image_url || '/images/default_song.png'
+            id: queueId,
+            title: `Track ${queueId}`,
+            author: "Unknown Artist",
+            image_path: '/images/default_song.png'
           };
-        }).filter(Boolean); // Loại bỏ các giá trị null
+        });
 
         setQueueSongs(sortedQueueData);
       } catch (err) {
@@ -527,7 +420,7 @@ const NowPlayingPage = () => {
     };
 
     fetchQueueSongs();
-  }, [player.ids]);
+  }, [player.ids, song]); 
 
   // --- LYRICS SCROLL ---
   useEffect(() => {
@@ -566,7 +459,7 @@ const NowPlayingPage = () => {
     if (key === 'treble') handlers.setTreble(numValue);
   };
 
-  const handleSaveSettings = async () => { /* ... */ alert("Settings Saved", "success") };
+  const handleSaveSettings = async () => { alert("Settings Saved", "success") };
   const handleResetSettings = async () => { applySettings({ bass: 0, mid: 0, treble: 0, volume: 100 }); alert("Reset", "info") };
   const isPresetActive = (preset) => audioSettings.bass === preset.bass && audioSettings.mid === preset.mid && audioSettings.treble === preset.treble;
 
@@ -610,9 +503,9 @@ const NowPlayingPage = () => {
                  <span className="w-8 h-px bg-emerald-500"></span>
              </div>
              <div className="flex items-center justify-center gap-2 mt-4 text-xs font-mono text-neutral-500 dark:text-neutral-400 bg-white/50 dark:bg-white/5 px-4 py-2 border border-neutral-300 dark:border-white/10 mx-auto backdrop-blur-sm w-fit">
-                 <span className="uppercase tracking-widest opacity-70 border-r border-neutral-400 dark:border-white/20 pr-2 mr-2">UPLOADED_BY</span>
-                 <span className={`font-bold flex items-center gap-2 ${song.uploader_role === 'admin' ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                     {song.uploader_role === 'admin' ? <ShieldCheck size={14} className="text-yellow-500"/> : <UserCheck size={14} className="text-blue-500"/>}
+                 <span className="uppercase tracking-widest opacity-70 border-r border-neutral-400 dark:border-white/20 pr-2 mr-2">SOURCE</span>
+                 <span className={`font-bold flex items-center gap-2 ${song.source === 'api' ? 'text-purple-600 dark:text-purple-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                     {song.source === 'api' ? <Globe size={14} className="text-purple-500"/> : (song.uploader_role === 'admin' ? <ShieldCheck size={14} className="text-yellow-500"/> : <UserCheck size={14} className="text-blue-500"/>)}
                      <span className="text-sm uppercase">{song.uploader}</span>
                  </span>
              </div>
@@ -620,7 +513,7 @@ const NowPlayingPage = () => {
           <button onClick={() => router.back()} className="absolute top-0 left-0 lg:hidden p-4 text-neutral-500 hover:text-emerald-500 z-50"><ArrowLeft size={24} /></button>
       </div>
 
-      {/* --- CỘT GIỮA (QUEUE) - FIXED SCROLLING & AUTO-SCROLL --- */}
+      {/* --- CỘT GIỮA (QUEUE) - ĐÃ FIX IMAGE --- */}
       <div className="lg:col-span-3 flex -translate-x-12 flex-col h-[103%] w-[80%] bg-white/60 dark:bg-black/30 backdrop-blur-xl border border-neutral-200 dark:border-white/10 rounded-none overflow-hidden shadow-xl z-20 relative">
           <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-emerald-500 z-40"></div>
           <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-emerald-500 z-40"></div>
@@ -636,11 +529,13 @@ const NowPlayingPage = () => {
                  {queueSongs.length > 0 ? (
                     <div className="space-y-2 pb-10">
                        {queueSongs.map((queueSong, index) => {
-                          const isCurrentlyPlaying = queueSong.id === song.id;
+                          const isCurrentlyPlaying = String(queueSong.id) === String(song.id);
+                          const hasImage = queueSong.image_path && queueSong.image_path !== '/images/default_song.png';
+
                           return (
                             <div
                                key={`${queueSong.id}-${index}`}
-                               id={`queue-item-${queueSong.id}`} // Quan trọng cho Auto-Scroll
+                               id={`queue-item-${queueSong.id}`}
                                className={`p-2 border group rounded-none cursor-pointer hover:bg-neutral-200 dark:hover:bg-white/10 transition-colors duration-200 ${
                                   isCurrentlyPlaying
                                      ? 'bg-emerald-500/10 border-emerald-500/30'
@@ -651,12 +546,31 @@ const NowPlayingPage = () => {
                                <div className="flex items-center gap-3">
                                   <div className="w-8 h-8 shrink-0 relative cursor-none">
                                       <HoverImagePreview src={queueSong.image_path} alt={queueSong.title} className="w-full h-full" previewSize={160} fallbackIcon="disc">
-                                           <img src={queueSong.image_path} className={`w-full h-full object-cover border transition-all duration-300 grayscale group-hover:grayscale-0 ${isCurrentlyPlaying ? 'border-emerald-500/50' : 'border-neutral-300 dark:border-white/20'}`} alt="Queue"/>
+                                           {hasImage ? (
+                                               <img 
+                                                   src={queueSong.image_path} 
+                                                   className={`w-full h-full object-cover border transition-all duration-300 grayscale group-hover:grayscale-0 ${isCurrentlyPlaying ? 'border-emerald-500/50' : 'border-neutral-300 dark:border-white/20'}`} 
+                                                   alt="Queue"
+                                                   onError={(e) => {
+                                                       e.target.style.display = 'none';
+                                                       e.target.nextSibling.style.display = 'flex';
+                                                   }}
+                                               />
+                                           ) : (
+                                               <div className={`w-full h-full flex items-center justify-center bg-neutral-200 dark:bg-white/10 border ${isCurrentlyPlaying ? 'border-emerald-500/50 text-emerald-500' : 'border-neutral-300 dark:border-white/20 text-neutral-400'}`}>
+                                                   <User size={16} strokeWidth={1.5} />
+                                               </div>
+                                           )}
+                                           {hasImage && (
+                                               <div className={`hidden w-full h-full absolute inset-0 items-center justify-center bg-neutral-200 dark:bg-white/10 border ${isCurrentlyPlaying ? 'border-emerald-500/50 text-emerald-500' : 'border-neutral-300 dark:border-white/20 text-neutral-400'}`}>
+                                                   <User size={16} strokeWidth={1.5} />
+                                               </div>
+                                           )}
                                       </HoverImagePreview>
                                   </div>
                                   <div className="flex-1 min-w-0 overflow-hidden">
                                      <div className={`text-xs font-bold font-mono ${isCurrentlyPlaying ? 'text-emerald-600 dark:text-emerald-400' : 'text-neutral-800 dark:text-white'}`}>
-                                        <CyberMarquee text={queueSong.title} speed={40} />
+                                         <CyberMarquee text={queueSong.title} speed={40} />
                                      </div>
                                      <p className="text-[10px] font-mono text-neutral-500 truncate">{queueSong.author}</p>
                                   </div>
@@ -674,7 +588,7 @@ const NowPlayingPage = () => {
           </div>
       </div>
 
-      {/* --- CỘT PHẢI (TABS & CONTROLS) --- */}
+      {/* --- CỘT PHẢI (GIỮ NGUYÊN) --- */}
       <div className="lg:col-span-3 flex flex-col -translate-x-28 w-[145%] h-[103%] bg-white/80 dark:bg-black/40 backdrop-blur-2xl border border-neutral-200 dark:border-white/10 rounded-none overflow-hidden shadow-2xl z-30 relative">
           <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-emerald-500 z-40"></div>
           <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-emerald-500 z-40"></div>
@@ -682,17 +596,17 @@ const NowPlayingPage = () => {
           <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-emerald-500 z-40"></div>
 
           <div className="flex border-b border-neutral-200 dark:border-white/10 shrink-0">
-                <button onClick={() => setActiveTab('equalizer')} className={`flex-1 py-4 text-[10px] font-mono tracking-widest uppercase flex items-center justify-center gap-2 transition-all rounded-none relative ${activeTab === 'equalizer' ? 'bg-neutral-100 dark:bg-white/5 text-emerald-600 dark:text-emerald-500 font-bold' : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-white'}`}>
-                    <Sliders size={14}/> EQ
-                    {activeTab === 'equalizer' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-emerald-500"></div>}
+                <button onClick={() => setActiveTab('info')} className={`flex-1 py-4 text-[10px] font-mono tracking-widest uppercase flex items-center justify-center gap-2 transition-all rounded-none relative ${activeTab === 'info' ? 'bg-neutral-100 dark:bg-white/5 text-emerald-600 dark:text-emerald-500 font-bold' : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-white'}`}>
+                    <Info size={14}/> META
+                    {activeTab === 'info' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-emerald-500"></div>}
                 </button>
                 <button onClick={() => setActiveTab('lyrics')} className={`flex-1 py-4 text-[10px] font-mono tracking-widest uppercase flex items-center justify-center gap-2 transition-all rounded-none relative ${activeTab === 'lyrics' ? 'bg-neutral-100 dark:bg-white/5 text-emerald-600 dark:text-emerald-500 font-bold' : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-white'}`}>
                     <Mic2 size={14}/> LYRICS
                     {activeTab === 'lyrics' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-emerald-500"></div>}
                 </button>
-                <button onClick={() => setActiveTab('info')} className={`flex-1 py-4 text-[10px] font-mono tracking-widest uppercase flex items-center justify-center gap-2 transition-all rounded-none relative ${activeTab === 'info' ? 'bg-neutral-100 dark:bg-white/5 text-emerald-600 dark:text-emerald-500 font-bold' : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-white'}`}>
-                    <Info size={14}/> META
-                    {activeTab === 'info' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-emerald-500"></div>}
+                <button onClick={() => setActiveTab('equalizer')} className={`flex-1 py-4 text-[10px] font-mono tracking-widest uppercase flex items-center justify-center gap-2 transition-all rounded-none relative ${activeTab === 'equalizer' ? 'bg-neutral-100 dark:bg-white/5 text-emerald-600 dark:text-emerald-500 font-bold' : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-white'}`}>
+                    <Sliders size={14}/> EQ
+                    {activeTab === 'equalizer' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-emerald-500"></div>}
                 </button>
           </div>
 
