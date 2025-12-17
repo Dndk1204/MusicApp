@@ -327,14 +327,14 @@ const AdminDashboard = () => {
 
   if (currentView === 'songs_list') {
       displayedSongs = allSongsList;
-      songViewTitle = "All Tracks (System + Users)";
+      songViewTitle = "All Songs (API + Admin + Users)";
       songViewIcon = <Music size={16} className="text-purple-500"/>;
-  } 
+  }
   else if (currentView === 'admin_uploads') {
-      displayedSongs = allSongsList.filter(s => isAdminTrack(s));
-      songViewTitle = "Admin & System Uploads";
+      displayedSongs = allSongsList.filter(s => s.user_id && isAdminTrack(s));
+      songViewTitle = "Admin Uploads";
       songViewIcon = <UploadCloud size={16} className="text-emerald-500"/>;
-  } 
+  }
   else if (currentView === 'user_uploads') {
       displayedSongs = allSongsList.filter(s => !isAdminTrack(s) && s.is_public);
       songViewTitle = "Public User Uploads";
