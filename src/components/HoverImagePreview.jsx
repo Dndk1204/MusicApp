@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { ScanlineOverlay } from "@/components/CyberComponents";
 import { Volume2, VolumeX, Loader2, Disc, User } from "lucide-react"; 
 import usePlayer from "@/hooks/usePlayer";
+import Image from "next/image"; // Import Next Image
 
 const HoverImagePreview = ({ 
     src, 
@@ -20,6 +21,9 @@ const HoverImagePreview = ({
     const [mounted, setMounted] = useState(false);
     const [status, setStatus] = useState("idle"); 
     
+    // THÊM: State lưu tỉ lệ ảnh (mặc định 1 = vuông)
+    const [imgRatio, setImgRatio] = useState(1); 
+
     const popupRef = useRef(null); 
     const audioRef = useRef(null);
     const fadeIntervalRef = useRef(null);
@@ -40,28 +44,30 @@ const HoverImagePreview = ({
         if (!isHovering) return;
 
         const handleWindowMouseMove = (e) => {
-            // Hủy frame cũ nếu có để tránh queue
             if (requestRef.current) cancelAnimationFrame(requestRef.current);
             
             requestRef.current = requestAnimationFrame(() => {
-                // KIỂM TRA LẠI REF TRONG CALLBACK
                 if (!popupRef.current) return;
 
                 const offset = 20; 
                 const viewportWidth = window.innerWidth;
                 const viewportHeight = window.innerHeight;
 
+                // Tính chiều cao dựa trên tỉ lệ ảnh
+                const actualHeight = previewSize / imgRatio; 
+
                 let x = e.clientX + offset;
                 let y = e.clientY + offset;
                 
+                // Xử lý tràn ngang
                 if (x + previewSize > viewportWidth - 20) { 
                     x = e.clientX - previewSize - offset;
                 }
                 
-                const isFlippedY = y + previewSize > viewportHeight;
-                const translateY = isFlippedY ? `-${previewSize}px` : '0px';
+                // Xử lý tràn dọc
+                const isFlippedY = y + actualHeight > viewportHeight;
+                const translateY = isFlippedY ? `-${actualHeight}px` : '0px';
 
-                // Gán style an toàn
                 if (popupRef.current) {
                     popupRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) translateY(${translateY})`;
                 }
@@ -74,10 +80,13 @@ const HoverImagePreview = ({
             window.removeEventListener('mousemove', handleWindowMouseMove);
             if (requestRef.current) cancelAnimationFrame(requestRef.current);
         };
-    }, [isHovering, previewSize]);
+    }, [isHovering, previewSize, imgRatio]); // Thêm imgRatio vào dependency
 
 
-    // --- AUDIO LOGIC ---
+    // --- AUDIO LOGIC (Giữ nguyên) ---
+    // ... (Code Audio logic của bạn ở đây) ...
+    // Copy lại phần useEffect audio, visualizerBars, stopAudioImmediate, stopAudioWithFade, playPreview, handleMouseEnter, handleMouseLeave từ code cũ
+    
     useEffect(() => {
         if (player.isPlaying && status === "playing") {
             stopAudioWithFade();
@@ -127,7 +136,7 @@ const HoverImagePreview = ({
         if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
         fadeIntervalRef.current = setInterval(() => {
             if (vol > 0.05) {
-                vol -= 0.01;
+                vol -= 0.005;
                 audio.volume = Math.max(0, vol);
             } else {
                 stopAudioImmediate();
@@ -175,7 +184,7 @@ const HoverImagePreview = ({
                     if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
                     fadeIntervalRef.current = setInterval(() => {
                         if (vol < 0.5) {
-                            vol += 0.001;
+                            vol += 0.003;
                             audio.volume = Math.min(vol, 0.5);
                         } else {
                             clearInterval(fadeIntervalRef.current);
@@ -195,10 +204,6 @@ const HoverImagePreview = ({
     const handleMouseEnter = (e) => {
         setIsHovering(true);
         isHoveringRef.current = true;
-
-        // Cập nhật vị trí ngay lập tức (Direct DOM update nếu có thể, hoặc qua requestAnimationFrame ở trên)
-        // Không cần set style ở đây vì useEffect sẽ bắt mousemove ngay lập tức
-        
         if (playTimeoutRef.current) clearTimeout(playTimeoutRef.current);
         playTimeoutRef.current = setTimeout(() => {
             if (isHoveringRef.current) {
@@ -214,10 +219,28 @@ const HoverImagePreview = ({
         stopAudioWithFade();
     };
 
-    // --- RENDER PLACEHOLDER ---
+    // --- RENDER CONTENT (ĐÃ SỬA) ---
     const renderContent = () => {
         if (src) {
-            return <img src={src} alt={alt || "preview"} className="w-full h-full object-cover" />;
+            // Dùng Next/Image để lấy được onLoadingComplete
+            return (
+                <div className="relative w-full h-full">
+                    <Image 
+                        src={src} 
+                        alt={alt || "preview"} 
+                        fill
+                        className="object-cover" // Vẫn giữ cover để lấp đầy khung, nhưng khung sẽ resize theo ảnh
+                        onLoadingComplete={(result) => {
+                            // Tính tỉ lệ ảnh: Rộng / Cao
+                            if (result.naturalWidth && result.naturalHeight) {
+                                setImgRatio(result.naturalWidth / result.naturalHeight);
+                            }
+                        }}
+                        // Fallback cho thẻ img thường nếu src là blob/external không support
+                        onError={() => setImgRatio(1)} 
+                    />
+                </div>
+            );
         }
         return (
             <div className="w-full h-full bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center">
@@ -248,8 +271,9 @@ const HoverImagePreview = ({
                         left: 0, 
                         top: 0,
                         width: previewSize, 
-                        height: previewSize,
+                        height: previewSize / imgRatio, // Chiều cao tự động theo tỉ lệ
                         willChange: "transform", 
+                        transition: "height 0.2s ease", // Hiệu ứng mượt khi đổi tỉ lệ
                     }}
                 >
                     <div 

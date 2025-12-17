@@ -6,7 +6,7 @@ import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   Play, Edit2, Plus, Trash2, Clock, Music2, 
-  Ban, Shuffle, Globe, Lock // <-- Đã thêm icon Shuffle, Globe, Lock
+  Ban, Shuffle, Globe, Lock, ArrowLeft // <-- Icon ArrowLeft
 } from "lucide-react";
 import AddSongModal from "@/components/AddSongModal";
 import EditPlaylistModal from "@/components/EditPlaylistModal";
@@ -20,7 +20,7 @@ import { useModal } from "@/context/ModalContext";
 // IMPORT HOVER PREVIEW
 import HoverImagePreview from "@/components/HoverImagePreview"; 
 
-// --- SKELETON LOADER COMPONENT ---
+// --- SKELETON LOADER COMPONENT (Giữ nguyên) ---
 const PlaylistSkeleton = () => {
   return (
     <div className="w-full h-screen bg-neutral-100 dark:bg-black p-6 overflow-hidden animate-pulse">
@@ -158,7 +158,7 @@ export default function PlaylistPage() {
     syncSongMap();
     const ids = songs.map((item) => item.songs?.id).filter(Boolean).map(Number);
     
-    player.setIsShuffle(false); // Tắt shuffle nếu play all bình thường
+    player.setIsShuffle(false); 
     player.setIds(ids);
     player.setId(ids[0]);
   };
@@ -175,7 +175,7 @@ export default function PlaylistPage() {
     const randomIndex = Math.floor(Math.random() * ids.length);
     const randomId = ids[randomIndex];
 
-    player.setIsShuffle(true); // Bật chế độ shuffle
+    player.setIsShuffle(true); 
     player.setIds(ids);
     player.setId(randomId);
   };
@@ -209,6 +209,22 @@ export default function PlaylistPage() {
     <div className="min-h-screen bg-neutral-100 dark:bg-black text-neutral-900 dark:text-white p-6 pb-32 transition-colors duration-500 relative overflow-hidden">
       {/* Background Grid */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
+
+      {/* --- NÚT QUAY LẠI (MỚI THÊM) --- */}
+      <button 
+        onClick={() => router.back()} 
+        className="
+            relative z-20 mb-6 group flex items-center gap-2 px-3 py-3
+            backdrop-blur-md
+            border border-neutral-300 dark:border-white/10 
+            hover:border-emerald-500 dark:hover:border-emerald-500
+            hover:!text-white hover:bg-emerald-500
+            transition-all duration-300 rounded-none
+            uppercase text-[10px] font-bold tracking-[0.2em] font-mono
+        "
+      >
+        <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+      </button>
 
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row items-end gap-8 mb-10 relative z-10 animate-in slide-in-from-bottom-5 duration-700">
@@ -298,7 +314,7 @@ export default function PlaylistPage() {
                  )}
                  
                  {isOwner && (
-                     <Edit2 size={10} className="text-neutral-500 group-hover:text-white transition-colors ml-1 opacity-50 group-hover:opacity-100" />
+                     <Edit2 size={10} className="text-neutral-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-500 transition-colors ml-1 group-hover:opacity-100" />
                  )}
              </button>
           </div>
@@ -325,7 +341,7 @@ export default function PlaylistPage() {
       <div className="flex flex-wrap gap-4 mb-10 z-20 relative">
         <HoloButton 
             onClick={handlePlayPlaylist} 
-            className="px-8 bg-emerald-500/10 border-emerald-500/50 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white"
+            className="px-8 bg-emerald-500/10 !border-emerald-500/50 dark:hover:!bg-emerald-500/20 !text-emerald-600 dark:!text-emerald-400 hover:!bg-emerald-500 hover:!text-white dark:hover:!text-white"
         >
           <Play size={18} fill="currentColor" className="mr-2" /> PLAY_ALL
         </HoloButton>
@@ -333,19 +349,19 @@ export default function PlaylistPage() {
         {/* --- NÚT SHUFFLE PLAY --- */}
         <HoloButton 
             onClick={handleShufflePlay} 
-            className="px-6 bg-purple-500/10 border-purple-500/50 text-purple-600 dark:text-purple-400 hover:bg-purple-500 hover:text-white"
+            className="px-6 bg-purple-500/10 !border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500 hover:!text-white"
         >
             <Shuffle size={18} className="mr-2" /> SHUFFLE
         </HoloButton>
 
         {isOwner && (
-          <HoloButton onClick={() => setShowAddSongModal(true)} className="px-6 border-cyan-500/30 text-cyan-600 dark:text-cyan-400">
+          <HoloButton onClick={() => setShowAddSongModal(true)} className="px-6 !border-cyan-500/30 dark:hover:!text-white !text-cyan-600 hover:bg-cyan-500 dark:!text-cyan-400">
             <Plus size={18} className="mr-2" /> ADD_TRACK
           </HoloButton>
         )}
 
         {isOwner && (
-          <HoloButton onClick={() => setShowEditModal(true)} className="px-6 border-amber-500/30 text-amber-600 dark:text-amber-400">
+          <HoloButton onClick={() => setShowEditModal(true)} className="px-6 !border-amber-500/30 dark:hover:!text-white !text-amber-600 hover:bg-amber-500 dark:!text-amber-400">
             <Edit2 size={18} className="mr-2" /> EDIT_INFO
           </HoloButton>
         )}
@@ -413,9 +429,12 @@ export default function PlaylistPage() {
                                         ) : (
                                             <Music2 size={16} className="text-neutral-400" />
                                         )}
+                                        
+                                        {/* Play Icon Overlay */}
                                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/song:opacity-100 transition-opacity">
                                             <Play size={16} fill="white" className="text-white"/>
                                         </div>
+                                        <ScanlineOverlay />
                                     </div>
                                 </HoverImagePreview>
                             </div>

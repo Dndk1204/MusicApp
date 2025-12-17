@@ -140,7 +140,7 @@ const SearchContent = ({ songs }) => {
                      <Link
                        href={`/artist/${encodeURIComponent(song.author)}`}
                        onClick={(e) => e.stopPropagation()} 
-                       className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono uppercase tracking-wider hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline transition-colors truncate"
+                       className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono tracking-wider hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline transition-colors truncate"
                      >
                         {song.author}
                      </Link>
@@ -156,7 +156,7 @@ const SearchContent = ({ songs }) => {
       </div>
 
       {hasMore && (
-          <div className="flex justify-center mt-10 pt-6 border-t border-dashed border-neutral-300 dark:border-white/10">
+          <div className="flex justify-center mt-10 mb-2 pt-6 border-t border-dashed border-neutral-300 dark:border-white/10">
               <HoloButton 
                   onClick={handleLoadMore}
                   className="flex items-center gap-2 px-8 py-2 text-xs border-neutral-400 dark:border-white/20 text-neutral-600 dark:text-neutral-300"

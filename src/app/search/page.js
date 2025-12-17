@@ -10,6 +10,8 @@ import { cookies } from "next/headers";
 import { CyberCard, ScanlineOverlay, GlitchText } from "@/components/CyberComponents";
 // IMPORT HOVER PREVIEW
 import HoverImagePreview from "@/components/HoverImagePreview";
+// IMPORT BACK BUTTON (Vừa tạo ở bước 1)
+import BackButton from "@/components/BackButton"; 
 
 export const revalidate = 0;
 
@@ -83,7 +85,7 @@ const searchPlaylists = async (term) => {
 
         if (error || !playlists) return [];
 
-        // Transform the data to include creator info and song count
+        // Transform data
         const playlistsWithCreators = playlists.map(playlist => ({
             ...playlist,
             creator: {
@@ -100,6 +102,41 @@ const searchPlaylists = async (term) => {
     }
 };
 
+// --- HELPER: SEARCH LOCAL ARTISTS ---
+const searchLocalArtists = async (term) => {
+    if (!term) return [];
+    
+    const cookieStore = await cookies();
+    const supabase = createServerComponentClient({ cookies: () => cookieStore });
+    const searchTerm = term.trim();
+    
+    const { data: songs } = await supabase
+        .from('songs')
+        .select('author, image_url')
+        .ilike('author', `%${searchTerm}%`)
+        .limit(50); 
+
+    if (!songs || songs.length === 0) return [];
+
+    const uniqueArtists = [];
+    const seen = new Set();
+
+    songs.forEach(song => {
+        const normalizedName = song.author.trim().toLowerCase();
+        if (!seen.has(normalizedName)) {
+            seen.add(normalizedName);
+            uniqueArtists.push({
+                id: `local-${normalizedName.replace(/\s+/g, '-')}`, 
+                name: song.author,
+                image: song.image_url || '/images/music-placeholder.png',
+                is_local: true 
+            });
+        }
+    });
+
+    return uniqueArtists.slice(0, 10);
+};
+
 const SearchPage = async ({ searchParams }) => {
     const params = await searchParams;
     const activeTab = params.tab || 'songs';
@@ -107,8 +144,6 @@ const SearchPage = async ({ searchParams }) => {
     let songs = [];
     let artists = [];
     let users = [];
-
-    // --- LOGIC TITLE & ICON ---
     let playlists = [];
     let pageTitle = "SEARCH_RESULTS";
 
@@ -127,29 +162,40 @@ const SearchPage = async ({ searchParams }) => {
         } catch (err) { console.error(err); }
         pageTitle = "COMMUNITY_UPLOADS";
     } else {
-        // 1. TÌM SONGS
         const songsPromise = getSongs({
             title: params.title,
             tag: params.tag,
             artist: params.uploader
         });
 
-        // 2. TÌM USERS
         const userQuery = params.uploader || params.title;
         const usersPromise = userQuery ? searchUsers(userQuery) : Promise.resolve([]);
 
-        // 3. TÌM PLAYLISTS
         const playlistQuery = params.title || params.uploader;
         const playlistsPromise = playlistQuery ? searchPlaylists(playlistQuery) : Promise.resolve([]);
 
-        // Chạy song song
-        const [songsResult, usersResult, playlistsResult] = await Promise.all([songsPromise, usersPromise, playlistsPromise]);
+        const artistQuery = params.title || params.uploader;
+        const localArtistsPromise = artistQuery ? searchLocalArtists(artistQuery) : Promise.resolve([]);
+
+        const [songsResult, usersResult, playlistsResult, localArtistsResult] = await Promise.all([
+            songsPromise, 
+            usersPromise, 
+            playlistsPromise,
+            localArtistsPromise
+        ]);
 
         songs = songsResult.songs || [];
-        artists = songsResult.artists || [];
+        
+        const jamendoArtists = songsResult.artists || [];
+        const filteredLocalArtists = localArtistsResult.filter(local => 
+            !jamendoArtists.some(jamendo => jamendo.name.toLowerCase() === local.name.toLowerCase())
+        );
+        
+        artists = [...filteredLocalArtists, ...jamendoArtists]; 
         playlists = playlistsResult || [];
+        users = usersResult || [];
 
-        // 3. TÌM SONG UPLOADS FROM USERS
+        // Search Songs in DB
         if (params.title || params.tag) {
             const cookieStore = await cookies();
             const supabase = createServerComponentClient({ cookies: () => cookieStore });
@@ -160,12 +206,8 @@ const SearchPage = async ({ searchParams }) => {
                 .not('user_id', 'is', null)
                 .eq('is_public', true);
 
-            if (params.title) {
-                query = query.ilike('title', `%${params.title}%`);
-            }
-            if (params.tag) {
-                query = query.ilike('tag', `%${params.tag}%`);
-            }
+            if (params.title) query = query.ilike('title', `%${params.title}%`);
+            if (params.tag) query = query.ilike('tag', `%${params.tag}%`);
 
             query = query.order('created_at', { ascending: false }).limit(20);
 
@@ -186,51 +228,48 @@ const SearchPage = async ({ searchParams }) => {
 
                     const jamendoSongs = songs.map(mapSong);
                     const uploadedSongs = userSongs.map(mapSong);
-
                     const combined = [...uploadedSongs, ...jamendoSongs];
                     const unique = combined.filter((song, index, self) =>
                         index === self.findIndex(s => s.id === song.id && s.title === song.title && s.author === song.author)
                     );
-
                     songs = unique.slice(0, 50);
                 }
-            } catch (err) {
-                console.error("Error searching user songs:", err);
-            }
+            } catch (err) { console.error("Error searching user songs:", err); }
         }
-
-        users = usersResult || [];
 
         if (activeTab === 'users') {
             pageTitle = userQuery ? `USER_RESULTS: "${userQuery.toUpperCase()}"` : "SEARCH_USERS";
         } else if (activeTab === 'playlists') {
             pageTitle = playlistQuery ? `PLAYLIST_RESULTS: "${playlistQuery.toUpperCase()}"` : "SEARCH_PLAYLISTS";
         } else {
-            if (params.uploader) {
-                pageTitle = `UPLOADER: "${params.uploader.toUpperCase()}"`;
-            } else if (params.tag && !params.title) {
-                pageTitle = `TAG: ${params.tag.toUpperCase()}`;
-            } else if (params.title) {
-                pageTitle = `RESULTS: "${params.title.toUpperCase()}"`;
-            }
+            if (params.uploader) pageTitle = `UPLOADER: "${params.uploader.toUpperCase()}"`;
+            else if (params.tag && !params.title) pageTitle = `TAG: ${params.tag.toUpperCase()}`;
+            else if (params.title) pageTitle = `RESULTS: "${params.title.toUpperCase()}"`;
         }
     }
 
     return (
-        <div className="flex flex-col w-full h-full p-6 pb-[120px] overflow-y-auto bg-neutral-100 dark:bg-black transition-colors duration-500">
+        <div className="flex flex-col !w-full p-3.5 !min-h-full !overflow-y-auto transition-colors duration-500">
             
             {/* HEADER */}
             <div className="mb-8 flex flex-col gap-6">
 
-                {/* Title Area */}
-                <div className="flex flex-col gap-2">
-                    <h1 className="text-3xl md:text-5xl font-black font-mono text-neutral-900 dark:text-white tracking-tighter uppercase flex items-center gap-3">
-                        {activeTab === 'users' ? <Users className="text-blue-500" size={32} /> :
-                         activeTab === 'playlists' ? <Music className="text-purple-500" size={32} /> :
-                         <Search className="text-emerald-500" size={32} />}
-                        <GlitchText text={pageTitle} />
-                    </h1>
-                    <div className="h-1 w-24 bg-emerald-500"></div>
+                {/* Title Area With Back Button */}
+                <div className="flex items-end gap-6">
+                    {/* BACK BUTTON */}
+                    <div className="mb-3">
+                        <BackButton /> 
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <h1 className="text-3xl md:text-5xl font-black font-mono text-neutral-900 dark:text-white tracking-tighter uppercase flex items-center gap-3">
+                            {activeTab === 'users' ? <Users className="text-blue-500" size={32} /> :
+                             activeTab === 'playlists' ? <Music className="text-purple-500" size={32} /> :
+                             <Search className="text-emerald-500" size={32} />}
+                            <GlitchText text={pageTitle} />
+                        </h1>
+                        <div className="h-1 w-24 bg-emerald-500"></div>
+                    </div>
                 </div>
 
                 {/* TABS */}
@@ -275,9 +314,8 @@ const SearchPage = async ({ searchParams }) => {
                 )}
 
                 {/* Status Bar */}
-                <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-neutral-500 dark:text-neutral-400 border-l-2 border-emerald-500 pl-3">
-                    <span className="opacity-50">:: SYSTEM_FILTER ::</span>
-                    {/* ... (Tags Filter) ... */}
+                <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-neutral-900 dark:text-neutral-400 border-l-2 border-emerald-500 pl-3">
+                    <span>:: SYSTEM_FILTER ::</span>
                     {params.title && (
                         <div className="flex items-center gap-1 bg-neutral-200 dark:bg-white/10 px-2 py-0.5 rounded-none text-neutral-900 dark:text-white border border-neutral-400 dark:border-white/20">
                             <span>QUERY="{params.title}"</span>
@@ -350,12 +388,10 @@ const SearchPage = async ({ searchParams }) => {
             {/* 1. SONGS TAB */}
             {activeTab === 'songs' && (
                 <>
-                    {/* Artists Found Grid */}
-                    {params.title && artists && artists.length > 0 && (
+                    {artists && artists.length > 0 && (
                         <ArtistGrid artists={artists} />
                     )}
 
-                    {/* Songs Found Header */}
                     {songs.length > 0 && (
                         <div className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div className="flex items-center justify-between mb-4 border-b border-neutral-300 dark:border-white/10 pb-2">
@@ -370,7 +406,6 @@ const SearchPage = async ({ searchParams }) => {
                         </div>
                     )}
 
-                    {/* Songs List */}
                     {songs.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-20 opacity-70 font-mono gap-4 animate-in fade-in zoom-in duration-500 text-neutral-500 dark:text-neutral-400 border border-dashed border-neutral-300 dark:border-white/10">
                             <div className="relative">
@@ -386,7 +421,7 @@ const SearchPage = async ({ searchParams }) => {
                 </>
             )}
 
-            {/* 2. USERS TAB (SỬ DỤNG CYBERCARD VÀ HOVER PREVIEW CHO AVATAR) */}
+            {/* 2. USERS TAB */}
             {activeTab === 'users' && (
                 <div className="space-y-4">
                     {users.length === 0 ? (
@@ -399,80 +434,64 @@ const SearchPage = async ({ searchParams }) => {
                             <p className="text-xs">Try different query parameters.</p>
                         </div>
                     ) : (
-                        users.map((user) => (
-                            <Link key={user.id} href={`/user/${user.id}`} className="block h-full">
-                                <CyberCard className="group h-full p-0 bg-white dark:bg-neutral-900/40 border border-neutral-300 dark:border-white/10 hover:border-blue-500 dark:hover:border-blue-500 transition-all duration-300 relative overflow-hidden">
-                                    
-                                    {/* Decor: Corner Accent */}
-                                    <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-blue-500/30 group-hover:border-blue-500 transition-colors z-10"></div>
-
-                                    <div className="flex h-full">
-                                        
-                                        {/* CỘT TRÁI: AVATAR VỚI HOVER PREVIEW */}
-                                        <div className="w-24 shrink-0 border-r border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-black/50 relative group/img">
-                                            {/* Bọc HoverImagePreview ở đây */}
-                                            <HoverImagePreview 
-                                                src={user.avatar_url} 
-                                                alt={user.full_name} 
-                                                className="w-full h-24 relative hover:cursor-none" // Giữ kích thước ban đầu trong layout
-                                                previewSize={240}
-                                            >
-                                                <div className="w-full h-full relative overflow-hidden">
-                                                    {user.avatar_url ? (
-                                                        <img
-                                                            src={user.avatar_url}
-                                                            alt={user.full_name}
-                                                            className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center bg-neutral-200 dark:bg-neutral-800">
-                                                            <User size={32} className="text-neutral-400 dark:text-neutral-600"/>
+                        <>
+                            <div className="mb-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <div className="flex items-center justify-between mb-4 border-b border-neutral-300 dark:border-white/10 pb-2">
+                                    <h2 className="text-sm font-bold font-mono text-neutral-900 dark:text-white tracking-[0.2em] flex items-center gap-2">
+                                        <span className="w-2 h-2 bg-blue-500"></span>
+                                        USERS_DETECTED
+                                    </h2>
+                                    <span className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 bg-neutral-200 dark:bg-white/10 px-2 py-0.5">
+                                        CNT: {users.length}
+                                    </span>
+                                </div>
+                            </div>
+                            {/* USER LIST GRID */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {users.map((user, index) => ( 
+                                    <Link key={user.id} href={`/user/${user.id}`} className="block h-full">
+                                        <CyberCard className="group h-full p-0 bg-white dark:bg-neutral-900/40 border border-neutral-300 dark:border-white/10 hover:border-blue-500 dark:hover:border-blue-500 transition-all duration-300 relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-blue-500/30 group-hover:border-blue-500 transition-colors z-10"></div>
+                                            <div className="flex h-full">
+                                                <div className="w-24 shrink-0 border-r border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-black/50 relative group/img">
+                                                    <HoverImagePreview src={user.avatar_url} alt={user.full_name} className="w-full h-24 relative hover:cursor-none" previewSize={240}>
+                                                        <div className="w-full h-full relative overflow-hidden">
+                                                            {user.avatar_url ? <img src={user.avatar_url} alt={user.full_name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"/> : <div className="w-full h-full flex items-center justify-center bg-neutral-200 dark:bg-neutral-800"><User size={32} className="text-neutral-400 dark:text-neutral-600"/></div>}
+                                                            <ScanlineOverlay />
                                                         </div>
-                                                    )}
-                                                    <ScanlineOverlay />
+                                                    </HoverImagePreview>
+                                                    <div className="p-1 text-center border-t border-neutral-300 dark:border-white/10">
+                                                        <span className="text-[9px] font-mono text-neutral-500 uppercase tracking-widest block">
+                                                            IMG_{String(index + 1).padStart(2, '0')} 
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                            </HoverImagePreview>
-
-                                            <div className="p-1 text-center border-t border-neutral-300 dark:border-white/10">
-                                                <span className="text-[9px] font-mono text-neutral-500 uppercase tracking-widest block">IMG_01</span>
-                                            </div>
-                                        </div>
-
-                                        {/* CỘT PHẢI: INFO */}
-                                        <div className="flex-1 flex flex-col min-w-0">
-                                            <div className="flex items-center justify-between p-3 border-b border-neutral-300 dark:border-white/10 bg-neutral-50 dark:bg-white/5">
-                                                <h3 className="font-bold font-mono text-sm text-neutral-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase tracking-tight">
-                                                    {user.full_name || user.username || "UNKNOWN_UNIT"}
-                                                </h3>
-                                                <Users size={14} className="text-neutral-400 group-hover:text-blue-500 transition-colors" />
-                                            </div>
-
-                                            <div className="p-3 flex-1">
-                                                <p className="text-[10px] text-neutral-400 font-mono mb-1 uppercase tracking-widest opacity-70">:: BIO_DATA ::</p>
-                                                {user.bio ? (
-                                                    <p className="text-xs text-neutral-600 dark:text-neutral-300 font-mono line-clamp-2 leading-relaxed">
-                                                        {user.bio}
-                                                    </p>
-                                                ) : (
-                                                    <p className="text-[10px] text-neutral-400 italic font-mono opacity-50">// NO DATA AVAILABLE</p>
-                                                )}
-                                            </div>
-
-                                            <div className="flex border-t border-neutral-300 dark:border-white/10">
-                                                <div className="flex-1 p-2 border-r border-neutral-300 dark:border-white/10">
-                                                    <span className="block text-[8px] text-neutral-400 uppercase">ID_REF</span>
-                                                    <span className="block text-[10px] font-mono text-neutral-700 dark:text-neutral-300 truncate">{user.id.slice(0, 6)}</span>
-                                                </div>
-                                                <div className="flex-1 p-2">
-                                                    <span className="block text-[8px] text-neutral-400 uppercase">INIT_DATE</span>
-                                                    <span className="block text-[10px] font-mono text-neutral-700 dark:text-neutral-300 truncate">{new Date(user.created_at).toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit', year:'2-digit'})}</span>
+                                                <div className="flex-1 flex flex-col min-w-0">
+                                                    <div className="flex items-center justify-between p-3 border-b border-neutral-300 dark:border-white/10 bg-neutral-50 dark:bg-white/5">
+                                                        <h3 className="font-bold font-mono text-sm text-neutral-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors tracking-tight">{user.full_name || user.username || "UNKNOWN_UNIT"}</h3>
+                                                        <Users size={14} className="text-neutral-400 group-hover:text-blue-500 transition-colors" />
+                                                    </div>
+                                                    <div className="p-3 flex-1">
+                                                        <p className="text-[10px] text-neutral-900 dark:text-neutral-400 font-mono mb-1 uppercase tracking-widest">:: BIO_DATA ::</p>
+                                                        {user.bio ? <p className="text-xs text-neutral-600 dark:text-neutral-300 font-mono line-clamp-2 leading-relaxed">{user.bio}</p> : <p className="text-[10px] text-neutral-500 italic font-mono">// NO DATA AVAILABLE</p>}
+                                                    </div>
+                                                    <div className="flex border-t border-neutral-300 dark:border-white/10">
+                                                        <div className="flex-1 p-2 border-r border-neutral-300 dark:border-white/10">
+                                                            <span className="block text-[8px] text-neutral-400 uppercase">ID_REF</span>
+                                                            <span className="block text-[10px] font-mono text-neutral-700 dark:text-neutral-300 truncate">{user.id.slice(0, 6)}</span>
+                                                        </div>
+                                                        <div className="flex-1 p-2">
+                                                            <span className="block text-[8px] text-neutral-400 uppercase">INIT_DATE</span>
+                                                            <span className="block text-[10px] font-mono text-neutral-700 dark:text-neutral-300 truncate">{new Date(user.created_at).toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit', year:'2-digit'})}</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                </CyberCard>
-                            </Link>
-                        ))
+                                        </CyberCard>
+                                    </Link>
+                                ))}
+                            </div>
+                        </>
                     )}
                 </div>
             )}
@@ -480,10 +499,8 @@ const SearchPage = async ({ searchParams }) => {
             {/* 3. PLAYLISTS TAB */}
             {activeTab === 'playlists' && (
                 <>
-                    {/* Playlists Grid (Similar to ArtistGrid) */}
                     {playlists.length > 0 && (
                         <div className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            {/* HEADER SECTION */}
                             <div className="flex items-center justify-between mb-4 border-b border-neutral-300 dark:border-white/10 pb-2">
                                 <h2 className="text-sm font-bold font-mono text-neutral-900 dark:text-white tracking-[0.2em] flex items-center gap-2">
                                     <span className="w-2 h-2 bg-purple-500"></span>
@@ -493,44 +510,15 @@ const SearchPage = async ({ searchParams }) => {
                                     CNT: {playlists.length}
                                 </span>
                             </div>
-
-                            {/* GRID HIỂN THỊ */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"> 
                                 {playlists.slice(0, 9).map((playlist) => (
-                                    <Link
-                                        key={playlist.id}
-                                        href={`/playlist?id=${playlist.id}`}
-                                        className="block h-full"
-                                    >
-                                        {/* CyberCard Playlist MỚI */}
-                                        <CyberCard className="
-                                            group h-full p-3 relative
-                                            bg-white dark:bg-neutral-900/40 
-                                            border border-neutral-300 dark:border-white/10
-                                            hover:border-purple-500 dark:hover:border-purple-500/80
-                                            transition-all duration-300 cursor-pointer overflow-hidden
-                                            shadow-lg hover:shadow-[0_0_15px_rgba(168,85,247,0.3)]
-                                        ">
-                                            {/* Decor */}
+                                    <Link key={playlist.id} href={`/playlist?id=${playlist.id}`} className="block h-full">
+                                        <CyberCard className="group h-full p-3 relative bg-white dark:bg-neutral-900/40 border border-neutral-300 dark:border-white/10 hover:border-purple-500 dark:hover:border-purple-500/80 transition-all duration-300 cursor-pointer overflow-hidden shadow-lg hover:shadow-[0_0_15px_rgba(168,85,247,0.3)]">
                                             <div className="absolute inset-0 translate-x-1 translate-y-1 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 opacity-50 group-hover:translate-x-0.5 group-hover:translate-y-0.5 transition-transform duration-300"></div>
                                             <div className="absolute inset-0 translate-x-2 translate-y-2 bg-neutral-300 dark:bg-neutral-800/50 border border-neutral-300 dark:border-white/10 opacity-30 group-hover:translate-x-1 group-hover:translate-y-1 transition-transform duration-300"></div>
-
-                                            {/* Content Container */}
                                             <div className="relative z-10 w-full flex flex-col gap-3">
-
-                                                {/* 1. IMAGE/COVER AREA (Giữ nguyên, không HoverPreview) */}
                                                 <div className="relative w-full aspect-square border border-neutral-300 dark:border-white/10 bg-neutral-200 dark:bg-neutral-800 overflow-hidden group/img">
-                                                    {playlist.cover_url ? (
-                                                        <img
-                                                            src={playlist.cover_url}
-                                                            alt={playlist.name}
-                                                            className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500 group-hover:scale-105"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-neutral-400 dark:text-neutral-500">
-                                                            <Music size={40} />
-                                                        </div>
-                                                    )}
+                                                    {playlist.cover_url ? <img src={playlist.cover_url} alt={playlist.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500 group-hover:scale-105"/> : <div className="w-full h-full flex items-center justify-center text-neutral-400 dark:text-neutral-500"><Music size={40} /></div>}
                                                     <ScanlineOverlay />
                                                     <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                                         <div className="w-10 h-10 bg-purple-500/80 flex items-center justify-center rounded-none shadow-[0_0_10px_rgba(168,85,247,0.6)]">
@@ -538,75 +526,35 @@ const SearchPage = async ({ searchParams }) => {
                                                         </div>
                                                     </div>
                                                 </div>
-
-                                                {/* 2. INFO AREA */}
                                                 <div className="flex flex-col gap-1">
-                                                    <h3 className="text-lg font-black text-neutral-900 dark:text-white font-mono group-hover:text-purple-600 dark:group-hover:text-purple-400 transition truncate uppercase">
-                                                        {playlist.name}
-                                                    </h3>
-                                                    
-                                                    {/* UPDATED: Creator Avatar (Có HoverPreview) & Info */}
+                                                    <h3 className="text-lg font-black text-neutral-900 dark:text-white font-mono group-hover:text-purple-600 dark:group-hover:text-purple-400 transition truncate">{playlist.name}</h3>
                                                     <div className="flex items-center justify-between text-xs font-mono text-neutral-500 dark:text-neutral-400 border-t border-dashed border-neutral-300 dark:border-white/10 pt-2">
                                                         <div className="flex items-center gap-2">
-                                                            {/* HIỂN THỊ AVATAR NGƯỜI TẠO CÓ HOVER PREVIEW */}
-                                                            <HoverImagePreview 
-                                                                src={playlist.creator.avatar} 
-                                                                alt={playlist.creator.name} 
-                                                                className="w-10 h-10 shrink-0 hover:cursor-none" 
-                                                                previewSize={200}
-                                                            >
-                                                                {playlist.creator.avatar ? (
-                                                                    <img 
-                                                                        src={playlist.creator.avatar} 
-                                                                        alt={playlist.creator.name} 
-                                                                        className="w-full h-full rounded-none object-cover border border-purple-500/50" 
-                                                                    />
-                                                                ) : (
-                                                                    <div className="w-full h-full rounded-none bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center">
-                                                                        <User size={14} className="text-neutral-500" />
-                                                                    </div>
-                                                                )}
+                                                            <HoverImagePreview src={playlist.creator.avatar} alt={playlist.creator.name} className="w-10 h-10 shrink-0 hover:cursor-none" previewSize={200}>
+                                                                {playlist.creator.avatar ? <img src={playlist.creator.avatar} alt={playlist.creator.name} className="w-full h-full rounded-none object-cover border border-purple-500/50" /> : <div className="w-full h-full rounded-none bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center"><User size={14} className="text-neutral-500" /></div>}
                                                             </HoverImagePreview>
-
-                                                            <span className="opacity-90 font-bold">
-                                                                {playlist.creator.name}
-                                                            </span>
+                                                            <span className="opacity-90 font-bold">{playlist.creator.name}</span>
                                                         </div>
-                                                        <span className="text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 px-1 py-0.5 border border-purple-500/50">
-                                                            {playlist.songCount} TRKS
-                                                        </span>
+                                                        <span className="text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 px-1 py-0.5 border border-purple-500/50">{playlist.songCount} TRKS</span>
                                                     </div>
                                                 </div>
-
                                             </div>
                                         </CyberCard>
                                     </Link>
                                 ))}
                             </div>
-
-                            {/* Load More if needed */}
-                            {playlists.length > 9 && (
-                                <div className="mt-4 text-center">
-                                    <p className="text-xs font-mono text-neutral-500">Showing 9 of {playlists.length} playlists</p>
-                                </div>
-                            )}
+                            {playlists.length > 9 && <div className="mt-4 text-center"><p className="text-xs font-mono text-neutral-500">Showing 9 of {playlists.length} playlists</p></div>}
                         </div>
                     )}
-
-                    {/* Empty State */}
                     {playlists.length === 0 && (
                         <div className="flex flex-col items-center justify-center py-20 opacity-70 font-mono gap-4 animate-in fade-in zoom-in duration-500 text-neutral-500 dark:text-neutral-400 border border-dashed border-neutral-300 dark:border-white/10">
-                            <div className="relative">
-                                <Music size={60} className="text-purple-300 dark:text-purple-700 animate-pulse"/>
-                                <Search size={24} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-neutral-800 dark:text-white"/>
-                            </div>
+                            <div className="relative"><Music size={60} className="text-purple-300 dark:text-purple-700 animate-pulse"/><Search size={24} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-neutral-800 dark:text-white"/></div>
                             <p className="text-lg tracking-widest">[NO_PLAYLISTS_FOUND]</p>
                             <p className="text-xs">Try different query parameters.</p>
                         </div>
                     )}
                 </>
             )}
-
         </div>
     );
 };

@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 // Components
 import { GlitchText, CyberCard, CyberButton, ScanlineOverlay, GlitchButton, HoloButton } from "@/components/CyberComponents";
 import FollowButton from "@/components/FollowButton"; 
-import HoverImagePreview from "@/components/HoverImagePreview"; // Import component Preview
+import HoverImagePreview from "@/components/HoverImagePreview"; 
 
 // Icons
 import { Play, Music, Disc, ArrowLeft, Edit3, Heart, User, Camera, Save, X, Loader2, FileText, LayoutGrid, Lock, Mail, Phone } from "lucide-react";
@@ -30,9 +30,46 @@ const formatDuration = (sec) => {
   return `${m}:${s.toString().padStart(2, "0")}`;
 };
 
+// --- SKELETON LOADING COMPONENT ---
+const UserProfileSkeleton = () => {
+    return (
+        <div className="min-h-screen bg-neutral-100 dark:bg-black pb-[100px] animate-pulse">
+            {/* Hero Skeleton */}
+            <div className="relative">
+                <div className="h-56 w-full bg-neutral-300 dark:bg-neutral-900 border-b border-white/10"></div>
+                <div className="px-6 pb-20 relative max-w-7xl mx-auto">
+                    <div className="flex flex-col md:flex-row items-end -mt-24 gap-8">
+                        <div className="relative w-40 h-40 md:w-48 md:h-48 bg-neutral-300 dark:bg-neutral-800 border-4 border-black dark:border-neutral-900 shrink-0"></div>
+                        <div className="flex-1 w-full mb-2 space-y-4">
+                            <div className="h-10 w-2/3 bg-neutral-300 dark:bg-neutral-800 rounded-none"></div>
+                            <div className="h-4 w-1/3 bg-neutral-300 dark:bg-neutral-800 rounded-none"></div>
+                            <div className="h-20 w-full bg-neutral-200 dark:bg-neutral-900/50 rounded-none"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Stats Skeleton */}
+            <div className="border-y border-neutral-200 dark:border-white/10 bg-neutral-50 dark:bg-white/5 mb-8 h-14"></div>
+
+            {/* Content Skeleton */}
+            <div className="max-w-7xl mx-auto px-6 space-y-4">
+                <div className="flex gap-4 mb-6">
+                    <div className="h-10 w-32 bg-neutral-300 dark:bg-neutral-800 rounded-none"></div>
+                    <div className="h-10 w-32 bg-neutral-300 dark:bg-neutral-800 rounded-none"></div>
+                    <div className="h-10 w-32 bg-neutral-300 dark:bg-neutral-800 rounded-none"></div>
+                </div>
+                {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="h-16 w-full bg-neutral-200 dark:bg-neutral-900 rounded-none"></div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
 // --- COMPONENT: EDIT PROFILE MODAL (FULL CLICKABLE AREA) ---
+// ... (Giữ nguyên component EditProfileModal - Không thay đổi)
 const EditProfileModal = ({ user, email, onClose, onUpdate }) => {
-    // ... (Giữ nguyên logic EditProfileModal) ...
     const { alert: showAlert } = useUI();
     const [isLoading, setIsLoading] = useState(false);
     
@@ -248,7 +285,6 @@ const ArtistCardView = ({ name, image, onUnfollow }) => (
 
 // --- COMPONENT: SONG ROW (WITH HOVER PREVIEW & AUDIO) ---
 const SongRow = ({ song, onClick }) => (
-    // --- THÊM DATA-SONG-JSON VÀO ĐÂY ---
     <div 
       data-song-json={JSON.stringify(song)} 
       onClick={onClick} 
@@ -263,7 +299,7 @@ const SongRow = ({ song, onClick }) => (
             className="w-full h-full cursor-none"
             previewSize={240}
             fallbackIcon="user"
-         >
+          >
             <div className="w-full h-full relative overflow-hidden flex items-center justify-center">
                 {song.image_url || song.image_path ? (
                     <img src={song.image_url || song.image_path} alt={song.title} className="w-full h-full object-cover opacity-80 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500" />
@@ -301,7 +337,6 @@ const SongRow = ({ song, onClick }) => (
 
 // --- MAIN PAGE ---
 const UserProfilePage = () => {
-    // ... (Giữ nguyên logic của Main Page)
     const params = useParams();
     const router = useRouter();
     const player = usePlayer();
@@ -321,7 +356,6 @@ const UserProfilePage = () => {
 
     // --- Data Fetching ---
     const fetchPlaylists = async (userId) => {
-        // Logic mới: Lấy thêm count của songs trong playlist
         const { data } = await supabase
             .from('playlists')
             .select('*, playlist_songs(count)')
@@ -398,12 +432,8 @@ const UserProfilePage = () => {
     const handleProfileUpdate = () => fetchUserProfile();
 
     // --- RENDER ---
-    if (loading) return (
-        <div className="min-h-screen bg-neutral-100 dark:bg-black animate-pulse flex flex-col items-center justify-center gap-4">
-            <Loader2 size={40} className="text-emerald-500 animate-spin"/>
-            <p className="font-mono text-xs tracking-widest text-neutral-500">LOADING_USER_DATA...</p>
-        </div>
-    );
+    // SỬ DỤNG SKELETON LOADING THAY VÌ SPINNER
+    if (loading) return <UserProfileSkeleton />;
 
     if (!profile) return null;
 
@@ -412,12 +442,12 @@ const UserProfilePage = () => {
             
             {/* 1. HERO SECTION */}
             <div className="relative">
-                <div className="h-56 w-full bg-neutral-900 relative overflow-hidden border-b border-white/10 group">
+                <div className="h-56 w-full dark:bg-neutral-900 bg-neutral-300 relative overflow-hidden border-b border-white/10 group">
                     {profile.banner_url ? (
                         <img src={profile.banner_url} alt="Banner" className="w-full h-full grayscale group-hover:grayscale-0 object-cover opacity-80 transition-all duration-1000" />
                     ) : (
                         <>
-                            <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/50 to-black z-0"></div>
+                            <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/50 to-neutral-900/75 z-0"></div>
                             <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] z-0 pointer-events-none"></div>
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/5 z-0">
                                 <LayoutGrid size={120} strokeWidth={0.5} />
@@ -425,14 +455,14 @@ const UserProfilePage = () => {
                         </>
                     )}
                     <ScanlineOverlay />
-                    <button onClick={() => router.back()} className="absolute top-6 left-6 p-2 bg-black/50 hover:bg-emerald-500 hover:text-white text-white border border-white/20 transition-colors z-20"><ArrowLeft size={20} /></button>
                 </div>
+                <button onClick={() => router.back()} className="absolute top-6 left-6 p-3 bg-black/50 hover:bg-emerald-500 hover:text-white text-white border border-white/20 transition-colors z-20 group"><ArrowLeft size={20} className="group-hover:!-translate-x-1 !transition-transform"/></button>
 
                 <div className="px-6 pb-20 relative max-w-7xl mx-auto">
                     <div className="flex flex-col md:flex-row items-end -mt-24 gap-8">
                         
                         {/* Avatar Main (Có Hover Preview) */}
-                        <div className="relative w-40 h-40 md:w-48 md:h-48 bg-black border-4 border-black dark:border-neutral-900 shadow-[0_10px_40px_rgba(0,0,0,0.5)] shrink-0 overflow-hidden group">
+                        <div className="relative z-[9999] w-40 h-40 md:w-48 md:h-48 bg-black border-4 border-black dark:border-neutral-900 shadow-[0_10px_40px_rgba(0,0,0,0.5)] shrink-0 overflow-hidden group">
                              <HoverImagePreview 
                                 src={profile.avatar_url} 
                                 alt={profile.full_name} 

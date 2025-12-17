@@ -246,7 +246,7 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
                                 </span>
                             </div>
                             
-                            <h1 className="text-4xl md:text-6xl font-black font-mono text-neutral-900 dark:text-white mb-1 tracking-tighter uppercase leading-none truncate max-w-2xl">
+                            <h1 className="text-4xl md:text-6xl font-black font-mono text-neutral-900 dark:text-white mb-1 tracking-tighter leading-none truncate max-w-2xl">
                                 <GlitchText text={activeSong.title} />
                             </h1>
                             
@@ -321,7 +321,7 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
                                                 </HoverImagePreview>
 
                                                 <div className="absolute bottom-0 left-0 w-full p-4 bg-black/80 backdrop-blur-sm border-t border-white/10">
-                                                    <h3 className="text-xl font-bold text-white font-mono mb-1 truncate uppercase">
+                                                    <h3 className="text-xl font-bold text-white font-mono mb-1 truncate">
                                                         {topArtists[0].name}
                                                     </h3>
                                                     <div className="flex items-center gap-4 text-[10px] font-mono text-neutral-400 uppercase">
@@ -370,7 +370,7 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
                                                     </div>
 
                                                     <div className="flex flex-col">
-                                                        <span className="font-bold text-xs text-neutral-900 dark:text-white font-mono truncate max-w-[120px] uppercase">
+                                                        <span className="font-bold text-xs text-neutral-900 dark:text-white font-mono truncate max-w-[120px]">
                                                             {artist.name}
                                                         </span>
                                                         <div className="flex gap-2 text-[9px] font-mono text-neutral-500 dark:text-neutral-500 uppercase">

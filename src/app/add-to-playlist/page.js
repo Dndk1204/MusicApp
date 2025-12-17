@@ -266,7 +266,7 @@ export default function AddToPlaylistPage() {
     <div className="fixed inset-0 bg-neutral-900/90 backdrop-blur-sm flex items-center justify-center z-[999] p-4 animate-in fade-in duration-300">
       <div
         className="
-          w-full max-w-xl h-[80vh] flex flex-col relative overflow-hidden
+          !w-[60vh] max-w-xl h-[70vh] flex flex-col relative overflow-hidden
           bg-white dark:bg-black
           border-2 border-neutral-400 dark:border-white/20
           shadow-[0_0_40px_rgba(0,0,0,0.5)] dark:shadow-[0_0_40px_rgba(255,255,255,0.05)]

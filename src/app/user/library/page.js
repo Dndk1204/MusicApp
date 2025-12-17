@@ -10,6 +10,8 @@ import { useAuth } from "@/components/AuthWrapper";
 import { useModal } from "@/context/ModalContext";
 // Import Full Cyber Components
 import { GlitchText, HoloButton, GlitchButton, CyberButton, CyberCard, ScanlineOverlay } from "@/components/CyberComponents";
+// Import Back Button
+import BackButton from "@/components/BackButton"; 
 
 // Function to extract audio duration
 const extractAudioDuration = (file) => {
@@ -101,9 +103,6 @@ const MyUploadsPage = () => {
     setSongsTuned(songs || []);
     setLoadingTuned(false);
   };
-
-
-
 
   const onPlay = (id) => {
     if (!isAuthenticated) {
@@ -222,7 +221,7 @@ const MyUploadsPage = () => {
     return songsUploads;
   }, [songsUploads, songsTuned, filter, activeTab]);
 
-  // --- COMPONENT: USER SONG CARD (CYBER BRUTALISM & HOVER FIX) ---
+  // --- COMPONENT: USER SONG CARD ---
   const UserSongCard = ({ song, isEditing, isEditable, onClick }) => (
     <CyberCard
         className={`
@@ -233,9 +232,6 @@ const MyUploadsPage = () => {
         onClick={() => !isEditing && onClick && onClick(song.id)}
     >
        {/* IMAGE AREA */}
-       {/* group/img: dùng để điều khiển hiệu ứng khi hover vào ảnh
-          group (ở CyberCard): dùng để điều khiển hiệu ứng khi hover vào card
-       */}
        <div className="relative w-full aspect-square bg-neutral-800 border-b border-neutral-300 dark:border-white/10 overflow-hidden group/img">
           {song.image_url ? (
             <img 
@@ -266,7 +262,7 @@ const MyUploadsPage = () => {
              </div>
           )}
 
-          {/* HOVER ACTIONS (Chỉ hiện khi hover vào ảnh - group-hover/img) */}
+          {/* HOVER ACTIONS */}
           {isEditable && !isEditing && (
              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-all duration-300 flex items-center justify-center gap-3 backdrop-blur-none z-30">
                   <button onClick={() => startEditing(song)} className="p-2 bg-blue-600/90 text-white hover:bg-blue-500 border border-blue-400 transition-transform hover:scale-110 shadow-lg">
@@ -278,7 +274,7 @@ const MyUploadsPage = () => {
              </div>
           )}
 
-          {/* UPLOAD OVERLAY (WHEN EDITING) */}
+          {/* UPLOAD OVERLAY */}
           {isEditing && (
              <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition z-30">
                 <ImageIcon size={24} className="text-emerald-500 mb-1 animate-bounce"/>
@@ -341,12 +337,19 @@ const MyUploadsPage = () => {
        
        {/* HEADER */}
        <div className="flex flex-col gap-6 mb-8">
-          <div className="flex flex-col gap-2">
-             <h1 className="text-4xl md:text-5xl font-black font-mono tracking-tighter text-neutral-900 dark:text-white flex items-center gap-3">
-                <Music className="text-emerald-500" size={40}/>
-                <GlitchText text="MY_COLLECTION" />
-             </h1>
-             <div className="h-1 w-24 bg-emerald-500"></div>
+          
+          {/* TITLE & BACK BUTTON */}
+          <div className="flex items-start gap-4">
+             {/* Thêm nút Back Button ở đây */}
+             <BackButton />
+
+             <div className="flex flex-col gap-2">
+                 <h1 className="text-4xl md:text-5xl font-black font-mono tracking-tighter text-neutral-900 dark:text-white flex items-center gap-3">
+                    <Music className="text-emerald-500" size={40}/>
+                    <GlitchText text="MY_COLLECTION" />
+                 </h1>
+                 <div className="h-1 w-24 bg-emerald-500"></div>
+             </div>
           </div>
 
           {/* TABS */}
