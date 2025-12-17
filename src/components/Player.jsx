@@ -13,8 +13,6 @@ const Player = () => {
 
   // --- Reset player khi vào trang ---
   useEffect(() => {
-    // Không reset ID ngay lập tức để tránh mất nhạc nếu refresh nhẹ
-    // Chỉ reset playing state
     player.setIsPlaying(false); 
     setIsMounted(true);
 
@@ -33,13 +31,17 @@ const Player = () => {
     if (!isMounted) return;
 
     const loadSongData = async () => {
+      // Nếu không có bài nào được chọn thì reset song
       if (!player.activeId) {
         setSong(null);
         return;
       }
 
+      // Tránh load lại bài cũ nếu ID chưa đổi (quan trọng để tránh reload loop)
+      if (song?.id === player.activeId) return;
+
       try {
-        // 1. Tìm trong Supabase
+        // 1. Tìm trong Supabase trước
         const { data: dbSong } = await supabase
           .from("songs")
           .select("*")
@@ -52,43 +54,52 @@ const Player = () => {
               title: dbSong.title,
               author: dbSong.author,
               duration: dbSong.duration,
-              song_path: dbSong.song_url,
+              song_path: dbSong.song_url, // URL từ Supabase Storage
               image_path: dbSong.image_url,
             });
             return;
         }
 
-        // 2. Fallback Jamendo
+        // 2. Nếu không có trong DB, thử lấy từ Jamendo API (Fallback)
+        // Lưu ý: ID của Jamendo thường là số, còn ID Supabase là UUID. 
+        // Cần đảm bảo logic này không bị nhầm lẫn.
         const jamendoId = dbSong?.external_id || player.activeId;
-        const CLIENT_ID = "3501caaa";
-        const res = await fetch(
-          `https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=json&id=${jamendoId}&audioformat=mp31`
-        );
-        const json = await res.json();
+        
+        // Chỉ gọi API nếu ID trông giống số (Jamendo ID)
+        if (!isNaN(jamendoId)) {
+            const CLIENT_ID = "3501caaa";
+            const res = await fetch(
+              `https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=json&id=${jamendoId}&audioformat=mp31`
+            );
+            const json = await res.json();
 
-        if (json.results && json.results[0]) {
-            const track = json.results[0];
-            const recoveredSong = {
-                id: dbSong?.id || jamendoId,
-                title: track.name,
-                author: track.artist_name,
-                duration: track.duration,
-                song_path: track.audio,
-                image_path: track.image || track.album_image || "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600",
-            };
-            setSong(recoveredSong);
+            if (json.results && json.results[0]) {
+                const track = json.results[0];
+                const recoveredSong = {
+                    id: dbSong?.id || jamendoId, // Giữ ID gốc của hệ thống
+                    title: track.name,
+                    author: track.artist_name,
+                    duration: track.duration,
+                    song_path: track.audio, // URL MP3 từ Jamendo
+                    image_path: track.image || track.album_image || "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600",
+                };
+                setSong(recoveredSong);
 
-            // Upsert lại để cache
-            if (dbSong) {
-                await supabase.from("songs").upsert({
-                    id: dbSong.id,
-                    title: recoveredSong.title,
-                    author: recoveredSong.author,
-                    duration: recoveredSong.duration,
-                    song_url: recoveredSong.song_path,
-                    image_url: recoveredSong.image_path,
-                    external_id: jamendoId,
-                });
+                // (Optional) Cache lại thông tin vào DB nếu cần thiết
+                if (dbSong) {
+                    await supabase.from("songs").upsert({
+                        id: dbSong.id,
+                        title: recoveredSong.title,
+                        author: recoveredSong.author,
+                        duration: recoveredSong.duration,
+                        song_url: recoveredSong.song_path,
+                        image_url: recoveredSong.image_path,
+                        external_id: jamendoId,
+                    });
+                }
+            } else {
+                console.warn("Song not found in Jamendo API either.");
+                // Có thể gọi player.reset() ở đây nếu muốn dừng hẳn
             }
         }
       } catch (err) {
@@ -97,27 +108,16 @@ const Player = () => {
     };
 
     loadSongData();
-  }, [player.activeId, isMounted]);
+  }, [player.activeId, isMounted]); // Bỏ dependency 'song' để tránh loop
 
   const songUrl = useLoadSongUrl(song);
 
-  // --- QUAN TRỌNG: Logic Auto Play ---
-  // Khi có URL mới, tự động báo player phát
-  useEffect(() => {
-      if (songUrl && player.activeId) {
-         // Không cần setPlaying(true) ở đây nữa, 
-         // hãy để PlayerContent tự quyết định trong onPlay của Howler
-         // để tránh conflict state.
-      } 
-  }, [songUrl, player.activeId]);
-
+  // --- Auto Play Logic ---
+  // (Đã loại bỏ logic Wake Lock ở đây theo yêu cầu)
 
   if (!isMounted) return null;
 
-  // --- LOGIC HIỂN THỊ UI MỚI (FIX LỖI MẤT SESSION) ---
-  // Chỉ ẩn player khi THỰC SỰ không có bài nào trong hàng đợi (activeId = null)
-  // Nếu activeId có, nhưng song/songUrl chưa load xong -> Vẫn render khung Player (nhưng loading)
-  // Điều này giữ cho component không bị unmount -> giữ audio session sống.
+  // --- UI RENDER ---
   
   if (!player.activeId) {
     return (
@@ -147,9 +147,9 @@ const Player = () => {
     ">
       <div className="absolute top-0 left-0 h-[2px] w-full bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-50"></div>
       
-      {/* ⚠️ QUAN TRỌNG NHẤT: BỎ KEY={SONGURL} 
-          Việc này giúp PlayerContent KHÔNG BỊ UNMOUNT khi đổi bài.
-          Nó chỉ update props -> giữ Audio Element sống -> Chuyển bài mượt khi tắt màn hình.
+      {/* QUAN TRỌNG: Truyền key="global-player-content" 
+          để React không unmount PlayerContent khi đổi bài hát (chỉ update props).
+          Điều này giúp audio element không bị hủy và tạo lại liên tục.
       */}
       <PlayerContent 
         key="global-player-content" 

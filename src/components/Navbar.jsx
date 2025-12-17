@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link"; 
-import { User, LogOut, LogIn, UserPlus, ShieldCheck, Search, Disc, Sun, Moon, SlidersHorizontal, Zap, ZapOff } from "lucide-react"; 
+import { User, LogOut, LogIn, UserPlus, ShieldCheck, Search, Disc, Sun, Moon, SlidersHorizontal } from "lucide-react"; 
 import { supabase } from "@/lib/supabaseClient";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useModal } from "@/context/ModalContext";
@@ -26,7 +26,8 @@ const Navbar = () => {
   const [searchValue, setSearchValue] = useState("");
   const [debouncedValue, setDebouncedValue] = useState("");
   const [theme, setTheme] = useState("dark");
-  const [keepAwake, setKeepAwake] = useState(false);
+  
+  // --- KEEP AWAKE (ALWAYS ON) ---
   const wakeLockRef = useRef(null);
 
   // --- 1. THEME & LOAD SETTINGS ---
@@ -39,10 +40,6 @@ const Navbar = () => {
       setTheme("dark");
       document.documentElement.classList.add("dark");
     }
-
-    if (localStorage.getItem("keepAwake") === "true") {
-        setKeepAwake(true);
-    }
   }, []);
 
   const toggleTheme = () => {
@@ -53,58 +50,51 @@ const Navbar = () => {
     else document.documentElement.classList.remove("dark");
   };
 
-  // --- 2. WAKE LOCK LOGIC ---
+  // --- 2. WAKE LOCK LOGIC (AUTO ENABLE) ---
   const requestWakeLock = useCallback(async () => {
     if ('wakeLock' in navigator) {
         try {
+            // Chỉ yêu cầu khi tab đang hiển thị
             if (document.visibilityState !== 'visible') return;
+            // Nếu đã có khóa rồi thì thôi
             if (wakeLockRef.current && !wakeLockRef.current.released) return;
 
             wakeLockRef.current = await navigator.wakeLock.request('screen');
-            
+            // console.log('Wake Lock is active'); // Debug log
+
             wakeLockRef.current.addEventListener('release', () => {
+                // console.log('Wake Lock released'); // Debug log
+                // Reset ref khi bị nhả (ví dụ khi minimize tab)
                 if (wakeLockRef.current && wakeLockRef.current.released) {
                     wakeLockRef.current = null;
                 }
             });
         } catch (err) { 
+            // Bỏ qua lỗi nếu trình duyệt chặn hoặc pin yếu
             if (err.name !== 'NotAllowedError') console.error(err); 
         }
     }
   }, []);
 
-  const releaseWakeLock = useCallback(async () => {
-    if (wakeLockRef.current) {
-        try { await wakeLockRef.current.release(); wakeLockRef.current = null; } catch (err) { console.error(err); }
-    }
-  }, []);
-
   useEffect(() => {
+    // 1. Yêu cầu khóa màn hình ngay lập tức khi vào trang
+    requestWakeLock();
+
+    // 2. Tự động yêu cầu lại khi người dùng quay lại tab (sau khi minimize)
     const handleVisibility = () => { 
-        if (document.visibilityState === 'visible' && keepAwake) {
+        if (document.visibilityState === 'visible') {
             requestWakeLock();
         }
     };
 
-    if (keepAwake) {
-        requestWakeLock();
-        document.addEventListener('visibilitychange', handleVisibility);
-    } else {
-        releaseWakeLock();
-        document.removeEventListener('visibilitychange', handleVisibility);
-    }
+    document.addEventListener('visibilitychange', handleVisibility);
     
     return () => { 
         document.removeEventListener('visibilitychange', handleVisibility); 
-        releaseWakeLock(); 
+        // Nhả khóa khi unmount
+        if (wakeLockRef.current) wakeLockRef.current.release();
     };
-  }, [keepAwake, requestWakeLock, releaseWakeLock]);
-
-  const toggleKeepAwake = () => {
-    const nextState = !keepAwake;
-    setKeepAwake(nextState);
-    localStorage.setItem("keepAwake", nextState.toString());
-  };
+  }, [requestWakeLock]);
 
   // --- 3. USER DATA ---
   useEffect(() => {
@@ -254,13 +244,7 @@ const Navbar = () => {
                         </div>
                       </div>
 
-                      {/* WAKE LOCK TOGGLE */}
-                      <div onClick={toggleKeepAwake} className="px-3 py-2 text-xs font-mono uppercase text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-white/10 hover:text-black dark:hover:text-white cursor-pointer flex items-center justify-between transition-colors border border-transparent hover:border-neutral-300 dark:hover:border-white/20">
-                        <div className="flex items-center gap-3">{keepAwake ? <Zap size={14} className="text-yellow-600 dark:text-yellow-500" /> : <ZapOff size={14} />}<span>Awake: {keepAwake ? 'ON' : 'OFF'}</span></div>
-                        <div className={`w-6 h-3 border border-neutral-400 dark:border-white/40 relative flex items-center ${keepAwake ? 'justify-end border-yellow-500' : 'justify-start'} p-0.5 transition-all`}>
-                            <div className={`w-2 h-2 rounded-none transition-colors ${keepAwake ? 'bg-yellow-500' : 'bg-neutral-500'}`}></div>
-                        </div>
-                      </div>
+                      {/* REMOVED WAKE LOCK TOGGLE (AUTO ON) */}
                   </div>
                   <div className="border-t border-neutral-200 dark:border-white/10 mt-1 p-2">
                     <div onClick={handleLogout} className="px-3 py-2 text-xs font-mono uppercase text-red-600 dark:text-red-500 hover:bg-red-500/10 cursor-pointer flex items-center gap-3 transition-colors border border-transparent hover:border-red-500/30"><LogOut size={14} /> Terminate_Session</div>

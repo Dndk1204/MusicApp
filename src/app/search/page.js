@@ -10,7 +10,7 @@ import { cookies } from "next/headers";
 import { CyberCard, ScanlineOverlay, GlitchText } from "@/components/CyberComponents";
 // IMPORT HOVER PREVIEW
 import HoverImagePreview from "@/components/HoverImagePreview";
-// IMPORT BACK BUTTON (Vừa tạo ở bước 1)
+// IMPORT BACK BUTTON
 import BackButton from "@/components/BackButton"; 
 
 export const revalidate = 0;
@@ -26,7 +26,6 @@ const searchUsers = async (term) => {
     const searchTerm = term.trim();
 
     try {
-        // 1. Tìm theo Full Name
         let { data: fullNameData, error: fullNameError } = await supabase
             .from('profiles')
             .select('*')
@@ -35,7 +34,6 @@ const searchUsers = async (term) => {
 
         if (fullNameError || !fullNameData) fullNameData = [];
 
-        // 2. Tìm theo Username (nếu kết quả ít)
         let usernameData = [];
         if (fullNameData.length < 20) {
             try {
@@ -48,7 +46,6 @@ const searchUsers = async (term) => {
             } catch (e) { }
         }
 
-        // Gộp và lọc trùng
         const allUsers = [...fullNameData, ...usernameData];
         const uniqueUsers = allUsers.filter((user, index, self) =>
             index === self.findIndex(u => u.id === user.id)
@@ -85,7 +82,6 @@ const searchPlaylists = async (term) => {
 
         if (error || !playlists) return [];
 
-        // Transform data
         const playlistsWithCreators = playlists.map(playlist => ({
             ...playlist,
             creator: {
@@ -156,9 +152,16 @@ const SearchPage = async ({ searchParams }) => {
                 .select('*')
                 .not('user_id', 'is', null)
                 .eq('is_public', true)
-                .order('created_at', { ascending: false })
-                .limit(50);
-            songs = data || [];
+                .order('created_at', { ascending: false });
+            
+            // XỬ LÝ: BẬT PREVIEW CHO COMMUNITY UPLOADS
+            songs = (data || []).map(song => ({
+                ...song,
+                // Đảm bảo song_path trỏ đúng file nhạc trong DB
+                song_path: song.song_path || song.song_url, 
+                allow_preview: true // ✅ BẬT PREVIEW
+            }));
+
         } catch (err) { console.error(err); }
         pageTitle = "COMMUNITY_UPLOADS";
     } else {
@@ -184,7 +187,8 @@ const SearchPage = async ({ searchParams }) => {
             localArtistsPromise
         ]);
 
-        songs = songsResult.songs || [];
+        // API Songs (Mặc định bật preview)
+        songs = (songsResult.songs || []).map(s => ({ ...s, allow_preview: true }));
         
         const jamendoArtists = songsResult.artists || [];
         const filteredLocalArtists = localArtistsResult.filter(local => 
@@ -195,7 +199,7 @@ const SearchPage = async ({ searchParams }) => {
         playlists = playlistsResult || [];
         users = usersResult || [];
 
-        // Search Songs in DB
+        // Nếu có tìm kiếm (Gộp cả API và User Uploads)
         if (params.title || params.tag) {
             const cookieStore = await cookies();
             const supabase = createServerComponentClient({ cookies: () => cookieStore });
@@ -215,20 +219,34 @@ const SearchPage = async ({ searchParams }) => {
                 const { data: userSongs } = await query;
 
                 if (userSongs && userSongs.length > 0) {
-                    const mapSong = (song) => ({
+                    
+                    // Helper map cơ bản
+                    const mapSongBase = (song) => ({
                         id: song.id,
                         title: song.title,
                         author: song.author,
-                        song_path: song.song_path || song.songUrl,
+                        // Quan trọng: Lấy đúng đường dẫn file để play preview
+                        song_path: song.song_path || song.song_url, 
                         image_path: song.image_url || song.image_path || '/images/music-placeholder.png',
                         duration: song.duration,
                         lyrics: song.lyrics || null,
                         user_id: song.user_id
                     });
 
-                    const jamendoSongs = songs.map(mapSong);
-                    const uploadedSongs = userSongs.map(mapSong);
-                    const combined = [...uploadedSongs, ...jamendoSongs];
+                    // Map API Songs: Cho phép Preview
+                    const jamendoSongsMapped = songs.map(s => ({
+                        ...mapSongBase(s),
+                        allow_preview: true 
+                    }));
+
+                    // Map User Songs: BẬT PREVIEW LUÔN
+                    const uploadedSongsMapped = userSongs.map(s => ({
+                        ...mapSongBase(s),
+                        allow_preview: true // ✅ BẬT PREVIEW CHO NHẠC DB
+                    }));
+
+                    // Gộp lại
+                    const combined = [...uploadedSongsMapped, ...jamendoSongsMapped];
                     const unique = combined.filter((song, index, self) =>
                         index === self.findIndex(s => s.id === song.id && s.title === song.title && s.author === song.author)
                     );
