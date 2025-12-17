@@ -96,8 +96,7 @@ const Sidebar = ({ children }) => {
   //      Realtime Setup
   // =========================
   useEffect(() => {
-    let ch1 = null;
-    let ch2 = null;
+    let channel;
 
     const init = async () => {
       await fetchPlaylists();
@@ -106,33 +105,38 @@ const Sidebar = ({ children }) => {
       const user = session?.user;
       if (!user) return;
 
-      ch1 = supabase
-        .channel("rt-playlists")
-        .on("postgres_changes", { event: "*", schema: "public", table: "playlists", filter: `user_id=eq.${user.id}` }, fetchPlaylists)
-        .subscribe();
-
-      ch2 = supabase
-        .channel("rt-playlist-songs")
-        .on("postgres_changes", { event: "*", schema: "public", table: "playlist_songs" }, fetchPlaylists)
+      channel = supabase
+        .channel(`rt-playlists-${user.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "playlists",
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => {
+            fetchPlaylists();
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "playlist_songs",
+          },
+          () => {
+            fetchPlaylists();
+          }
+        )
         .subscribe();
     };
 
     init();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") {
-        setLoading(true);
-        fetchPlaylists();
-      }
-      if (event === "SIGNED_OUT") {
-        setPlaylists([]);
-      }
-    });
-
     return () => {
-      if (ch1) supabase.removeChannel(ch1);
-      if (ch2) supabase.removeChannel(ch2);
-      authListener.subscription.unsubscribe();
+      if (channel) supabase.removeChannel(channel);
     };
   }, []);
 
