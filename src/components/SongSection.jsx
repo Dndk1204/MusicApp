@@ -79,7 +79,7 @@ const SongSection = ({ title, songs, moreLink }) => {
                     "
                 >
                     {/* DÙNG ABSOLUTE INSET-0 ĐỂ CĂN GIỮA TUYỆT ĐỐI */}
-                    <div className="absolute inset-0 translate-y-[8rem] flex flex-col items-center justify-center p-4 z-10">
+                    <div className="absolute inset-0 translate-y-[7rem] flex flex-col items-center justify-center p-4 z-10">
                         <div className="w-12 h-12 flex items-center justify-center border border-neutral-400 dark:border-white/20 bg-white dark:bg-black group-hover:border-emerald-500 group-hover:text-emerald-500 transition-colors duration-300 relative overflow-hidden shrink-0">
                             <div className="absolute inset-0 bg-emerald-500 opacity-0 group-hover:opacity-20 transition-opacity"></div>
                             <ArrowRight size={20} className="text-neutral-600 dark:text-white group-hover:text-emerald-500 group-hover:translate-x-1 transition-transform duration-300"/>

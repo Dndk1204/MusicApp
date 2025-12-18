@@ -11,7 +11,7 @@ import { supabase } from "@/lib/supabaseClient";
 // Import Cyber Components
 import { GlitchText, CyberCard, ScanlineOverlay, HoloButton } from "@/components/CyberComponents";
 // IMPORT HOVER PREVIEW
-import HoverImagePreview from "@/components/HoverImagePreview"; 
+import HoverImagePreview from "@/components/HoverImagePreview"; // Đảm bảo đường dẫn đúng
 
 const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
     const player = usePlayer();
@@ -33,7 +33,7 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
                 const { data: topSongsDB } = await supabase
                     .from('songs')
                     .select('*')
-                    .eq('is_public', true) 
+                    .eq('is_public', true) // <--- LỌC PUBLIC
                     .order('play_count', { ascending: false })
                     .limit(10);
 
@@ -104,7 +104,7 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
         };
 
         fetchFreshData();
-        const interval = setInterval(fetchFreshData, 30000); 
+        const interval = setInterval(fetchFreshData, 30000); // Cập nhật mỗi 30s
         return () => clearInterval(interval);
 
     }, []);
@@ -197,11 +197,7 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
                 
                 {/* === MODE: SONGS (SLIDESHOW) === */}
                 {activeTab === 'songs' && activeSong && (
-                    // --- THÊM DATA SONG JSON ĐỂ CONTEXT MENU HOẠT ĐỘNG ---
-                    <div 
-                        data-song-json={JSON.stringify(activeSong)} 
-                        className="w-full flex items-end gap-10 animate-in fade-in slide-in-from-right-4 duration-500"
-                    >
+                    <div className="w-full flex items-end gap-10 animate-in fade-in slide-in-from-right-4 duration-500">
                         {/* Image Card (Cyber Style) */}
                         <div className="hidden md:block relative w-[220px] h-[220px] shrink-0 border-2 border-white/20 dark:border-white/10 group-hover:border-emerald-500 transition-colors duration-500 bg-neutral-200 dark:bg-neutral-800">
                             {/* Corner Decor */}
@@ -218,18 +214,18 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
                             >
                                 <div className="w-full h-full relative">
                                      {activeSong.image_path || activeSong.image_url ? (
-                                         <Image 
-                                             src={activeSong.image_path || activeSong.image_url} 
-                                             alt={activeSong.title} 
-                                             fill 
-                                             className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
-                                         />
-                                     ) : (
-                                         <div className="w-full h-full flex items-center justify-center">
-                                             <Music size={64} className="text-neutral-400 dark:text-neutral-600 opacity-50"/>
-                                         </div>
-                                     )}
-                                     <div className="absolute inset-0 bg-emerald-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                        <Image 
+                                            src={activeSong.image_path || activeSong.image_url} 
+                                            alt={activeSong.title} 
+                                            fill 
+                                            className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center">
+                                            <Music size={64} className="text-neutral-400 dark:text-neutral-600 opacity-50"/>
+                                        </div>
+                                    )}
+                                    <div className="absolute inset-0 bg-emerald-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                                 </div>
                             </HoverImagePreview>
 
@@ -246,7 +242,7 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
                                 </span>
                             </div>
                             
-                            <h1 className="text-4xl md:text-6xl font-black font-mono text-neutral-900 dark:text-white mb-1 tracking-tighter leading-none truncate max-w-2xl">
+                            <h1 className="text-4xl md:text-6xl font-black font-mono text-neutral-900 dark:text-white mb-1 tracking-tighter uppercase leading-none truncate max-w-2xl">
                                 <GlitchText text={activeSong.title} />
                             </h1>
                             
@@ -292,49 +288,50 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
                                 {/* Top 1 Card */}
                                 {topArtists[0] && (
                                     <Link href={`/artist/${encodeURIComponent(topArtists[0].name)}`} className="hidden md:block h-full group/card">
-                                            <div className="relative h-full border border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-neutral-800/50 overflow-hidden">
-                                                {/* Decor */}
-                                                <div className="absolute top-0 right-0 p-2 bg-yellow-500 text-black font-bold font-mono text-xs z-10">#01</div>
-                                                
-                                                {/* --- HOVER PREVIEW CHO ARTIST (Chỉ ảnh, không audio) --- */}
-                                                <HoverImagePreview 
-                                                    src={topArtists[0].image_url} 
-                                                    alt={topArtists[0].name}
-                                                    className="w-full h-full relative"
-                                                    previewSize={240}
-                                                >
-                                                     <div className="w-full h-full relative">
-                                                        {topArtists[0].image_url ? (
-                                                            <Image 
-                                                                src={topArtists[0].image_url} 
-                                                                alt="top1" 
-                                                                fill 
-                                                                className="object-cover grayscale group-hover/card:grayscale-0 transition duration-700 opacity-60 group-hover/card:opacity-100"
-                                                            />
-                                                        ) : (
-                                                            <div className="w-full h-full flex items-center justify-center">
-                                                                <User size={80} className="text-neutral-400 dark:text-neutral-600 opacity-50" />
-                                                            </div>
-                                                        )}
-                                                        <ScanlineOverlay />
-                                                     </div>
-                                                </HoverImagePreview>
+                                        <div className="relative h-full border border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-neutral-800/50 overflow-hidden">
+                                            {/* Decor */}
+                                            <div className="absolute top-0 right-0 p-2 bg-yellow-500 text-black font-bold font-mono text-xs z-10">#01</div>
+                                            
+                                            {/* --- HOVER PREVIEW CHO ARTIST (Chỉ ảnh, không audio) --- */}
+                                            <HoverImagePreview 
+                                                src={topArtists[0].image_url} 
+                                                alt={topArtists[0].name}
+                                                className="w-full h-full relative"
+                                                previewSize={240}
+                                                // audioSrc={...} // Nếu muốn phát nhạc tiêu biểu của artist thì thêm vào đây
+                                            >
+                                                 <div className="w-full h-full relative">
+                                                    {topArtists[0].image_url ? (
+                                                        <Image 
+                                                            src={topArtists[0].image_url} 
+                                                            alt="top1" 
+                                                            fill 
+                                                            className="object-cover grayscale group-hover/card:grayscale-0 transition duration-700 opacity-60 group-hover/card:opacity-100"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center">
+                                                            <User size={80} className="text-neutral-400 dark:text-neutral-600 opacity-50" />
+                                                        </div>
+                                                    )}
+                                                    <ScanlineOverlay />
+                                                 </div>
+                                            </HoverImagePreview>
 
-                                                <div className="absolute bottom-0 left-0 w-full p-4 bg-black/80 backdrop-blur-sm border-t border-white/10">
-                                                    <h3 className="text-xl font-bold text-white font-mono mb-1 truncate">
-                                                        {topArtists[0].name}
-                                                    </h3>
-                                                    <div className="flex items-center gap-4 text-[10px] font-mono text-neutral-400 uppercase">
-                                                        {/* Hiển thị Followers và Plays */}
-                                                        <div className="flex items-center gap-1">
-                                                            <Activity size={10}/> <span>FOLLOWERS: {topArtists[0].followers || '0'}</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-1">
-                                                            <BarChart3 size={10}/> <span>PLAYS: {topArtists[0].total_plays || '0'}</span>
-                                                        </div>
+                                            <div className="absolute bottom-0 left-0 w-full p-4 bg-black/80 backdrop-blur-sm border-t border-white/10">
+                                                <h3 className="text-xl font-bold text-white font-mono mb-1 truncate uppercase">
+                                                    {topArtists[0].name}
+                                                </h3>
+                                                <div className="flex items-center gap-4 text-[10px] font-mono text-neutral-400 uppercase">
+                                                    {/* Hiển thị Followers và Plays */}
+                                                    <div className="flex items-center gap-1">
+                                                        <Activity size={10}/> <span>FOLLOWERS: {topArtists[0].followers || '0'}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <BarChart3 size={10}/> <span>PLAYS: {topArtists[0].total_plays || '0'}</span>
                                                     </div>
                                                 </div>
                                             </div>
+                                        </div>
                                     </Link>
                                 )}
 
@@ -370,7 +367,7 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
                                                     </div>
 
                                                     <div className="flex flex-col">
-                                                        <span className="font-bold text-xs text-neutral-900 dark:text-white font-mono truncate max-w-[120px]">
+                                                        <span className="font-bold text-xs text-neutral-900 dark:text-white font-mono truncate max-w-[120px] uppercase">
                                                             {artist.name}
                                                         </span>
                                                         <div className="flex gap-2 text-[9px] font-mono text-neutral-500 dark:text-neutral-500 uppercase">
@@ -386,7 +383,7 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
                                                 </div>
                                                 <ChevronRight size={14} className="text-neutral-400 group-hover/row:text-emerald-500 transition-transform group-hover/row:translate-x-1"/>
                                             </div>
-                                    </Link>
+                                        </Link>
                                     ))}
                                 </div>
                             </div>

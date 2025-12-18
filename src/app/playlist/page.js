@@ -4,10 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
-import { 
-  Play, Edit2, Plus, Trash2, Clock, Music2, 
-  Ban, Shuffle, Globe, Lock, ArrowLeft // <-- Icon ArrowLeft
-} from "lucide-react";
+import { Loader2, Play, Edit2, Plus, Trash2, Clock, Music2, ArrowLeft, Ban } from "lucide-react";
 import AddSongModal from "@/components/AddSongModal";
 import EditPlaylistModal from "@/components/EditPlaylistModal";
 import usePlayer from "@/hooks/usePlayer";
@@ -18,9 +15,9 @@ import { GlitchText, CyberCard, HoloButton, ScanlineOverlay, HorizontalGlitchTex
 import { useAuth } from "@/components/AuthWrapper";
 import { useModal } from "@/context/ModalContext";
 // IMPORT HOVER PREVIEW
-import HoverImagePreview from "@/components/HoverImagePreview"; 
+import HoverImagePreview from "@/components/HoverImagePreview"; // <-- Đã thêm
 
-// --- SKELETON LOADER COMPONENT (Giữ nguyên) ---
+// --- SKELETON LOADER COMPONENT ---
 const PlaylistSkeleton = () => {
   return (
     <div className="w-full h-screen bg-neutral-100 dark:bg-black p-6 overflow-hidden animate-pulse">
@@ -96,7 +93,6 @@ export default function PlaylistPage() {
         .select("*")
         .eq("id", id)
         .single();
-        console.log("Check visibility:", pl.visibility);
       setPlaylist(pl);
 
       const { data: songsData } = await supabase
@@ -142,42 +138,25 @@ export default function PlaylistPage() {
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  const syncSongMap = () => {
-     if (typeof window !== 'undefined') {
+  const handlePlayPlaylist = () => {
+    if (!songs.length) return;
+
+    if (!isAuthenticated) {
+      openModal();
+      return;
+    }
+
+    const ids = songs.map((item) => item.songs?.id).filter(Boolean).map(Number);
+    
+    // Cập nhật song map (nếu cần)
+    if (typeof window !== 'undefined') {
         const songMap = {};
         songs.forEach(item => { if(item.songs) songMap[item.songs.id] = item.songs });
         window.__SONG_MAP__ = { ...window.__SONG_MAP__, ...songMap };
     }
-  }
 
-  // Handle Play Normal
-  const handlePlayPlaylist = () => {
-    if (!songs.length) return;
-    if (!isAuthenticated) { openModal(); return; }
-
-    syncSongMap();
-    const ids = songs.map((item) => item.songs?.id).filter(Boolean).map(Number);
-    
-    player.setIsShuffle(false); 
     player.setIds(ids);
     player.setId(ids[0]);
-  };
-
-  // --- LOGIC SHUFFLE PLAY ---
-  const handleShufflePlay = () => {
-    if (!songs.length) return;
-    if (!isAuthenticated) { openModal(); return; }
-
-    syncSongMap();
-    const ids = songs.map((item) => item.songs?.id).filter(Boolean).map(Number);
-    
-    // Random 1 bài để bắt đầu
-    const randomIndex = Math.floor(Math.random() * ids.length);
-    const randomId = ids[randomIndex];
-
-    player.setIsShuffle(true); 
-    player.setIds(ids);
-    player.setId(randomId);
   };
 
   const handleRemoveSong = async (songId) => {
@@ -210,28 +189,12 @@ export default function PlaylistPage() {
       {/* Background Grid */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
 
-      {/* --- NÚT QUAY LẠI (MỚI THÊM) --- */}
-      <button 
-        onClick={() => router.back()} 
-        className="
-            relative z-20 mb-6 group flex items-center gap-2 px-3 py-3
-            backdrop-blur-md
-            border border-neutral-300 dark:border-white/10 
-            hover:border-emerald-500 dark:hover:border-emerald-500
-            hover:!text-white hover:bg-emerald-500
-            transition-all duration-300 rounded-none
-            uppercase text-[10px] font-bold tracking-[0.2em] font-mono
-        "
-      >
-        <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-      </button>
-
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row items-end gap-8 mb-10 relative z-10 animate-in slide-in-from-bottom-5 duration-700">
         
-        {/* Cover Image Wrapper */}
+        {/* Cover Image Wrapper (CyberCard + Scanline) */}
         <CyberCard className="p-0 rounded-none shadow-2xl shadow-emerald-500/10 shrink-0 border border-neutral-300 dark:border-white/10">
-            {/* HOVER PREVIEW CHO PLAYLIST COVER */}
+            {/* HOVER PREVIEW CHO PLAYLIST COVER (Chỉ ảnh, không nhạc) */}
             <div className="relative w-52 h-52 md:w-64 md:h-64 overflow-hidden group bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center cursor-none">
                 <HoverImagePreview 
                     src={playlist.cover_url} 
@@ -260,63 +223,11 @@ export default function PlaylistPage() {
 
         {/* Info */}
         <div className="flex flex-col gap-2 flex-1 pb-2 w-full">
-          {/* --- INDICATOR PUBLIC / PRIVATE (CẬP NHẬT THEO CỘT VISIBILITY) --- */}
           <div className="flex items-center gap-2 mb-1">
-             <button
-                disabled={!isOwner} 
-                onClick={async () => {
-                    if (!isOwner) return;
-                    
-                    // 1. Lấy trạng thái hiện tại (Dùng cột 'visibility')
-                    const currentStatus = !!playlist.visibility; 
-                    const newStatus = !currentStatus;
-
-                    // 2. Optimistic Update
-                    setPlaylist(prev => ({ ...prev, visibility: newStatus }));
-
-                    // 3. Gửi request lên Server (Sửa tên cột thành 'visibility')
-                    const { error } = await supabase
-                        .from('playlists')
-                        .update({ visibility: newStatus ? 1 : 0 }) // <--- SỬA DÒNG NÀY
-                        .eq('id', playlist.id); 
-
-                    if (error) {
-                        console.error("Lỗi update:", error);
-                        alert(`Failed: ${error.message}`, "error");
-                        // Revert lại nếu lỗi
-                        setPlaylist(prev => ({ ...prev, visibility: currentStatus }));
-                    } else {
-                        alert(`Playlist is now ${newStatus ? 'Public' : 'Private'}`, "success");
-                    }
-                }}
-                className={`
-                    group flex items-center gap-2 px-3 py-1 border transition-all duration-300
-                    ${isOwner ? 'cursor-pointer hover:bg-white/10' : 'cursor-default'}
-                    ${playlist.visibility ? 'border-blue-500/50 bg-blue-500/5' : 'border-red-500/50 bg-red-500/5'}
-                `}
-                title={isOwner ? "Click to change Privacy" : "Privacy Status"}
-             >
-                 {/* Kiểm tra theo playlist.visibility */}
-                 {playlist.visibility ? (
-                     <>
-                        <Globe size={14} className="text-blue-500 animate-pulse"/>
-                        <p className="uppercase text-xs font-mono font-bold text-blue-600 dark:text-blue-400 tracking-[0.2em]">
-                            PUBLIC_DATA
-                        </p>
-                     </>
-                 ) : (
-                     <>
-                        <Lock size={14} className="text-red-500 animate-pulse"/>
-                        <p className="uppercase text-xs font-mono font-bold text-red-600 dark:text-red-400 tracking-[0.2em]">
-                            PRIVATE_ENCRYPTED
-                        </p>
-                     </>
-                 )}
-                 
-                 {isOwner && (
-                     <Edit2 size={10} className="text-neutral-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-500 transition-colors ml-1 group-hover:opacity-100" />
-                 )}
-             </button>
+              <span className="w-2 h-2 bg-emerald-500 animate-pulse rounded-none"></span>
+              <p className="uppercase text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 tracking-[0.3em]">
+                PRIVATE_PLAYLIST
+            </p>
           </div>
           
           <h1 className="text-3xl md:text-5xl font-black font-mono tracking-tight mb-2 uppercase break-words line-clamp-2">
@@ -341,27 +252,19 @@ export default function PlaylistPage() {
       <div className="flex flex-wrap gap-4 mb-10 z-20 relative">
         <HoloButton 
             onClick={handlePlayPlaylist} 
-            className="px-8 bg-emerald-500/10 !border-emerald-500/50 dark:hover:!bg-emerald-500/20 !text-emerald-600 dark:!text-emerald-400 hover:!bg-emerald-500 hover:!text-white dark:hover:!text-white"
+            className="px-8 bg-emerald-500/10 border-emerald-500/50 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white"
         >
           <Play size={18} fill="currentColor" className="mr-2" /> PLAY_ALL
         </HoloButton>
 
-        {/* --- NÚT SHUFFLE PLAY --- */}
-        <HoloButton 
-            onClick={handleShufflePlay} 
-            className="px-6 bg-purple-500/10 !border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500 hover:!text-white"
-        >
-            <Shuffle size={18} className="mr-2" /> SHUFFLE
-        </HoloButton>
-
         {isOwner && (
-          <HoloButton onClick={() => setShowAddSongModal(true)} className="px-6 !border-cyan-500/30 dark:hover:!text-white !text-cyan-600 hover:bg-cyan-500 dark:!text-cyan-400">
+          <HoloButton onClick={() => setShowAddSongModal(true)} className="px-6 border-cyan-500/30 text-cyan-600 dark:text-cyan-400">
             <Plus size={18} className="mr-2" /> ADD_TRACK
           </HoloButton>
         )}
 
         {isOwner && (
-          <HoloButton onClick={() => setShowEditModal(true)} className="px-6 !border-amber-500/30 dark:hover:!text-white !text-amber-600 hover:bg-amber-500 dark:!text-amber-400">
+          <HoloButton onClick={() => setShowEditModal(true)} className="px-6 border-amber-500/30 text-amber-600 dark:text-amber-400">
             <Edit2 size={18} className="mr-2" /> EDIT_INFO
           </HoloButton>
         )}
@@ -389,17 +292,16 @@ export default function PlaylistPage() {
                 return (
                     <tr
                     key={song.id}
-                    data-song-json={JSON.stringify(song)} 
                     onClick={() => {
                         if (!isAuthenticated) {
                           openModal();
                           return;
                         }
                         const ids = songs.map((item) => Number(item.songs?.id)).filter(Boolean);
-                        player.setIsShuffle(false); // Reset shuffle khi click từng bài
                         player.setIds(ids);
                         player.setId(Number(song.id));
                     }}
+                    // Sử dụng group/song để tránh conflict hover
                     className="group/song hover:bg-emerald-500/10 transition-colors duration-200 cursor-pointer"
                     >
                     <td className="p-4 text-center text-neutral-400 group-hover/song:text-emerald-500">
@@ -408,12 +310,12 @@ export default function PlaylistPage() {
 
                     <td className="p-4">
                         <div className="flex items-center gap-4">
-                            {/* HOVER PREVIEW CHO SONG LIST */}
+                            {/* HOVER PREVIEW CHO SONG LIST (Có Audio) */}
                             <div className="relative w-10 h-10 shrink-0 overflow-hidden rounded-none border border-neutral-300 dark:border-white/10 group-hover/song:border-emerald-500 transition-colors bg-neutral-200 dark:bg-black cursor-none">
                                 <HoverImagePreview
                                     src={song.image_url || "/default_song.jpg"}
                                     alt={song.title}
-                                    audioSrc={song.song_url} 
+                                    audioSrc={song.song_url} // Audio Preview
                                     className="w-full h-full"
                                     previewSize={200}
                                     fallbackIcon="disc"
@@ -429,12 +331,9 @@ export default function PlaylistPage() {
                                         ) : (
                                             <Music2 size={16} className="text-neutral-400" />
                                         )}
-                                        
-                                        {/* Play Icon Overlay */}
                                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/song:opacity-100 transition-opacity">
                                             <Play size={16} fill="white" className="text-white"/>
                                         </div>
-                                        <ScanlineOverlay />
                                     </div>
                                 </HoverImagePreview>
                             </div>
@@ -470,11 +369,10 @@ export default function PlaylistPage() {
                         </button>
                       ) : (
                         <div
-                          className="p-2 disabled text-neutral-600 dark:text-neutral-500 opacity-60"
+                          className="p-2 cursor-not-allowed text-neutral-600 dark:text-neutral-500 opacity-60"
                           title="You cannot remove songs from someone else's playlist"
-                          aria-disabled="true"
                         >
-                          <Ban size={16} className="disabled" />
+                          <Ban size={16} />
                         </div>
                       )}
                     </td>
@@ -507,7 +405,7 @@ export default function PlaylistPage() {
         <EditPlaylistModal
           playlist={playlist}
           onClose={() => setShowEditModal(false)}
-          onUpdated={() => { setShowEditModal(false); loadData();}}
+          onUpdated={() => { setShowEditModal(false); }}
           onDeleted={() => router.push("/")}
         />
       )}

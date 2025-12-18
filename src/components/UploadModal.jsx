@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import useUploadModal from "@/hooks/useUploadModal";
 import useUI from "@/hooks/useUI";
+// SỬA LỖI Ở ĐÂY: Đã xóa 'FileSubtitles' và dùng 'FileText'
 import { X, UploadCloud, Lock, Globe, Loader2, Image as ImageIcon, FileAudio, Music, FileText } from "lucide-react";
+// Import Cyber Components
 import { GlitchText, CyberButton } from "@/components/CyberComponents";
 
 // Function to handle safe filenames
@@ -63,6 +65,7 @@ const UploadModal = () => {
     if(isOpen) checkUser();
   }, [isOpen]);
 
+  // Extract duration helper
   const extractAudioDuration = (file) => {
     return new Promise((resolve) => {
       const audio = new Audio();
@@ -132,9 +135,10 @@ const UploadModal = () => {
 
       if (imageError) throw new Error("Image upload failed: " + imageError.message);
 
-      // 3. Upload Lyric
+      // 3. Upload Lyric (File .srt hoặc .txt)
       let lyricUrl = null;
       if (lyricFile) {
+        // Lấy đuôi file gốc (vd: .srt) hoặc mặc định là .txt
         const fileExt = lyricFile.name.split('.').pop() || 'txt';
         const lyricPath = `lyric-${safeTitle}-${uniqueID}.${fileExt}`;
         
@@ -189,7 +193,7 @@ const UploadModal = () => {
       {/* BACKDROP */}
       <div className="absolute inset-0 bg-neutral-900/90 backdrop-blur-sm" onClick={onClose} />
 
-      {/* CARD CONTAINER */}
+      {/* CARD CONTAINER (CYBER STYLE) */}
       <div className="
           w-full max-w-lg overflow-hidden relative
           bg-white dark:bg-black 
@@ -270,20 +274,20 @@ const UploadModal = () => {
                     </div>
                 </div>
 
-                {/* 2. File Uploads Grid (3 CỘT) */}
-                <div className="grid grid-cols-3 gap-3">
+                {/* 2. File Uploads Grid */}
+                <div className="grid grid-cols-2 gap-4">
                     {/* Audio Upload */}
                     <div className={`
-                        relative p-3 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-col items-center justify-center gap-1
+                        relative p-4 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-col items-center justify-center gap-2
                         ${songFile
                             ? 'border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/5'
                             : 'border-neutral-300 bg-white hover:bg-neutral-50 hover:border-emerald-500/50 dark:border-white/20 dark:bg-black/30 dark:hover:bg-white/5'}
                     `}>
-                        <div className={`p-2 rounded-none border ${songFile ? 'border-emerald-500 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'border-neutral-300 bg-neutral-100 text-neutral-500 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400 group-hover:text-emerald-500 group-hover:border-emerald-500'}`}>
-                            <FileAudio size={20} />
+                        <div className={`p-3 rounded-none border ${songFile ? 'border-emerald-500 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'border-neutral-300 bg-neutral-100 text-neutral-500 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400 group-hover:text-emerald-500 group-hover:border-emerald-500'}`}>
+                            <FileAudio size={24} />
                         </div>
-                        <span className={`text-[9px] font-mono text-center truncate w-full px-1 uppercase ${songFile ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-neutral-600 dark:text-neutral-400'}`}>
-                            {songFile ? songFile.name : "AUDIO"}
+                        <span className={`text-[10px] font-mono text-center truncate w-full px-2 uppercase ${songFile ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-neutral-600 dark:text-neutral-400'}`}>
+                            {songFile ? songFile.name : "SELECT_AUDIO_FILE"}
                         </span>
                         <input
                             type="file"
@@ -297,16 +301,16 @@ const UploadModal = () => {
 
                     {/* Image Upload */}
                     <div className={`
-                        relative p-3 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-col items-center justify-center gap-1
+                        relative p-4 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-col items-center justify-center gap-2
                         ${imageFile
                             ? 'border-pink-500 bg-pink-500/10 dark:bg-pink-500/5'
                             : 'border-neutral-300 bg-white hover:bg-neutral-50 hover:border-pink-500/50 dark:border-white/20 dark:bg-black/30 dark:hover:bg-white/5'}
                     `}>
-                        <div className={`p-2 rounded-none border ${imageFile ? 'border-pink-500 bg-pink-500/20 text-pink-600 dark:text-pink-400' : 'border-neutral-300 bg-neutral-100 text-neutral-500 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400 group-hover:text-pink-500 group-hover:border-pink-500'}`}>
-                            <ImageIcon size={20} />
+                        <div className={`p-3 rounded-none border ${imageFile ? 'border-pink-500 bg-pink-500/20 text-pink-600 dark:text-pink-400' : 'border-neutral-300 bg-neutral-100 text-neutral-500 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400 group-hover:text-pink-500 group-hover:border-pink-500'}`}>
+                            <ImageIcon size={24} />
                         </div>
-                        <span className={`text-[9px] font-mono text-center truncate w-full px-1 uppercase ${imageFile ? 'text-pink-700 dark:text-pink-400 font-bold' : 'text-neutral-600 dark:text-neutral-400'}`}>
-                            {imageFile ? imageFile.name : "COVER"}
+                        <span className={`text-[10px] font-mono text-center truncate w-full px-2 uppercase ${imageFile ? 'text-pink-700 dark:text-pink-400 font-bold' : 'text-neutral-600 dark:text-neutral-400'}`}>
+                            {imageFile ? imageFile.name : "SELECT_COVER_ART"}
                         </span>
                         <input
                             type="file"
@@ -317,31 +321,32 @@ const UploadModal = () => {
                             required
                         />
                     </div>
-
-                    {/* Lyrics Upload */}
-                    <div className={`
-                        relative p-3 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-col items-center justify-center gap-1
-                        ${lyricFile
-                            ? 'border-purple-500 bg-purple-500/10 dark:bg-purple-500/5'
-                            : 'border-neutral-300 bg-white hover:bg-neutral-50 hover:border-purple-500/50 dark:border-white/20 dark:bg-black/30 dark:hover:bg-white/5'}
-                    `}>
-                        <div className={`p-2 rounded-none border ${lyricFile ? 'border-purple-500 bg-purple-500/20 text-purple-600 dark:text-purple-400' : 'border-neutral-300 bg-neutral-100 text-neutral-500 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400 group-hover:text-purple-500 group-hover:border-purple-500'}`}>
-                            <FileText size={20} />
-                        </div>
-                        <span className={`text-[9px] font-mono text-center truncate w-full px-1 uppercase ${lyricFile ? 'text-purple-700 dark:text-purple-400 font-bold' : 'text-neutral-600 dark:text-neutral-400'}`}>
-                            {lyricFile ? lyricFile.name : "LYRICS (.srt)"}
-                        </span>
-                        <input
-                            type="file"
-                            accept=".srt,.txt"
-                            disabled={isLoading}
-                            onChange={(e) => setLyricFile(e.target.files[0])}
-                            className="absolute inset-0 opacity-0 cursor-pointer"
-                        />
-                    </div>
                 </div>
 
-                {/* 3. Visibility Toggle */}
+                {/* 3. Lyrics Upload (.SRT or .TXT) - ĐÃ SỬA: Dùng FileText */}
+                <div className={`
+                    relative p-4 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-col items-center justify-center gap-2
+                    ${lyricFile
+                        ? 'border-purple-500 bg-purple-500/10 dark:bg-purple-500/5'
+                        : 'border-neutral-300 bg-white hover:bg-neutral-50 hover:border-purple-500/50 dark:border-white/20 dark:bg-black/30 dark:hover:bg-white/5'}
+                `}>
+                    <div className={`p-3 rounded-none border ${lyricFile ? 'border-purple-500 bg-purple-500/20 text-purple-600 dark:text-purple-400' : 'border-neutral-300 bg-neutral-100 text-neutral-500 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400 group-hover:text-purple-500 group-hover:border-purple-500'}`}>
+                        {/* Dùng FileText thay vì FileSubtitles */}
+                        <FileText size={24} />
+                    </div>
+                    <span className={`text-[10px] font-mono text-center truncate w-full px-2 uppercase ${lyricFile ? 'text-purple-700 dark:text-purple-400 font-bold' : 'text-neutral-600 dark:text-neutral-400'}`}>
+                        {lyricFile ? lyricFile.name : "SELECT_LYRICS (.SRT)"}
+                    </span>
+                    <input
+                        type="file"
+                        accept=".srt,.txt" 
+                        disabled={isLoading}
+                        onChange={(e) => setLyricFile(e.target.files[0])}
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                    />
+                </div>
+
+                {/* 4. Visibility Toggle */}
                 {!isAdmin && (
                     <div className="flex p-1 rounded-none border border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-black/40">
                         <label className={`
@@ -365,7 +370,7 @@ const UploadModal = () => {
                     </div>
                 )}
 
-                {/* 4. Submit Button */}
+                {/* 5. Submit Button */}
                 <CyberButton 
                     type="submit" 
                     disabled={isLoading} 

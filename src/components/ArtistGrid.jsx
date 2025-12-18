@@ -83,7 +83,7 @@ const ArtistGrid = ({ artists }) => {
                             <div className="flex-1 p-3 flex flex-col justify-center min-w-0"> 
                                 <div className="flex justify-between items-start gap-2">
                                     <div className="min-w-0">
-                                        <h3 className="text-sm font-bold text-neutral-900 dark:text-white font-mono group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition truncate">
+                                        <h3 className="text-sm font-bold text-neutral-900 dark:text-white font-mono group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition truncate uppercase">
                                             {artist.name}
                                         </h3>
                                         <div className="flex items-center gap-2 mt-1">

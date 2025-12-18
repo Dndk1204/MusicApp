@@ -12,7 +12,7 @@ const usePlayer = create(
       ids: [],                // Queue bài hát
       activeId: undefined,    // ID bài đang phát
       songData: null,         // Dữ liệu đầy đủ bài hát hiện tại
-      isPlaying: false,       // Trạng thái phát nhạc
+      isPlaying: false,       // <--- TRẠNG THÁI PHÁT NHẠC (QUAN TRỌNG CHO PREVIEW)
 
       // ===========================================
       // VOLUME
@@ -37,8 +37,10 @@ const usePlayer = create(
 
       setIds: (ids) => set({ ids }),
 
+      // NEW: set song data
       setSongData: (song) => set({ songData: song }),
 
+      // NEW: Setter cho isPlaying
       setIsPlaying: (isPlaying) => set({ isPlaying }),
 
       // ===========================================
@@ -145,16 +147,6 @@ const usePlayer = create(
     {
       name: "player-storage",
       storage: createJSONStorage(() => localStorage),
-      
-      // ⚠️ PHẦN QUAN TRỌNG NHẤT ĐÂY ⚠️
-      // Chỉ lưu những trường cần thiết, bỏ qua activeId để không tự phát lại
-      partialize: (state) => ({
-        volume: state.volume,
-        isShuffle: state.isShuffle,
-        repeatMode: state.repeatMode,
-        // ids: state.ids, // (Tùy chọn) Bỏ comment nếu muốn giữ lại danh sách phát cũ
-        // KHÔNG LƯU: activeId, isPlaying, songData
-      }),
     }
   )
 );

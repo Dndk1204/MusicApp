@@ -2,16 +2,18 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { Lock, Globe, Music, Edit2, Trash2, Upload, X, Save, Image as ImageIcon, FileAudio, FileText, LayoutGrid, Disc } from "lucide-react";
+import { Lock, Globe, Music, Edit2, Trash2, Upload, X, Save, Image as ImageIcon, FileAudio, LayoutGrid, Disc, Play, Clock, Music2 } from "lucide-react";
+import Image from "next/image";
 import useUI from "@/hooks/useUI";
 import useUploadModal from "@/hooks/useUploadModal";
 import usePlayer from "@/hooks/usePlayer";
+// Import Full Cyber Components
+import { GlitchText, HoloButton, GlitchButton, CyberButton, CyberCard, ScanlineOverlay, HorizontalGlitchText } from "@/components/CyberComponents";
+// Import AUTH & MODAL
 import { useAuth } from "@/components/AuthWrapper";
 import { useModal } from "@/context/ModalContext";
-// Import Full Cyber Components
-import { GlitchText, HoloButton, GlitchButton, CyberButton, CyberCard, ScanlineOverlay } from "@/components/CyberComponents";
-// Import Back Button
-import BackButton from "@/components/BackButton"; 
+// Import HOVER PREVIEW
+import HoverImagePreview from "@/components/HoverImagePreview";
 
 // Function to extract audio duration
 const extractAudioDuration = (file) => {
@@ -53,22 +55,30 @@ const MyUploadsPage = () => {
   const [editForm, setEditForm] = useState({ title: '', author: '', isPublic: false });
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
-  const [selectedLyricFile, setSelectedLyricFile] = useState(null);
   const [newDuration, setNewDuration] = useState(0);
-  const [currentSRT, setCurrentSRT] = useState('');
-  const [originalSRT, setOriginalSRT] = useState('');
-  const [loadingSRT, setLoadingSRT] = useState(false);
 
   // UI State
   const [activeTab, setActiveTab] = useState('uploads');
   const [filter, setFilter] = useState('all');
 
+  // Check for query param
+  const [isTunedMode, setIsTunedMode] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('tuned') === 'true') {
+        setActiveTab('tuned');
+        setIsTunedMode(true);
+      } else {
+        setIsTunedMode(false);
+      }
+    }
+  }, []);
+
   // --- HOOKS ---
   const { alert, confirm } = useUI();
   const { onOpen } = useUploadModal();
-  const player = usePlayer();
-  const { isAuthenticated } = useAuth();
-  const { openModal } = useModal();
 
   useEffect(() => { getMyUploads(); }, []);
   useEffect(() => { if (activeTab === 'tuned' && loadingTuned) getMyTunedSongs(); }, [activeTab]);
@@ -85,39 +95,48 @@ const MyUploadsPage = () => {
   const getMyTunedSongs = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data: playlists } = await supabase.from('playlists').select('id').eq('user_id', user.id);
-    const playlistIds = playlists?.map(p => p.id) || [];
-    
-    if (playlistIds.length === 0) {
+
+    // Get all song IDs and their tuned dates
+    const { data: userSettings } = await supabase
+      .from('user_song_settings')
+      .select('song_id, updated_at')
+      .eq('user_id', user.id);
+
+    if (!userSettings || userSettings.length === 0) {
         setSongsTuned([]); setLoadingTuned(false); return;
     }
 
-    const { data: playlistSongs } = await supabase.from('playlist_songs').select('song_id').in('playlist_id', playlistIds);
-    const songIds = [...new Set(playlistSongs?.map(ps => ps.song_id))];
-    
-    if (songIds.length === 0) {
-        setSongsTuned([]); setLoadingTuned(false); return;
-    }
+    const songIds = userSettings.map(setting => setting.song_id);
 
-    const { data: songs } = await supabase.from('songs').select('*').in('id', songIds).neq('user_id', user.id).order('created_at', { ascending: false });
-    setSongsTuned(songs || []);
+    // Get the song details for these IDs
+    const { data: songs } = await supabase
+      .from('songs')
+      .select('*')
+      .in('id', songIds);
+
+    // Combine song data with tuned date
+    const songsWithTunedDate = songs?.map(song => {
+      const setting = userSettings.find(s => s.song_id === song.id);
+      return {
+        ...song,
+        tuned_at: setting?.updated_at
+      };
+    }) || [];
+
+    // Sort by tuned date (most recent first)
+    songsWithTunedDate.sort((a, b) => new Date(b.tuned_at) - new Date(a.tuned_at));
+
+    setSongsTuned(songsWithTunedDate);
     setLoadingTuned(false);
   };
 
-  const onPlay = (id) => {
-    if (!isAuthenticated) {
-      openModal();
-      return;
-    }
-
-    player.setId(id);
-    player.setIds(filteredSongs.map((s) => s.id));
-
-    if (typeof window !== "undefined") {
-        const songMap = {};
-        filteredSongs.forEach(song => songMap[song.id] = song);
-        window.__SONG_MAP__ = { ...window.__SONG_MAP__, ...songMap };
-    }
+  const handleSelectedFileChange = async (e) => {
+    const file = e.target.files[0];
+    setSelectedFile(file);
+    if (file) {
+      try { const duration = await extractAudioDuration(file); setNewDuration(Math.floor(duration)); } 
+      catch (error) { setNewDuration(0); }
+    } else { setNewDuration(0); }
   };
 
   const handleDeleteSong = async (songId) => {
@@ -131,41 +150,15 @@ const MyUploadsPage = () => {
     } catch (err) { alert(err.message, 'error'); }
   };
 
-  const startEditing = async (song) => {
+  const startEditing = (song) => {
     setEditingSong(song.id);
     setEditForm({ title: song.title, author: song.author, isPublic: song.is_public ?? false });
-
-    // Fetch current SRT if exists
-    if (song.lyric_url) {
-      setLoadingSRT(true);
-      try {
-        const res = await fetch(song.lyric_url);
-        if (res.ok) {
-          const text = await res.text();
-          setCurrentSRT(text);
-          setOriginalSRT(text);
-        } else {
-          setCurrentSRT('');
-          setOriginalSRT('');
-        }
-      } catch (err) {
-        console.error('Error fetching SRT:', err);
-        setCurrentSRT('');
-        setOriginalSRT('');
-      } finally {
-        setLoadingSRT(false);
-      }
-    } else {
-      setCurrentSRT('');
-      setOriginalSRT('');
-      setLoadingSRT(false);
-    }
   };
 
   const cancelEditing = () => {
     setEditingSong(null);
     setEditForm({ title: '', author: '', isPublic: false });
-    setSelectedFile(null); setSelectedImage(null); setSelectedLyricFile(null);
+    setSelectedFile(null); setSelectedImage(null);
   };
 
   const saveEdit = async () => {
@@ -175,10 +168,9 @@ const MyUploadsPage = () => {
       let updateData = { title: editForm.title.trim(), author: editForm.author?.trim() || 'Unknown', is_public: Boolean(editForm.isPublic) };
       if (selectedFile && newDuration > 0) updateData.duration = newDuration;
 
-      let uniqueID, safeTitle;
-      if (selectedFile || selectedImage || selectedLyricFile) {
-        uniqueID = crypto.randomUUID();
-        safeTitle = editForm.title.trim().replace(/[^a-zA-Z0-9-]/g, "").toLowerCase();
+      if (selectedFile || selectedImage) {
+        const uniqueID = crypto.randomUUID();
+        const safeTitle = editForm.title.trim().replace(/[^a-zA-Z0-9-]/g, "").toLowerCase();
         if (selectedFile) {
           const { data: sData, error: sErr } = await supabase.storage.from('songs').upload(`song-${safeTitle}-${uniqueID}`, selectedFile);
           if (sErr) throw sErr;
@@ -190,14 +182,6 @@ const MyUploadsPage = () => {
           if (iErr) throw iErr;
           const { data: url } = supabase.storage.from('images').getPublicUrl(iData.path);
           updateData.image_url = url.publicUrl;
-        }
-        if (selectedLyricFile) {
-          const fileExt = selectedLyricFile.name.split('.').pop() || 'txt';
-          const lyricPath = `lyric-${safeTitle}-${uniqueID}.${fileExt}`;
-          const { data: lyricData, error: lyricError } = await supabase.storage.from('songs').upload(lyricPath, selectedLyricFile);
-          if (lyricError) throw lyricError;
-          const { data: lyricUrl } = supabase.storage.from('songs').getPublicUrl(lyricData.path);
-          updateData.lyric_url = lyricUrl.publicUrl;
         }
       }
 
@@ -221,17 +205,18 @@ const MyUploadsPage = () => {
     return songsUploads;
   }, [songsUploads, songsTuned, filter, activeTab]);
 
-  // --- COMPONENT: USER SONG CARD ---
-  const UserSongCard = ({ song, isEditing, isEditable, onClick }) => (
-    <CyberCard
+  // --- COMPONENT: USER SONG CARD (CYBER BRUTALISM & HOVER FIX) ---
+  const UserSongCard = ({ song, isEditing, isEditable }) => (
+    <CyberCard 
         className={`
-            group relative p-0 bg-white dark:bg-neutral-900/40
+            group relative p-0 bg-white dark:bg-neutral-900/40 
             ${isEditing ? 'border-emerald-500 ring-1 ring-emerald-500' : 'hover:border-emerald-500/50'}
-            ${!isEditing ? 'cursor-pointer' : ''}
         `}
-        onClick={() => !isEditing && onClick && onClick(song.id)}
     >
        {/* IMAGE AREA */}
+       {/* group/img: dùng để điều khiển hiệu ứng khi hover vào ảnh
+          group (ở CyberCard): dùng để điều khiển hiệu ứng khi hover vào card
+       */}
        <div className="relative w-full aspect-square bg-neutral-800 border-b border-neutral-300 dark:border-white/10 overflow-hidden group/img">
           {song.image_url ? (
             <img 
@@ -262,7 +247,7 @@ const MyUploadsPage = () => {
              </div>
           )}
 
-          {/* HOVER ACTIONS */}
+          {/* HOVER ACTIONS (Chỉ hiện khi hover vào ảnh - group-hover/img) */}
           {isEditable && !isEditing && (
              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-all duration-300 flex items-center justify-center gap-3 backdrop-blur-none z-30">
                   <button onClick={() => startEditing(song)} className="p-2 bg-blue-600/90 text-white hover:bg-blue-500 border border-blue-400 transition-transform hover:scale-110 shadow-lg">
@@ -274,7 +259,7 @@ const MyUploadsPage = () => {
              </div>
           )}
 
-          {/* UPLOAD OVERLAY */}
+          {/* UPLOAD OVERLAY (WHEN EDITING) */}
           {isEditing && (
              <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition z-30">
                 <ImageIcon size={24} className="text-emerald-500 mb-1 animate-bounce"/>
@@ -295,15 +280,6 @@ const MyUploadsPage = () => {
              <div className="space-y-1">
                 <label className="text-[8px] font-mono uppercase text-neutral-500">ARTIST_ID</label>
                 <input type="text" value={editForm.author} onChange={(e) => setEditForm({...editForm, author: e.target.value})} className="w-full bg-black/20 border border-neutral-500 dark:border-white/20 p-1.5 text-xs font-mono focus:border-emerald-500 outline-none text-neutral-900 dark:text-white rounded-none"/>
-             </div>
-             <div className={`relative p-3 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-col items-center justify-center gap-2 ${selectedLyricFile ? 'border-purple-500 bg-purple-500/10 dark:bg-purple-500/5' : 'border-neutral-300 bg-white hover:bg-neutral-50 hover:border-purple-500/50 dark:border-white/20 dark:bg-black/30 dark:hover:bg-white/5'}`}>
-                <div className={`p-2 rounded-none border ${selectedLyricFile ? 'border-purple-500 bg-purple-500/20 text-purple-600 dark:text-purple-400' : 'border-neutral-300 bg-neutral-100 text-neutral-500 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400 group-hover:text-purple-500 group-hover:border-purple-500'}`}>
-                  <FileText size={20} />
-                </div>
-                <span className={`text-[9px] font-mono text-center truncate w-full uppercase ${selectedLyricFile ? 'text-purple-700 dark:text-purple-400 font-bold' : 'text-neutral-600 dark:text-neutral-400'}`}>
-                  {selectedLyricFile ? selectedLyricFile.name : "SELECT_LYRICS (.SRT)"}
-                </span>
-                <input type="file" accept=".srt,.txt" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => setSelectedLyricFile(e.target.files[0])} />
              </div>
              <div className="flex gap-2">
                  <button onClick={() => setEditForm({...editForm, isPublic: true})} className={`flex-1 text-[9px] py-1 border rounded-none ${editForm.isPublic ? 'bg-emerald-500 text-black border-emerald-500 font-bold' : 'text-neutral-500 border-neutral-600'}`}>PUBLIC</button>
@@ -332,93 +308,273 @@ const MyUploadsPage = () => {
     </CyberCard>
   );
 
-  return (
-    <div className="h-full w-full p-6 pb-[120px] overflow-y-auto bg-neutral-100 dark:bg-black transition-colors duration-500">
-       
-       {/* HEADER */}
-       <div className="flex flex-col gap-6 mb-8">
-          
-          {/* TITLE & BACK BUTTON */}
-          <div className="flex items-start gap-4">
-             {/* Thêm nút Back Button ở đây */}
-             <BackButton />
+  // HOOKS for tuned mode
+  const player = usePlayer();
+  const { isAuthenticated } = useAuth();
+  const { openModal } = useModal();
 
-             <div className="flex flex-col gap-2">
+  const formatDuration = (sec) => {
+    if (!sec) return "--:--";
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const handlePlayTunedPlaylist = () => {
+    if (!songsTuned.length) return;
+
+    if (!isAuthenticated) {
+      openModal();
+      return;
+    }
+
+    const ids = songsTuned.map((song) => Number(song.id));
+    if (typeof window !== 'undefined') {
+      const songMap = {};
+      songsTuned.forEach(song => songMap[song.id] = song);
+      window.__SONG_MAP__ = { ...window.__SONG_MAP__, ...songMap };
+    }
+
+    player.setIds(ids);
+    player.setId(ids[0]);
+  };
+
+  return (
+    <div className={`min-h-screen bg-neutral-100 dark:bg-black text-neutral-900 dark:text-white p-6 pb-32 transition-colors duration-500 relative overflow-hidden ${isTunedMode ? '' : 'h-full w-full'}`}>
+      {/* Background Grid */}
+      {isTunedMode && <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>}
+
+      {isTunedMode ? (
+        <>
+          {/* TUNED MODE: PLAYLIST-STYLE HEADER */}
+          <div className="flex flex-col md:flex-row items-end gap-8 mb-10 relative z-10 animate-in slide-in-from-bottom-5 duration-700">
+
+            {/* Cover Image Wrapper (CyberCard + Scanline) */}
+            <CyberCard className="p-0 rounded-none shadow-2xl shadow-emerald-500/10 shrink-0 border border-neutral-300 dark:border-white/10">
+                <div className="relative w-52 h-52 md:w-64 md:h-64 overflow-hidden group bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center cursor-none">
+                    <div className="w-full h-full relative">
+                        <span className="text-6xl font-bold opacity-30 font-mono flex items-center justify-center h-full w-full">🎛️</span>
+                        <ScanlineOverlay />
+                        <div className="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                    </div>
+                </div>
+            </CyberCard>
+
+            {/* Info */}
+            <div className="flex flex-col gap-2 flex-1 pb-2 w-full">
+              <div className="flex items-center gap-2 mb-1">
+                  <span className="w-2 h-2 bg-emerald-500 animate-pulse rounded-none"></span>
+                  <p className="uppercase text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 tracking-[0.3em]">
+                    TUNED_COLLECTION
+                  </p>
+              </div>
+
+              <h1 className="text-3xl md:text-5xl font-black font-mono tracking-tight mb-2 uppercase break-words line-clamp-2">
+                <HorizontalGlitchText text="TUNED_TRACKS" />
+              </h1>
+
+              <p className="text-neutral-600 dark:text-neutral-400 italic font-mono text-sm max-w-2xl border-l-2 border-emerald-500/50 pl-3 mb-4">
+                "Your personalized audio adjustments across all playlists."
+              </p>
+
+              <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-neutral-500 dark:text-neutral-500 uppercase tracking-widest mt-auto">
+                <span className="flex items-center gap-1"><Music2 size={14}/> {songsTuned.length} TRACKS TUNED</span>
+                <span>//</span>
+                <span className="flex items-center gap-1"><Clock size={14}/> LAST_SYNC: {new Date().toLocaleDateString("vi-VN")}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ACTION BUTTONS (HoloButton) */}
+          <div className="flex flex-wrap gap-4 mb-10 z-20 relative">
+            <HoloButton
+                onClick={handlePlayTunedPlaylist}
+                className="px-8 bg-emerald-500/10 border-emerald-500/50 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white"
+            >
+              <Play size={18} fill="currentColor" className="mr-2" /> PLAY_ALL
+            </HoloButton>
+          </div>
+
+          {/* SONG LIST TABLE (CyberCard) */}
+          <CyberCard className="p-0 overflow-hidden bg-white/50 dark:bg-white/5 backdrop-blur-md rounded-none border-neutral-200 dark:border-white/10">
+            <div className="overflow-x-auto">
+                <table className="w-full text-left font-mono text-sm">
+                <thead className="bg-neutral-200/50 dark:bg-black/40 text-neutral-500 dark:text-neutral-400 uppercase text-[10px] tracking-widest border-b border-neutral-300 dark:border-white/10">
+                    <tr>
+                    <th className="p-4 w-12 text-center">#</th>
+                    <th className="p-4">Track_Title</th>
+                    <th className="p-4 hidden md:table-cell">Artist</th>
+                    <th className="p-4 text-center">Tuned_Date</th>
+                    <th className="p-4 text-right">Duration</th>
+                    </tr>
+                </thead>
+
+                <tbody className="divide-y divide-neutral-200 dark:divide-white/5">
+                    {songsTuned.map((song, index) => (
+                    <tr
+                    key={song.id}
+                    onClick={() => {
+                        if (!isAuthenticated) {
+                          openModal();
+                          return;
+                        }
+                        const ids = songsTuned.map((s) => Number(s.id));
+                        player.setIds(ids);
+                        player.setId(Number(song.id));
+                    }}
+                    className="group/song hover:bg-emerald-500/10 transition-colors duration-200 cursor-pointer"
+                    >
+                    <td className="p-4 text-center text-neutral-400 group-hover/song:text-emerald-500">
+                        {index + 1}
+                    </td>
+
+                    <td className="p-4">
+                        <div className="flex items-center gap-4">
+                            {/* HOVER PREVIEW CHO SONG LIST */}
+                            <div className="relative w-10 h-10 shrink-0 overflow-hidden rounded-none border border-neutral-300 dark:border-white/10 group-hover/song:border-emerald-500 transition-colors bg-neutral-200 dark:bg-black cursor-none">
+                                <HoverImagePreview
+                                    src={song.image_url || "/default_song.jpg"}
+                                    alt={song.title}
+                                    audioSrc={song.song_url}
+                                    className="w-full h-full"
+                                    previewSize={200}
+                                    fallbackIcon="disc"
+                                >
+                                    <div className="w-full h-full relative flex items-center justify-center">
+                                        {song.image_url ? (
+                                            <Image
+                                                src={song.image_url}
+                                                fill
+                                                alt={song.title}
+                                                className="object-cover group-hover/song:scale-110 transition-transform duration-500 grayscale group-hover/song:grayscale-0"
+                                            />
+                                        ) : (
+                                            <Music2 size={16} className="text-neutral-400" />
+                                        )}
+                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/song:opacity-100 transition-opacity">
+                                            <Play size={16} fill="white" className="text-white"/>
+                                        </div>
+                                    </div>
+                                </HoverImagePreview>
+                            </div>
+
+                            <div className="flex flex-col min-w-0">
+                                <span className="font-bold text-neutral-800 dark:text-white group-hover/song:text-emerald-500 transition-colors truncate max-w-[150px] md:max-w-xs uppercase">
+                                    {song.title}
+                                </span>
+                                <span className="text-xs text-neutral-500 md:hidden truncate">{song.author}</span>
+                            </div>
+                        </div>
+                    </td>
+
+                    <td className="p-4 text-neutral-500 dark:text-neutral-400 group-hover/song:text-white transition-colors hidden md:table-cell">
+                        {song.author}
+                    </td>
+
+                    <td className="p-4 text-center font-mono text-neutral-500 group-hover/song:text-emerald-500">
+                        {song.tuned_at ? new Date(song.tuned_at).toLocaleDateString("vi-VN") : "--/--/--"}
+                    </td>
+
+                    <td className="p-4 text-right font-mono text-neutral-500 group-hover/song:text-emerald-500">
+                        {formatDuration(song.duration)}
+                    </td>
+                  </tr>
+                    ))}
+
+                    {songsTuned.length === 0 && (
+                        <tr>
+                            <td colSpan="5" className="p-12 text-center text-neutral-400 italic font-mono border-t border-dashed border-neutral-300 dark:border-white/10">
+                                [EMPTY_DATA] No tuned tracks found. Start adjusting EQ settings on your favorite songs!
+                            </td>
+                        </tr>
+                    )}
+                </tbody>
+                </table>
+            </div>
+          </CyberCard>
+        </>
+      ) : (
+        <div className="h-full w-full p-6 pb-[120px] overflow-y-auto bg-neutral-100 dark:bg-black transition-colors duration-500">
+
+           {/* HEADER */}
+           <div className="flex flex-col gap-6 mb-8">
+              <div className="flex flex-col gap-2">
                  <h1 className="text-4xl md:text-5xl font-black font-mono tracking-tighter text-neutral-900 dark:text-white flex items-center gap-3">
                     <Music className="text-emerald-500" size={40}/>
                     <GlitchText text="MY_COLLECTION" />
                  </h1>
                  <div className="h-1 w-24 bg-emerald-500"></div>
-             </div>
-          </div>
+              </div>
 
-          {/* TABS */}
-          <div className="flex border-b-2 border-neutral-300 dark:border-white/10">
-             <button onClick={() => { setActiveTab('uploads'); setFilter('all'); }} className={`px-6 py-3 text-xs font-mono font-bold uppercase tracking-[0.2em] transition-all relative ${activeTab === 'uploads' ? 'bg-neutral-900 dark:bg-white text-white dark:text-black' : 'text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-200 dark:hover:bg-white/5'}`}>
-                UPLOADS
-                {activeTab === 'uploads' && <div className="absolute bottom-0 left-0 w-full h-1 bg-emerald-500 translate-y-full"></div>}
-             </button>
-             <button onClick={() => { setActiveTab('tuned'); setFilter('all'); }} className={`px-6 py-3 text-xs font-mono font-bold uppercase tracking-[0.2em] transition-all relative ${activeTab === 'tuned' ? 'bg-neutral-900 dark:bg-white text-white dark:text-black' : 'text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white hover:bg-neutral-200 dark:hover:bg-white/5'}`}>
-                TUNED_TRACKS
-                {activeTab === 'tuned' && <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-500 translate-y-full"></div>}
-             </button>
-          </div>
-       </div>
+              {/* TABS */}
+              <div className="flex border-b-2 border-neutral-300 dark:border-white/10">
+                 <button onClick={() => { setActiveTab('uploads'); setFilter('all'); }} className={`px-6 py-3 text-xs font-mono font-bold uppercase tracking-[0.2em] transition-all relative ${activeTab === 'uploads' ? 'bg-neutral-900 dark:bg-white text-white dark:text-black' : 'text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-200 dark:hover:bg-white/5'}`}>
+                    UPLOADS
+                    {activeTab === 'uploads' && <div className="absolute bottom-0 left-0 w-full h-1 bg-emerald-500 translate-y-full"></div>}
+                 </button>
+                 <button onClick={() => { setActiveTab('tuned'); setFilter('all'); }} className={`px-6 py-3 text-xs font-mono font-bold uppercase tracking-[0.2em] transition-all relative ${activeTab === 'tuned' ? 'bg-neutral-900 dark:bg-white text-white dark:text-black' : 'text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white hover:bg-neutral-200 dark:hover:bg-white/5'}`}>
+                    TUNED_TRACKS
+                    {activeTab === 'tuned' && <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-500 translate-y-full"></div>}
+                 </button>
+              </div>
+           </div>
 
-       <div className="min-h-[300px]">
-          {isLoading ? <ContentSkeleton /> : (
-             currentSongs.length > 0 || activeTab === 'uploads' ? (
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                   {/* FILTER BAR (TECH TOOLBAR) */}
-                   {activeTab === 'uploads' && (
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 p-3 border border-neutral-300 dark:border-white/10 bg-white dark:bg-white/5">
-                          <div className="flex items-center gap-4 text-xs font-mono">
-                              <span className="text-neutral-500 uppercase tracking-widest border-r border-neutral-500 pr-4 mr-2">:: FILTER_MODE</span>
-                              <button onClick={() => setFilter('all')} className={`px-3 py-1 border transition-all ${filter === 'all' ? 'bg-neutral-900 dark:bg-white text-white dark:text-black border-transparent' : 'text-neutral-500 border-neutral-500 hover:border-emerald-500 hover:text-emerald-500'}`}>ALL</button>
-                              <button onClick={() => setFilter('public')} className={`px-3 py-1 border transition-all ${filter === 'public' ? 'bg-emerald-500 text-black border-emerald-500 font-bold' : 'text-neutral-500 border-neutral-500 hover:border-emerald-500 hover:text-emerald-500'}`}>PUBLIC</button>
-                              <button onClick={() => setFilter('private')} className={`px-3 py-1 border transition-all ${filter === 'private' ? 'bg-red-500 text-black border-red-500 font-bold' : 'text-neutral-500 border-neutral-500 hover:border-red-500 hover:text-red-500'}`}>PRIVATE</button>
+           <div className="min-h-[300px]">
+              {isLoading ? <ContentSkeleton /> : (
+                 currentSongs.length > 0 || activeTab === 'uploads' ? (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                       {/* FILTER BAR (TECH TOOLBAR) */}
+                       {activeTab === 'uploads' && (
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 p-3 border border-neutral-300 dark:border-white/10 bg-white dark:bg-white/5">
+                              <div className="flex items-center gap-4 text-xs font-mono">
+                                  <span className="text-neutral-500 uppercase tracking-widest border-r border-neutral-500 pr-4 mr-2">:: FILTER_MODE</span>
+                                  <button onClick={() => setFilter('all')} className={`px-3 py-1 border transition-all ${filter === 'all' ? 'bg-neutral-900 dark:bg-white text-white dark:text-black border-transparent' : 'text-neutral-500 border-neutral-500 hover:border-emerald-500 hover:text-emerald-500'}`}>ALL</button>
+                                  <button onClick={() => setFilter('public')} className={`px-3 py-1 border transition-all ${filter === 'public' ? 'bg-emerald-500 text-black border-emerald-500 font-bold' : 'text-neutral-500 border-neutral-500 hover:border-emerald-500 hover:text-emerald-500'}`}>PUBLIC</button>
+                                  <button onClick={() => setFilter('private')} className={`px-3 py-1 border transition-all ${filter === 'private' ? 'bg-red-500 text-black border-red-500 font-bold' : 'text-neutral-500 border-neutral-500 hover:border-red-500 hover:text-red-500'}`}>PRIVATE</button>
+                              </div>
+                              <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-500 animate-pulse">SYSTEM_READY...</span>
                           </div>
-                          <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-500 animate-pulse">SYSTEM_READY...</span>
-                      </div>
-                   )}
+                       )}
 
-                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                      {/* Upload Button Card (Cyber Style) */}
-                      {activeTab === 'uploads' && (
-                         <button onClick={onOpen} className="group relative w-[272px] flex flex-col items-center justify-center gap-4 p-4 border border-dashed border-neutral-400 dark:border-white/20 hover:border-emerald-500 bg-transparent hover:bg-emerald-500/5 transition-all cursor-pointer aspect-square min-h-[377px]">
-                            <div className="w-20 h-20 bg-neutral-200 dark:bg-white/5 group-hover:bg-emerald-500 group-hover:text-black flex items-center justify-center text-neutral-400 transition-colors border border-neutral-300 dark:border-white/10 group-hover:border-emerald-400 rounded-none">
-                                <Upload size={32}/>
-                            </div>
-                            <div className="text-center">
-                                <p className="text-sm font-bold font-mono uppercase text-neutral-600 dark:text-neutral-300 group-hover:text-emerald-500 tracking-wider">INITIATE_UPLOAD</p>
-                                <p className="text-[9px] font-mono text-neutral-400 mt-1">:: ADD_DATA_TO_CORE ::</p>
-                            </div>
-                            {/* Corner Accents */}
-                            <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-neutral-400 group-hover:border-emerald-500 transition-colors"></div>
-                            <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-neutral-400 group-hover:border-emerald-500 transition-colors"></div>
-                         </button>
-                      )}
+                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                          {/* Upload Button Card (Cyber Style) */}
+                          {activeTab === 'uploads' && (
+                             <button onClick={onOpen} className="group relative w-[272px] flex flex-col items-center justify-center gap-4 p-4 border border-dashed border-neutral-400 dark:border-white/20 hover:border-emerald-500 bg-transparent hover:bg-emerald-500/5 transition-all cursor-pointer aspect-square min-h-[377px]">
+                                <div className="w-20 h-20 bg-neutral-200 dark:bg-white/5 group-hover:bg-emerald-500 group-hover:text-black flex items-center justify-center text-neutral-400 transition-colors border border-neutral-300 dark:border-white/10 group-hover:border-emerald-400 rounded-none">
+                                    <Upload size={32}/>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-sm font-bold font-mono uppercase text-neutral-600 dark:text-neutral-300 group-hover:text-emerald-500 tracking-wider">INITIATE_UPLOAD</p>
+                                    <p className="text-[9px] font-mono text-neutral-400 mt-1">:: ADD_DATA_TO_CORE ::</p>
+                                </div>
+                                {/* Corner Accents */}
+                                <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-neutral-400 group-hover:border-emerald-500 transition-colors"></div>
+                                <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-neutral-400 group-hover:border-emerald-500 transition-colors"></div>
+                             </button>
+                          )}
 
-                      {filteredSongs.map(song => (
-                         <UserSongCard key={song.id} song={song} isEditing={editingSong === song.id} isEditable={isEditable} onClick={onPlay}/>
-                      ))}
-                   </div>
-                </div>
-             ) : (
-                <div className="flex flex-col items-center justify-center py-20 gap-6 opacity-60 text-neutral-500 border border-dashed border-neutral-300 dark:border-white/10 mt-10">
-                    <Music size={60} strokeWidth={1} />
-                    <p className="font-mono text-sm uppercase tracking-[0.2em]">{activeTab === 'uploads' ? "[ NO_UPLOADS_DETECTED ]" : "[ NO_TUNED_DATA_FOUND ]"}</p>
-                    {activeTab === 'uploads' && (
-                        <div onClick={onOpen}>
-                            <GlitchButton className="text-xs py-2 px-8 border-emerald-500 text-emerald-500 bg-transparent hover:bg-emerald-500 hover:text-black rounded-none">
-                                INITIALIZE_FIRST_UPLOAD
-                            </GlitchButton>
-                        </div>
-                    )}
-                </div>
-             )
-          )}
-       </div>
+                          {filteredSongs.map(song => (
+                             <UserSongCard key={song.id} song={song} isEditing={editingSong === song.id} isEditable={isEditable}/>
+                          ))}
+                       </div>
+                    </div>
+                 ) : (
+                    <div className="flex flex-col items-center justify-center py-20 gap-6 opacity-60 text-neutral-500 border border-dashed border-neutral-300 dark:border-white/10 mt-10">
+                        <Music size={60} strokeWidth={1} />
+                        <p className="font-mono text-sm uppercase tracking-[0.2em]">{activeTab === 'uploads' ? "[ NO_UPLOADS_DETECTED ]" : "[ NO_TUNED_DATA_FOUND ]"}</p>
+                        {activeTab === 'uploads' && (
+                            <div onClick={onOpen}>
+                                <GlitchButton className="text-xs py-2 px-8 border-emerald-500 text-emerald-500 bg-transparent hover:bg-emerald-500 hover:text-black rounded-none">
+                                    INITIALIZE_FIRST_UPLOAD
+                                </GlitchButton>
+                            </div>
+                        )}
+                    </div>
+                 )
+              )}
+           </div>
+        </div>
+      )}
     </div>
   );
 };

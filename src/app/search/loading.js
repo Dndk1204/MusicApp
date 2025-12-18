@@ -2,7 +2,7 @@ import { Search, Filter } from "lucide-react";
 
 export default function Loading() {
   return (
-    <div className="flex flex-col !w-full !min-h-full p-6 !pb-[30px] bg-neutral-100 dark:bg-black animate-pulse transition-colors duration-500">
+    <div className="flex flex-col w-full h-full p-6 pb-[120px] overflow-y-auto bg-neutral-100 dark:bg-black animate-pulse transition-colors duration-500">
       
       {/* 1. HEADER SKELETON */}
       <div className="mb-8 flex flex-col gap-4 border-b border-neutral-300 dark:border-white/10 pb-6">

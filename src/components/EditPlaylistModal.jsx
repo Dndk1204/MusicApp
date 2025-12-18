@@ -61,7 +61,7 @@ export default function EditPlaylistModal({ playlist, onClose, onUpdated, onDele
 
   const handleDelete = async () => {
     const isConfirmed = await confirm(
-        "WARNING: This will permanently delete the playlist and all its associations. Continue?", 
+        "WARNING: This will permanently delete the playlist and all its associations. Continue?",
         "DELETE_CONFIRMATION"
     );
 
@@ -69,12 +69,28 @@ export default function EditPlaylistModal({ playlist, onClose, onUpdated, onDele
 
     try {
       setLoading(true);
+
+      // If deleting "tunedsongs" playlist, also delete all user_song_settings
+      if (playlist.name.toLowerCase() === "tunedsongs") {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { error: settingsError } = await supabase
+            .from("user_song_settings")
+            .delete()
+            .eq("user_id", session.user.id);
+          if (settingsError) {
+            console.error("Error deleting user song settings:", settingsError);
+            // Continue with playlist deletion even if settings deletion fails
+          }
+        }
+      }
+
       const { error } = await supabase.from("playlists").delete().eq("id", playlist.id);
       if (error) throw error;
-      
+
       alert("Playlist deleted from database.", "success", "DELETION_COMPLETE");
-      onDeleted?.(); 
-      onClose(); 
+      onDeleted?.();
+      onClose();
     } catch (err) {
       alert(err.message, "error", "DELETE_FAILED");
     } finally {

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation"; // Thêm useRouter
+import { useParams } from "next/navigation"; 
 import getAlbumTracks from "@/app/actions/getAlbumTracks";
 import SongSection from "@/components/SongSection";
-import { Disc, Loader2, Play, ArrowLeft } from "lucide-react"; // Thêm ArrowLeft icon
+import { Disc, Loader2, Play } from "lucide-react";
 import Image from "next/image";
 // Import Cyber Components
 import { DecoderText, GlitchText, CyberCard, ScanlineOverlay } from "@/components/CyberComponents";
@@ -15,15 +15,21 @@ const AlbumSkeleton = () => {
     <div className="w-full flex flex-col gap-8 p-6 pb-[120px] animate-pulse bg-neutral-100 dark:bg-black transition-colors duration-500">
        {/* Header Skeleton */}
        <div className="flex flex-col md:flex-row gap-8 items-end mb-8 pb-8 border-b border-neutral-300 dark:border-white/10">
+           {/* Cover Image */}
            <div className="relative w-52 h-52 shrink-0 bg-neutral-300 dark:bg-neutral-800 border border-neutral-400 dark:border-white/20 rounded-none"></div>
+           
+           {/* Info */}
            <div className="flex-1 mb-2 w-full flex flex-col gap-4">
                <div className="h-4 w-24 bg-neutral-300 dark:bg-neutral-800 rounded-none"></div> 
                <div className="h-12 w-3/4 md:w-1/2 bg-neutral-300 dark:bg-neutral-800 rounded-none"></div> 
                <div className="h-6 w-48 bg-neutral-300 dark:bg-neutral-800 rounded-none"></div> 
            </div>
        </div>
+
+       {/* Tracklist Skeleton */}
        <div className="flex flex-col gap-y-4">
            <div className="h-6 w-32 bg-neutral-300 dark:bg-neutral-800 rounded-none mb-2"></div>
+           {/* List Items */}
            {[1, 2, 3, 4, 5].map((i) => (
                <div key={i} className="flex items-center gap-4 p-3 bg-white/50 dark:bg-white/5 border border-neutral-200 dark:border-white/5 h-20 rounded-none">
                    <div className="w-12 h-12 bg-neutral-300 dark:bg-neutral-800 shrink-0 rounded-none"></div>
@@ -40,7 +46,6 @@ const AlbumSkeleton = () => {
 
 const AlbumPage = () => {
   const params = useParams();
-  const router = useRouter(); // Khai báo router
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -56,19 +61,12 @@ const AlbumPage = () => {
 
   if (loading) return <AlbumSkeleton />;
 
+  // Lấy thông tin album từ bài đầu tiên (giả định các bài cùng album có metadata giống nhau phần này)
   const albumInfo = songs[0] || {};
 
   return (
-    <div className="w-full flex flex-col gap-8 p-6 pb-[120px] bg-neutral-100 dark:bg-black min-h-screen transition-colors duration-500 font-mono">
+    <div className="w-full flex flex-col gap-8 p-6 pb-[120px] bg-neutral-100 dark:bg-black min-h-screen transition-colors duration-500">
       
-       {/* --- NÚT QUAY LẠI (MỚI THÊM) --- */}
-       <button 
-         onClick={() => router.back()} 
-         className="w-fit flex items-center gap-2 px-2 py-2 border border-neutral-300 dark:border-white/10 hover:bg-emerald-500 hover:border-emerald-500 text-neutral-600 dark:text-emerald-500 hover:!text-white transition-all duration-300 uppercase text-xs font-bold tracking-widest"
-       >
-         <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform"/>
-       </button>
-
        {/* HEADER ALBUM (CYBER STYLE) */}
        <div className="flex flex-col md:flex-row gap-8 items-end mb-8 pb-8 border-b border-neutral-300 dark:border-white/10 animate-in fade-in slide-in-from-bottom-4 duration-700">
         
@@ -104,14 +102,14 @@ const AlbumPage = () => {
                 </p>
             </div>
 
-            <h1 className="text-4xl md:text-6xl font-black font-mono text-neutral-900 dark:text-white tracking-tighter mb-2 leading-none">
+            <h1 className="text-4xl md:text-6xl font-black font-mono text-neutral-900 dark:text-white tracking-tighter uppercase mb-2 leading-none">
                 <GlitchText text={albumInfo.album_name || "ALBUM_TRACKS"} />
             </h1>
             
             <div className="flex items-center gap-4 mt-2">
                 <p className="text-sm md:text-lg font-mono text-neutral-600 dark:text-neutral-400 flex items-center gap-2 border border-neutral-300 dark:border-white/20 px-3 py-1 bg-white dark:bg-white/5 w-fit">
                     <span className="text-[10px] uppercase text-neutral-400">ARTIST_REF:</span>
-                    <span className="font-bold text-neutral-900 dark:text-white">{albumInfo.author || "UNKNOWN"}</span>
+                    <span className="font-bold text-neutral-900 dark:text-white uppercase">{albumInfo.author || "UNKNOWN"}</span>
                 </p>
                 <span className="text-[10px] font-mono text-neutral-400 dark:text-neutral-500">
                     TOTAL_TRACKS: {songs.length}

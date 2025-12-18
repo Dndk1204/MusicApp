@@ -1,8 +1,7 @@
 import "./globals.css";
-import Navbar from "@/components/Navbar"; 
-import Sidebar from "@/components/Sidebar"; 
+import Sidebar from "@/components/Sidebar";
 import AuthModal from "@/components/AuthModal";
-import UploadModal from "@/components/UploadModal";
+import UploadModal from "@/components/UploadModal"; // <--- Đã thêm lại từ Layout 1
 import Player from "@/components/Player";
 import SupabaseProvider from "@/providers/SupabaseProvider";
 import { ModalProvider } from "@/context/ModalContext";
@@ -20,48 +19,47 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var localTheme=localStorage.getItem('theme');var supportDarkMode=window.matchMedia('(prefers-color-scheme: dark)').matches;if(localTheme==='dark'||(!localTheme)){document.documentElement.classList.add('dark');if(!localTheme)localStorage.setItem('theme','dark');}else{document.documentElement.classList.remove('dark');}}catch(e){}})();` }} />
+        {/* --- SCRIPT CHỐNG FLASH (Giữ lại version có comment chi tiết của Layout 2) --- */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  // Kiểm tra localStorage
+                  var localTheme = localStorage.getItem('theme');
+                  // Kiểm tra cài đặt hệ thống
+                  var supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  
+                  // Ưu tiên Dark Mode: Nếu đã lưu 'dark' HOẶC chưa lưu gì cả (mặc định là Dark)
+                  if (localTheme === 'dark' || (!localTheme)) {
+                    document.documentElement.classList.add('dark');
+                    // Cập nhật lại localStorage nếu chưa có để đồng bộ
+                    if (!localTheme) localStorage.setItem('theme', 'dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
       </head>
-      
-      {/* BODY: Fixed Height, Flex Column */}
-      <body className="bg-neutral-100 dark:bg-black text-neutral-900 dark:text-white h-screen w-screen overflow-hidden flex flex-col transition-colors duration-500">
+      <body>
         <SupabaseProvider>
           <ModalProvider>
             <AuthWrapper>
-              
-              {/* 1. NAVBAR SECTION (Cố định chiều cao, z-index cao nhất) */}
-              <header className="fixed h-[64px] shrink-0 w-full !z-[9999] shadow-md">
-                 <Navbar />
-              </header>
+              <Sidebar>
+                {children}
+              </Sidebar>
+              <Player />
 
-              {/* 2. MAIN LAYOUT (Sidebar + Page Content) */}
-              <div className="flex flex-1 overflow-hidden w-full relative">
-                 
-                 {/* Sidebar bên trái */}
-                 <div className="!mt-[64px]">
-                   <Sidebar /> 
-                 </div>
-                 {/* Content bên phải (Scrollable) */}
-                 {/* QUAN TRỌNG: id="main-content" để các trang con có thể target nếu cần */}
-                 <main id="main-content" className="flex-1 min-h-full w-full overflow-y-auto relative scroll-smooth bg-transparent">
-                    <div className="min-h-full w-full p-4 pb-[140px] !mt-[64px]">
-                        {children}
-                    </div>
-                 </main>
-              </div>
-
-              {/* 3. PLAYER (Fixed Bottom, nằm trên cùng) */}
-              <div className="fixed bottom-0 left-0 w-full z-[9998]">
-                  <Player />
-              </div>
-
-              {/* --- GLOBAL COMPONENTS --- */}
+              {/* --- CÁC MODAL PHẢI NẰM Ở ĐÂY --- */}
               <AuthModal />
-              <UploadModal />
+              <UploadModal /> {/* <--- Đảm bảo thành phần này xuất hiện */}
               <GlobalPopup />
               <CyberCursor />
               <CyberContextMenu />
-              
+              {/* -------------------------------- */}
             </AuthWrapper>
           </ModalProvider>
         </SupabaseProvider>

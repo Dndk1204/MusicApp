@@ -4,7 +4,6 @@ import { createPortal } from "react-dom";
 import { ScanlineOverlay } from "@/components/CyberComponents";
 import { Volume2, VolumeX, Loader2, Disc, User } from "lucide-react"; 
 import usePlayer from "@/hooks/usePlayer";
-import Image from "next/image"; // Import Next Image
 
 const HoverImagePreview = ({ 
     src, 
@@ -21,9 +20,6 @@ const HoverImagePreview = ({
     const [mounted, setMounted] = useState(false);
     const [status, setStatus] = useState("idle"); 
     
-    // THÊM: State lưu tỉ lệ ảnh (mặc định 1 = vuông)
-    const [imgRatio, setImgRatio] = useState(1); 
-
     const popupRef = useRef(null); 
     const audioRef = useRef(null);
     const fadeIntervalRef = useRef(null);
@@ -44,33 +40,26 @@ const HoverImagePreview = ({
         if (!isHovering) return;
 
         const handleWindowMouseMove = (e) => {
+            if (!popupRef.current) return;
+            
             if (requestRef.current) cancelAnimationFrame(requestRef.current);
             
             requestRef.current = requestAnimationFrame(() => {
-                if (!popupRef.current) return;
-
                 const offset = 20; 
                 const viewportWidth = window.innerWidth;
                 const viewportHeight = window.innerHeight;
 
-                // Tính chiều cao dựa trên tỉ lệ ảnh
-                const actualHeight = previewSize / imgRatio; 
-
                 let x = e.clientX + offset;
                 let y = e.clientY + offset;
                 
-                // Xử lý tràn ngang
                 if (x + previewSize > viewportWidth - 20) { 
                     x = e.clientX - previewSize - offset;
                 }
                 
-                // Xử lý tràn dọc
-                const isFlippedY = y + actualHeight > viewportHeight;
-                const translateY = isFlippedY ? `-${actualHeight}px` : '0px';
+                const isFlippedY = y + previewSize > viewportHeight;
+                const translateY = isFlippedY ? `-${previewSize}px` : '0px';
 
-                if (popupRef.current) {
-                    popupRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) translateY(${translateY})`;
-                }
+                popupRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) translateY(${translateY})`;
             });
         };
 
@@ -80,13 +69,10 @@ const HoverImagePreview = ({
             window.removeEventListener('mousemove', handleWindowMouseMove);
             if (requestRef.current) cancelAnimationFrame(requestRef.current);
         };
-    }, [isHovering, previewSize, imgRatio]); // Thêm imgRatio vào dependency
+    }, [isHovering, previewSize]);
 
 
-    // --- AUDIO LOGIC (Giữ nguyên) ---
-    // ... (Code Audio logic của bạn ở đây) ...
-    // Copy lại phần useEffect audio, visualizerBars, stopAudioImmediate, stopAudioWithFade, playPreview, handleMouseEnter, handleMouseLeave từ code cũ
-    
+    // --- AUDIO LOGIC ---
     useEffect(() => {
         if (player.isPlaying && status === "playing") {
             stopAudioWithFade();
@@ -102,6 +88,7 @@ const HoverImagePreview = ({
                     return (
                         <div 
                             key={i} 
+                            // FIX: Màu xanh đậm hơn ở Light mode để dễ nhìn trên nền sáng
                             className="flex-1 bg-emerald-600 dark:bg-emerald-500 animate-[bounce_1s_infinite]" 
                             style={{
                                 animationDuration: `${duration}s`,
@@ -136,7 +123,7 @@ const HoverImagePreview = ({
         if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
         fadeIntervalRef.current = setInterval(() => {
             if (vol > 0.05) {
-                vol -= 0.005;
+                vol -= 0.01;
                 audio.volume = Math.max(0, vol);
             } else {
                 stopAudioImmediate();
@@ -184,7 +171,7 @@ const HoverImagePreview = ({
                     if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
                     fadeIntervalRef.current = setInterval(() => {
                         if (vol < 0.5) {
-                            vol += 0.003;
+                            vol += 0.001;
                             audio.volume = Math.min(vol, 0.5);
                         } else {
                             clearInterval(fadeIntervalRef.current);
@@ -204,6 +191,19 @@ const HoverImagePreview = ({
     const handleMouseEnter = (e) => {
         setIsHovering(true);
         isHoveringRef.current = true;
+
+        if (popupRef.current) {
+             const offset = 20; 
+             const viewportWidth = window.innerWidth;
+             const viewportHeight = window.innerHeight;
+             let x = e.clientX + offset;
+             let y = e.clientY + offset;
+             if (x + previewSize > viewportWidth - 20) x = e.clientX - previewSize - offset;
+             const isFlippedY = y + previewSize > viewportHeight;
+             const translateY = isFlippedY ? `-${previewSize}px` : '0px';
+             popupRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) translateY(${translateY})`;
+        }
+        
         if (playTimeoutRef.current) clearTimeout(playTimeoutRef.current);
         playTimeoutRef.current = setTimeout(() => {
             if (isHoveringRef.current) {
@@ -219,30 +219,13 @@ const HoverImagePreview = ({
         stopAudioWithFade();
     };
 
-    // --- RENDER CONTENT (ĐÃ SỬA) ---
+    // --- RENDER PLACEHOLDER ---
     const renderContent = () => {
         if (src) {
-            // Dùng Next/Image để lấy được onLoadingComplete
-            return (
-                <div className="relative w-full h-full">
-                    <Image 
-                        src={src} 
-                        alt={alt || "preview"} 
-                        fill
-                        className="object-cover" // Vẫn giữ cover để lấp đầy khung, nhưng khung sẽ resize theo ảnh
-                        onLoadingComplete={(result) => {
-                            // Tính tỉ lệ ảnh: Rộng / Cao
-                            if (result.naturalWidth && result.naturalHeight) {
-                                setImgRatio(result.naturalWidth / result.naturalHeight);
-                            }
-                        }}
-                        // Fallback cho thẻ img thường nếu src là blob/external không support
-                        onError={() => setImgRatio(1)} 
-                    />
-                </div>
-            );
+            return <img src={src} alt={alt || "preview"} className="w-full h-full object-cover" />;
         }
         return (
+            // FIX: Background sáng ở Light mode, tối ở Dark mode
             <div className="w-full h-full bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center">
                 {fallbackIcon === "user" ? (
                     <User size={previewSize * 0.4} className="text-neutral-400 dark:text-neutral-700" strokeWidth={1} />
@@ -271,15 +254,15 @@ const HoverImagePreview = ({
                         left: 0, 
                         top: 0,
                         width: previewSize, 
-                        height: previewSize / imgRatio, // Chiều cao tự động theo tỉ lệ
+                        height: previewSize,
                         willChange: "transform", 
-                        transition: "height 0.2s ease", // Hiệu ứng mượt khi đổi tỉ lệ
                     }}
                 >
                     <div 
                         className={`
                             w-full h-full relative overflow-hidden transition-colors duration-300
                             border-2 shadow-[0_0_30px_rgba(0,0,0,0.2)] dark:shadow-[0_0_30px_rgba(0,0,0,0.5)]
+                            /* FIX: Màu nền và viền thay đổi theo theme */
                             bg-white dark:bg-black
                             ${status === "error" 
                                 ? "border-red-600 dark:border-red-500 shadow-red-500/20" 
@@ -295,6 +278,7 @@ const HoverImagePreview = ({
                         {/* Status Bar */}
                         <div className={`
                             absolute top-0 left-0 backdrop-blur border-b text-[10px] font-mono font-bold px-2 py-1 flex items-center gap-2 z-20 w-full
+                            /* FIX: Status bar màu sáng/tối rõ ràng */
                             ${status === "error" 
                                 ? "bg-red-100/90 dark:bg-red-900/80 border-red-500/50 text-red-700 dark:text-red-200" 
                                 : "bg-white/90 dark:bg-black/90 border-emerald-600/20 dark:border-emerald-500/50 text-emerald-700 dark:text-emerald-500"
