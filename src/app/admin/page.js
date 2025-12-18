@@ -269,62 +269,68 @@ const AdminDashboard = () => {
       }
   }, [uploadModal.isOpen]);
 
-  // --- PRESENCE LOGIC (ONLINE STATUS) ---
+  // Thêm session vào các dependency cần thiết (giả sử bạn lấy từ useAuth hoặc state của init)
 useEffect(() => {
-  const channel = supabase.channel('online-users', {
-    config: {
-      presence: {
-        // QUAN TRỌNG: Dùng ID của user làm key để tránh bị ghi đè hoặc trùng lặp
-        key: 'online-presence', 
-      },
-    },
-  });
+    if (loading) return; // Đợi cho đến khi init xong và xác nhận là Admin
 
-  channel
-    .on('presence', { event: 'sync' }, () => {
-      const newState = channel.presenceState();
-      const onlineIds = new Set();
-      
-      // Duyệt qua tất cả các key trong presence state
-      Object.keys(newState).forEach((key) => {
-        newState[key].forEach((presence) => {
-          if (presence.user_id) {
-            onlineIds.add(presence.user_id);
-          }
-        });
-      });
-      setOnlineUsers(onlineIds);
-    })
-    .subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          // Track chính Admin để Admin cũng hiện Online
-          await channel.track({ 
-            user_id: user.id, 
-            online_at: new Date().toISOString() 
-          });
-        }
-      }
+    const channel = supabase.channel('online-users', {
+        config: { presence: { key: 'online-presence' } }
     });
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, []);
+    channel
+        .on('presence', { event: 'sync' }, () => {
+            const newState = channel.presenceState();
+            const onlineIds = new Set();
+            Object.keys(newState).forEach((key) => {
+                newState[key].forEach((u) => {
+                    if (u.user_id) onlineIds.add(u.user_id);
+                });
+            });
+            setOnlineUsers(onlineIds);
+        })
+        .subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                // Lấy session trực tiếp để đảm bảo đã auth
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user) {
+                    await channel.track({ 
+                        user_id: session.user.id, 
+                        online_at: new Date().toISOString() 
+                    });
+                }
+            }
+        });
 
-  useEffect(() => {
+    return () => {
+        supabase.removeChannel(channel);
+    };
+}, [loading]); // Chỉ chạy khi loading xong (đã xác thực Admin)
+
+useEffect(() => {
     const init = async () => {
-      setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { router.push("/"); return; }
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
-      if (profile?.role !== 'admin') { router.push("/"); return; }
-      await fetchDashboardData();
-      setLoading(false);
+        setLoading(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) { 
+            router.push("/"); 
+            return; 
+        }
+
+        const { data: profile } = await supabase.from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+
+        if (profile?.role !== 'admin') { 
+            router.push("/"); 
+            return; 
+        }
+
+        await fetchDashboardData();
+        setLoading(false); // CHỈ SAU KHI XONG HẾT MỚI setLoading(false)
     };
     init();
-  }, [router]);
+}, [router]);
 
   // --- FILTER LOGIC ---
   let displayedSongs = allSongsList;
