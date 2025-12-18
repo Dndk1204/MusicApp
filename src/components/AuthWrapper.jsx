@@ -14,6 +14,8 @@ const AuthWrapper = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let presenceChannel = null;
+
     // Get initial session
     const getInitialSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -30,10 +32,42 @@ const AuthWrapper = ({ children }) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Handle presence tracking
+        if (session?.user) {
+          // User logged in - track presence
+          presenceChannel = supabase.channel('online-users', {
+            config: {
+              presence: {
+                key: session.user.id,
+              },
+            },
+          });
+
+          presenceChannel.subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+              await presenceChannel.track({
+                user_id: session.user.id,
+                online_at: new Date().toISOString()
+              });
+            }
+          });
+        } else {
+          // User logged out - leave channel
+          if (presenceChannel) {
+            supabase.removeChannel(presenceChannel);
+            presenceChannel = null;
+          }
+        }
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      if (presenceChannel) {
+        supabase.removeChannel(presenceChannel);
+      }
+    };
   }, []);
 
   return (

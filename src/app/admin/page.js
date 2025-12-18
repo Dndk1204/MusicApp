@@ -270,42 +270,48 @@ const AdminDashboard = () => {
   }, [uploadModal.isOpen]);
 
   // --- PRESENCE LOGIC (ONLINE STATUS) ---
-  useEffect(() => {
-    // Kênh theo dõi user online
-    const channel = supabase.channel('online-users', {
-        config: {
-            presence: {
-                key: 'admin-dashboard-listener',
-            },
-        },
+useEffect(() => {
+  const channel = supabase.channel('online-users', {
+    config: {
+      presence: {
+        // QUAN TRỌNG: Dùng ID của user làm key để tránh bị ghi đè hoặc trùng lặp
+        key: 'online-presence', 
+      },
+    },
+  });
+
+  channel
+    .on('presence', { event: 'sync' }, () => {
+      const newState = channel.presenceState();
+      const onlineIds = new Set();
+      
+      // Duyệt qua tất cả các key trong presence state
+      Object.keys(newState).forEach((key) => {
+        newState[key].forEach((presence) => {
+          if (presence.user_id) {
+            onlineIds.add(presence.user_id);
+          }
+        });
+      });
+      setOnlineUsers(onlineIds);
+    })
+    .subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          // Track chính Admin để Admin cũng hiện Online
+          await channel.track({ 
+            user_id: user.id, 
+            online_at: new Date().toISOString() 
+          });
+        }
+      }
     });
 
-    channel
-        .on('presence', { event: 'sync' }, () => {
-            const newState = channel.presenceState();
-            const onlineIds = new Set();
-            
-            for (const id in newState) {
-                const users = newState[id];
-                users.forEach(u => {
-                    if (u.user_id) onlineIds.add(u.user_id);
-                });
-            }
-            setOnlineUsers(onlineIds);
-        })
-        .subscribe(async (status) => {
-            if (status === 'SUBSCRIBED') {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                    await channel.track({ user_id: user.id, online_at: new Date().toISOString() });
-                }
-            }
-        });
-
-    return () => {
-        supabase.removeChannel(channel);
-    };
-  }, []);
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, []);
 
   useEffect(() => {
     const init = async () => {
