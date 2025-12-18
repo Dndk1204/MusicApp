@@ -269,48 +269,87 @@ const AdminDashboard = () => {
       }
   }, [uploadModal.isOpen]);
 
-  // --- PRESENCE LOGIC (ONLINE STATUS) ---
+// --- PRESENCE LOGIC (ONLINE STATUS) ---
 useEffect(() => {
-  const channel = supabase.channel('online-users', {
-    config: {
-      presence: {
-        // QUAN TRỌNG: Dùng ID của user làm key để tránh bị ghi đè hoặc trùng lặp
-        key: 'online-presence', 
-      },
-    },
-  });
+    let channel = null;
+    let authListener = null;
 
-  channel
-    .on('presence', { event: 'sync' }, () => {
-      const newState = channel.presenceState();
-      const onlineIds = new Set();
-      
-      // Duyệt qua tất cả các key trong presence state
-      Object.keys(newState).forEach((key) => {
-        newState[key].forEach((presence) => {
-          if (presence.user_id) {
-            onlineIds.add(presence.user_id);
-          }
+    const handlePresenceSync = () => {
+        if (!channel) return;
+        const newState = channel.presenceState();
+        const onlineIds = new Set();
+
+        Object.keys(newState).forEach((key) => {
+            newState[key].forEach((presence) => {
+                if (presence.user_id) onlineIds.add(presence.user_id);
+            });
         });
-      });
-      setOnlineUsers(onlineIds);
-    })
-    .subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          // Track chính Admin để Admin cũng hiện Online
-          await channel.track({ 
-            user_id: user.id, 
-            online_at: new Date().toISOString() 
-          });
-        }
-      }
-    });
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
+        setOnlineUsers(onlineIds);
+    };
+
+    const createChannelForUser = async (user) => {
+        if (!user) return;
+
+        // If an old channel exists, remove it first
+        if (channel) {
+            try { supabase.removeChannel(channel); } catch (e) { /* ignore */ }
+        }
+
+        channel = supabase.channel('online-users', {
+            config: {
+                // Use the unique user id as presence key so entries don't collide
+                presence: { key: user.id },
+            },
+        });
+
+        channel.on('presence', { event: 'sync' }, handlePresenceSync);
+
+        await channel.subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                try {
+                    await channel.track({ user_id: user.id, online_at: new Date().toISOString() });
+                } catch (err) {
+                    console.warn('Presence track failed', err);
+                }
+                // Update local state immediately after subscribe
+                handlePresenceSync();
+            }
+        });
+    };
+
+    (async () => {
+        // Try to get current session first
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+            await createChannelForUser(session.user);
+        }
+
+        // Also listen for auth state changes (in case session isn't ready yet)
+        const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' && session?.user) {
+                createChannelForUser(session.user);
+            }
+            if (event === 'SIGNED_OUT') {
+                setOnlineUsers(new Set());
+                if (channel) {
+                    try { supabase.removeChannel(channel); } catch (e) { }
+                    channel = null;
+                }
+            }
+        });
+        authListener = listener;
+    })();
+
+    return () => {
+        if (authListener?.subscription) {
+            try { authListener.subscription.unsubscribe(); } catch (e) { }
+        }
+        if (channel) {
+            try { supabase.removeChannel(channel); } catch (e) { }
+            channel = null;
+        }
+    };
 }, []);
 
   useEffect(() => {
