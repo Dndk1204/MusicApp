@@ -3,7 +3,7 @@
 import { useEffect, useState, createContext, useContext } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
-// Create auth context to provide authentication state to components
+// Khởi tạo Auth Context
 const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
@@ -14,9 +14,7 @@ const AuthWrapper = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let presenceChannel = null;
-
-    // Get initial session
+    // 1. Lấy session ban đầu khi load trang
     const getInitialSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
@@ -26,47 +24,19 @@ const AuthWrapper = ({ children }) => {
 
     getInitialSession();
 
-    // Listen for auth changes
+    // 2. Lắng nghe thay đổi trạng thái đăng nhập
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
-
-        // Handle presence tracking
-        if (session?.user) {
-          // User logged in - track presence
-          presenceChannel = supabase.channel('online-users', {
-            config: {
-              presence: {
-                key: session.user.id,
-              },
-            },
-          });
-
-          presenceChannel.subscribe(async (status) => {
-            if (status === 'SUBSCRIBED') {
-              await presenceChannel.track({
-                user_id: session.user.id,
-                online_at: new Date().toISOString()
-              });
-            }
-          });
-        } else {
-          // User logged out - leave channel
-          if (presenceChannel) {
-            supabase.removeChannel(presenceChannel);
-            presenceChannel = null;
-          }
-        }
+        
+        // ĐÃ XÓA LOGIC PRESENCE TẠI ĐÂY ĐỂ TRÁNH XUNG ĐỘT
       }
     );
 
     return () => {
       subscription.unsubscribe();
-      if (presenceChannel) {
-        supabase.removeChannel(presenceChannel);
-      }
     };
   }, []);
 
