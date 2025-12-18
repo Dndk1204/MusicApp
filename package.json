@@ -2,11 +2,14 @@
   "name": "project",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://long-64131209.github.io/MusicApp/",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
@@ -31,6 +34,7 @@
     "autoprefixer": "^10.4.22",
     "eslint": "^9",
     "eslint-config-next": "16.0.4",
+    "gh-pages": "^6.3.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17"
   }
