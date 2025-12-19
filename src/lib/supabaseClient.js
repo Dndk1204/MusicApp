@@ -25,7 +25,7 @@ const customStorage = {
 
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
-    storage: customStorage, // Ép buộc dùng SessionStorage
+    storage: typeof window !== 'undefined' ? window.sessionStorage : null,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
