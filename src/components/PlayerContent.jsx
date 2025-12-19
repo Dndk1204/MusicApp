@@ -30,8 +30,6 @@ const PlayerContent = ({ song, songUrl }) => {
   const { alert } = useUI(); 
 
   const { initAudioNodes, setBass, setMid, setTreble } = useAudioFilters();
-  
-  // Logic kiểm tra trang Tuned (để load EQ nếu đang nghe playlist Tuned)
   const isTunedTracksPage = useIsTunedTracksPage();
   
   useTrackStats(song);
@@ -82,7 +80,6 @@ const PlayerContent = ({ song, songUrl }) => {
   const loadSongSettings = useCallback(async (songId) => {
     if (!songId) return;
     try {
-      // Chỉ load EQ settings nếu đang ở trang tuned-tracks
       if (isTunedTracksPage) {
         const { data: { session } } = await supabase.auth.getSession();
         const sessionSaved = sessionStorage.getItem(`audioSettings_${songId}`);
@@ -110,7 +107,6 @@ const PlayerContent = ({ song, songUrl }) => {
           }
         }
       } else {
-        // Ở trang khác: luôn set về default (0, 0, 0)
         sessionStorage.removeItem(`audioSettings_${songId}`);
         setBass(0); setMid(0); setTreble(0);
       }
@@ -233,7 +229,7 @@ const PlayerContent = ({ song, songUrl }) => {
   };
 
   const handleClearPlayer = (e) => {
-    e?.stopPropagation(); 
+    e?.stopPropagation();
     if (sound) { sound.stop(); sound.unload(); }
     player.reset();
   };
@@ -271,7 +267,7 @@ const PlayerContent = ({ song, songUrl }) => {
         className={`
             md:hidden fixed bottom-[64px] left-0 right-0 z-[9998] 
             transition-all duration-300 ease-in-out bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl border-t border-neutral-200 dark:border-white/10
-            shadow-[0_-5px_20px_rgba(0,0,0,0.3)]
+            shadow-[0_-5px_20px_rgba(0,0,0,0.3)] max-w-full overflow-hidden
             ${isExpanded ? 'h-auto pb-6 rounded-none !border-emerald-500' : 'h-16'}
         `}
       >
@@ -287,10 +283,10 @@ const PlayerContent = ({ song, songUrl }) => {
 
           {/* --- TRẠNG THÁI THU GỌN (MINI PLAYER) --- */}
           {!isExpanded && (
-             <div className="flex items-center justify-between px-3 h-full w-full" onClick={() => setIsExpanded(true)}>
+             <div className="flex items-center justify-between px-3 h-full w-full max-w-full" onClick={() => setIsExpanded(true)}>
                  
                  {/* Mini Info - Sử dụng min-w-0 để text tự co lại */}
-                 <div className="flex items-center gap-2 flex-1 min-w-0 mr-2">
+                 <div className="flex items-center gap-2 flex-1 min-w-0 mr-2 overflow-hidden">
                      <div className="w-10 h-10 shrink-0 bg-neutral-800 border border-neutral-600 overflow-hidden relative">
                         <img 
                             src={song.image_path || song.image_url || "/images/default_song.png"} 
@@ -298,7 +294,7 @@ const PlayerContent = ({ song, songUrl }) => {
                             className={`w-full h-full object-cover ${isPlaying ? 'animate-[spin_10s_linear_infinite]' : ''}`}
                         />
                      </div>
-                     <div className="flex flex-col justify-center min-w-0">
+                     <div className="flex flex-col justify-center min-w-0 overflow-hidden">
                         <p className="text-xs font-bold font-mono text-neutral-900 dark:text-white truncate uppercase">{song.title}</p>
                         <p className="text-[10px] text-neutral-500 dark:text-neutral-400 truncate font-mono uppercase">{song.author}</p>
                      </div>
@@ -369,7 +365,7 @@ const PlayerContent = ({ song, songUrl }) => {
 
           {/* --- TRẠNG THÁI MỞ RỘNG (FULL CONTROLS) --- */}
           {isExpanded && (
-             <div className="flex flex-col px-4 pt-4 gap-4 animate-in slide-in-from-bottom-10 duration-300 bg-neutral-100 dark:bg-neutral-900/50">
+             <div className="flex flex-col px-4 pt-4 gap-4 animate-in slide-in-from-bottom-10 duration-300 bg-neutral-100 dark:bg-neutral-900/50 max-w-full overflow-hidden">
                  
                  <div className="flex justify-between items-start">
                      <div className="w-full flex justify-center">
@@ -389,25 +385,27 @@ const PlayerContent = ({ song, songUrl }) => {
                       <span className="text-[10px] font-mono w-8 text-neutral-500">{formatTime(duration)}</span>
                  </div>
 
-                 {/* Row 3: Main Controls Grid */}
-                 <div className="grid grid-cols-7 items-center justify-items-center gap-2 mt-2">
+                 {/* Row 3: Main Controls Flexbox (Fix tràn grid) */}
+                 <div className="flex flex-wrap justify-between items-center gap-2 mt-2 w-full px-2">
                       <button onClick={() => player.setIsShuffle(!player.isShuffle)} className={`p-2 ${player.isShuffle ? "text-emerald-500" : "text-neutral-400"}`}><Shuffle size={20}/></button>
                       
-                      <button onClick={onPlayPrevious} className="p-2 text-neutral-800 dark:text-white"><SkipBack size={24}/></button>
-                      <button onClick={() => { if(sound) sound.seek(Math.max(0, seek - 5)); }} className="p-2 text-neutral-600 dark:text-white"><Rewind size={20}/></button>
-                      
-                      <button 
-                      onClick={handlePlay} 
-                      disabled={!sound || isLoading} 
-                      className="relative flex items-center justify-center h-10 w-10 bg-neutral-200 dark:bg-emerald-400/50 text-black dark:text-emerald-100 border border-neutral-300 dark:border-emerald-300 transition-all duration-200 rounded-none shadow-sm col-span-1"
-                      >
-                          <div className="relative w-full h-full flex items-center justify-center">
-                              {isLoading ? <div className="w-5 h-5 border-2 border-current border-t-transparent animate-spin relative z-20" style={{ borderRadius: '50%' }}/> : <Icon size={24} fill="currentColor" className="relative z-20"/>}
-                          </div>
-                      </button>
+                      <div className="flex items-center gap-4">
+                          <button onClick={onPlayPrevious} className="p-2 text-neutral-800 dark:text-white"><SkipBack size={24}/></button>
+                          <button onClick={() => { if(sound) sound.seek(Math.max(0, seek - 5)); }} className="p-2 text-neutral-600 dark:text-white hidden xs:block"><Rewind size={20}/></button>
+                          
+                          <button 
+                          onClick={handlePlay} 
+                          disabled={!sound || isLoading} 
+                          className="relative flex items-center justify-center h-12 w-12 bg-neutral-200 dark:bg-emerald-400/50 text-black dark:text-emerald-100 border border-neutral-300 dark:border-emerald-300 transition-all duration-200 rounded-none shadow-sm"
+                          >
+                              <div className="relative w-full h-full flex items-center justify-center">
+                                  {isLoading ? <div className="w-6 h-6 border-2 border-current border-t-transparent animate-spin relative z-20" style={{ borderRadius: '50%' }}/> : <Icon size={28} fill="currentColor" className="relative z-20"/>}
+                              </div>
+                          </button>
 
-                      <button onClick={() => { if(sound) sound.seek(Math.min(duration, seek + 5)); }} className="p-2 text-neutral-600 dark:text-white"><FastForward size={20}/></button>
-                      <button onClick={onPlayNext} className="p-2 text-neutral-800 dark:text-white"><SkipForward size={24}/></button>
+                          <button onClick={() => { if(sound) sound.seek(Math.min(duration, seek + 5)); }} className="p-2 text-neutral-600 dark:text-white hidden xs:block"><FastForward size={20}/></button>
+                          <button onClick={onPlayNext} className="p-2 text-neutral-800 dark:text-white"><SkipForward size={24}/></button>
+                      </div>
                       
                       <button onClick={() => player.setRepeatMode((player.repeatMode+1)%3)} className={`p-2 ${player.repeatMode!==0 ? "text-emerald-500" : "text-neutral-400"}`}>
                         {player.repeatMode===2 ? <Repeat1 size={20}/> : <Repeat size={20}/>}
@@ -430,7 +428,6 @@ const PlayerContent = ({ song, songUrl }) => {
             </div>
             
             <div className="flex items-center gap-1">
-                {/* Nút Add Playlist */}
                 <button 
                     onClick={() => { 
                         if(song) {
@@ -452,7 +449,6 @@ const PlayerContent = ({ song, songUrl }) => {
                     <Plus size={18} />
                 </button>
 
-                {/* Nút Stop */}
                 <button 
                     onClick={handleClearPlayer} 
                     className="text-neutral-500 dark:text-neutral-400 hover:text-red-600 dark:hover:text-red-500 transition p-1.5"
