@@ -4,9 +4,11 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { Howl } from "howler";
 import {
   Play, Pause, Rewind, FastForward, SkipBack, SkipForward,
-  Volume2, VolumeX, Shuffle, Repeat, Repeat1, AlignJustify, Plus, Save, Square, X 
+  Volume2, VolumeX, Shuffle, Repeat, Repeat1, AlignJustify, Plus, Square, X,
+  Maximize2, ChevronUp, ChevronDown // Import thêm icon
 } from "lucide-react"; 
 import { useRouter, usePathname } from "next/navigation";
+import Image from "next/image";
 
 // --- CUSTOM HOOKS ---
 import usePlayer from "@/hooks/usePlayer";
@@ -15,7 +17,6 @@ import useAudioFilters from "@/hooks/useAudioFilters";
 import { useIsTunedTracksPage } from "@/hooks/useIsTunedTracksPage";
 import useUI from "@/hooks/useUI";
 import { supabase } from "@/lib/supabaseClient";
-import { addSongToPlaylist } from "@/lib/addSongToPlaylist";
 
 // --- COMPONENTS ---
 import MediaItem from "./MediaItem";
@@ -41,6 +42,9 @@ const PlayerContent = ({ song, songUrl }) => {
   const [error, setError] = useState(null);
   const [volume, setVolume] = useState(1);
   const [userId, setUserId] = useState(null);
+  
+  // State mở rộng Player trên Mobile
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const isDraggingRef = useRef(false);
   const rafRef = useRef(null);
@@ -71,6 +75,7 @@ const PlayerContent = ({ song, songUrl }) => {
     }
   }, [player.volume]);
 
+  // Load EQ Settings
   const loadSongSettings = useCallback(async (songId) => {
     if (!songId) return;
     try {
@@ -171,13 +176,12 @@ const PlayerContent = ({ song, songUrl }) => {
     const initialVol = clampVolume(player.volume ?? 1);
     setVolume(initialVol);
 
-    // TỐI ƯU HÓA HOWLER ĐỂ LOAD NHANH
     const newSound = new Howl({
       src: [songUrl],
       format: ["mp3", "mpeg"],
       volume: initialVol,
-      html5: false, // <--- QUAN TRỌNG: Bật Streaming (không đợi tải hết)
-      preload: "auto", // <--- QUAN TRỌNG: Tải ngay lập tức
+      html5: false, 
+      preload: "auto", 
       autoplay: true,
       loop: playerRef.current.repeatMode === 2,
       onplay: () => {
@@ -210,7 +214,14 @@ const PlayerContent = ({ song, songUrl }) => {
 
     setSound(newSound);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); newSound.unload(); };
-  }, [songUrl]); // Chỉ chạy lại khi songUrl thay đổi
+  }, [songUrl]); 
+
+  useEffect(() => {
+    if (song?.id && loadedSongIdRef.current !== song.id) {
+      loadSongSettings(song.id);
+      loadedSongIdRef.current = song.id;
+    }
+  }, [song?.id, loadSongSettings]);
 
   // --- LOAD EQ SETTINGS KHI SONG.ID THAY ĐỔI ---
   useEffect(() => {
@@ -223,7 +234,12 @@ const PlayerContent = ({ song, songUrl }) => {
 
   useEffect(() => { if (sound) sound.loop(player.repeatMode === 2); }, [player.repeatMode, sound]);
 
-  const handlePlay = () => { if (!sound) return; if (!isPlaying) { sound.play(); initAudioNodes(); } else sound.pause(); };
+  const handlePlay = (e) => { 
+      e?.stopPropagation();
+      if (!sound) return; 
+      if (!isPlaying) { sound.play(); initAudioNodes(); } 
+      else sound.pause(); 
+  };
   
   const handleVolumeChange = (value, syncGlobal = true) => {
     const v = clampVolume(parseFloat(value));
@@ -233,10 +249,7 @@ const PlayerContent = ({ song, songUrl }) => {
   };
 
   const handleClearPlayer = () => {
-    if (sound) {
-        sound.stop();
-        sound.unload();
-    }
+    if (sound) { sound.stop(); sound.unload(); }
     player.reset();
   };
 
@@ -248,7 +261,7 @@ const PlayerContent = ({ song, songUrl }) => {
   const Icon = isPlaying ? Pause : Play;
   const VolumeIcon = volume === 0 ? VolumeX : Volume2;
 
-  const toggleNowPlaying = () => {
+  const navigateToFullPlayer = () => {
     if (pathname === '/now-playing') {
       router.back();
     } else {
@@ -295,8 +308,9 @@ const PlayerContent = ({ song, songUrl }) => {
     }
   };
 
-  // Tính toán phần trăm âm lượng (0-100) và làm tròn
   const volumePercentage = Math.round(volume * 100);
+
+  if (!songUrl || !song) return null;
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 h-full gap-x-6 items-center bg-white dark:bg-black border-t border-neutral-300 dark:border-white/10 px-4">
@@ -368,92 +382,105 @@ const PlayerContent = ({ song, songUrl }) => {
         </div>
       </div>
 
-      {/* CENTER: CONTROLS */}
-      <div className="hidden md:flex flex-col items-center w-full max-w-[722px] gap-y-1">
-          <div className="flex items-center gap-x-6 translate-y-1.5">
-            <button onClick={() => player.setIsShuffle(!player.isShuffle)} className={`transition p-1 ${player.isShuffle ? "text-emerald-500" : "text-neutral-400 hover:text-white"}`} title="Shuffle"><Shuffle size={16}/></button>
+
+      {/* ========================================================= */}
+      {/* 2. DESKTOP LAYOUT (HIỆN TRÊN MÁY TÍNH >= MD) */}
+      {/* ========================================================= */}
+      <div className="hidden md:grid md:grid-cols-3 h-full px-4 items-center gap-6 bg-white dark:bg-black border-t border-neutral-200 dark:border-white/10">
+        
+        {/* LEFT: Info & Actions */}
+        <div className="flex w-full md:w-[20em] justify-start items-center gap-2 -translate-y-1">
+            <div className="flex-1 min-w-0">
+                <MediaItem data={song} />
+            </div>
             
-            <button onClick={onPlayPrevious} className="text-neutral-400 hover:text-white transition hover:scale-110 p-1"><SkipBack size={20}/></button>
+            <div className="flex items-center gap-1">
+                <button 
+                    onClick={() => { 
+                        if(song) {
+                            const normalizedSong = {
+                                id: song.id || song.encodeId,
+                                title: song.title,
+                                author: song.artistsNames || song.author,
+                                song_url: song.streaming?.mp3 || song.song_url,
+                                image_url: song.thumbnailM || song.image_url,
+                                duration: song.duration
+                            };
+                            router.push(`/add-to-playlist?song=${encodeURIComponent(JSON.stringify(normalizedSong))}`); 
+                        }
+                    }} 
+                    disabled={!song} 
+                    className="text-neutral-500 dark:text-neutral-400 hover:text-emerald-600 dark:hover:text-emerald-500 transition p-1.5"
+                    title="Add to Playlist"
+                >
+                    <Plus size={18} />
+                </button>
+
+                <button 
+                    onClick={handleClearPlayer} 
+                    className="text-neutral-500 dark:text-neutral-400 hover:text-red-600 dark:hover:text-red-500 transition p-1.5"
+                    title="Stop & Clear"
+                >
+                    <Square size={16} fill="currentColor" />
+                </button>
+            </div>
+
+            <div className="hidden lg:block ml-2 border-l border-neutral-300 dark:border-neutral-700 pl-3 h-8 items-center">
+                <AudioVisualizer isPlaying={isPlaying}/>
+            </div>
+        </div>
+
+        {/* CENTER: Controls & Progress */}
+        <div className="flex flex-col items-center w-full max-w-[722px] gap-y-1">
+            <div className="flex items-center gap-x-6 translate-y-1.5">
+                <button onClick={() => player.setIsShuffle(!player.isShuffle)} className={`transition p-1 ${player.isShuffle ? "text-emerald-500" : "text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white"}`} title="Shuffle"><Shuffle size={16}/></button>
+                <button onClick={onPlayPrevious} className="text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition hover:scale-110 p-1"><SkipBack size={20}/></button>
+                <button onClick={() => { if(sound) sound.seek(Math.max(0, seek - 5)); }} className="text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition hover:scale-110 p-1"><Rewind size={18}/></button>
+                
+                <button 
+                onClick={handlePlay} 
+                disabled={!sound || isLoading} 
+                className="relative flex items-center justify-center h-8 !w-16 bg-neutral-200 dark:bg-emerald-400/50 text-black dark:text-emerald-100 border border-neutral-300 dark:border-emerald-300 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all duration-200 rounded-none shadow-sm"
+                >
+                    <div className="relative w-full h-full flex items-center justify-center">
+                        {isLoading ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-none animate-spin relative z-20" style={{ borderRadius: '50%' }}/> : <Icon size={20} fill="currentColor" className="relative z-20"/>}
+                        <ScanlineOverlay className="absolute inset-0 z-10"/> 
+                    </div>
+                </button>
+
+                <button onClick={() => { if(sound) sound.seek(Math.min(duration, seek + 5)); }} className="text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition hover:scale-110 p-1"><FastForward size={18}/></button>
+                <button onClick={onPlayNext} className="text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition hover:scale-110 p-1"><SkipForward size={20}/></button>
+                <button onClick={() => player.setRepeatMode((player.repeatMode+1)%3)} className={`transition p-1 ${player.repeatMode!==0 ? "text-emerald-500" : "text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white"}`} title="Repeat">
+                    {player.repeatMode===2 ? <Repeat1 size={16}/> : <Repeat size={16}/>}
+                </button>
+            </div>
             
-            <button onClick={() => { if(sound) sound.seek(Math.max(0, seek - 5)); }} className="text-neutral-400 hover:text-white transition hover:scale-110 p-1">
-              <Rewind size={18}/>
-            </button>
-            
-            {/* Main Play Button - Tech Style */}
-            <button 
-              onClick={handlePlay} 
-              disabled={!sound || isLoading} 
-              className="
-                  relative
-                  flex items-center justify-center h-8 !w-16 
-                  bg-neutral-900 dark:bg-emerald-400/50 text-white dark:text-emerald-300 !border-emerald-300
-                  hover:bg-emerald-500 hover:!text-emerald-200 dark:hover:bg-emerald-300/50 hover:!border-emerald-200
-                  transition-all duration-200 rounded-none border dark:border-transparent
-                  shadow-[0_0_10px_rgba(0,0,0,0.2)] hover:shadow-[0_0_15px_rgba(16,185,129,0.6)]
-              "
-            >
-                <div className="relative w-full h-full flex items-center justify-center">
-                    {isLoading ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin relative z-20"/> : <Icon size={20} fill="currentColor" className="relative z-20"/>}
-                    
-                    <ScanlineOverlay className="absolute inset-0 z-10"/> 
+            <div className="w-full flex items-center gap-3 -translate-y-2">
+                <span className="text-[10px] font-mono text-neutral-500 w-10 text-right">{formatTime(seek)}</span>
+                <div className="flex-1 h-full flex items-center">
+                    <Slider value={seek} max={duration || 100} onCommit={(v) => { if(sound) sound.seek(v); }} onChange={(v) => { isDraggingRef.current=true; setSeek(v); }}/>
                 </div>
-            </button>
+                <span className="text-[10px] font-mono text-neutral-500 w-10">{formatTime(duration)}</span>
+            </div>
+        </div>
 
-            <button onClick={() => { if(sound) sound.seek(Math.min(duration, seek + 5)); }} className="text-neutral-400 hover:text-white transition hover:scale-110 p-1">
-              <FastForward size={18}/>
-            </button>
-
-            <button onClick={onPlayNext} className="text-neutral-400 hover:text-white transition hover:scale-110 p-1"><SkipForward size={20}/></button>
-            
-            <button onClick={() => player.setRepeatMode((player.repeatMode+1)%3)} className={`transition p-1 ${player.repeatMode!==0 ? "text-emerald-500" : "text-neutral-400 hover:text-white"}`} title="Repeat">
-              {player.repeatMode===2 ? <Repeat1 size={16}/> : <Repeat size={16}/>}
-            </button>
-          </div>
-          
-          {/* Progress Bar - Cyber Style */}
-          <div className="w-full flex items-center gap-3 -translate-y-2">
-              <span className="text-[10px] font-mono text-neutral-500 w-10 text-right">{formatTime(seek)}</span>
-              <div className="flex-1 h-full flex items-center">
-                  <Slider value={seek} max={duration || 100} onCommit={handleSeekCommit} onChange={handleSeekChange}/>
-              </div>
-              <span className="text-[10px] font-mono text-neutral-500 w-10">{formatTime(duration)}</span>
-          </div>
+        {/* RIGHT: Volume */}
+        <div className="flex justify-end pr-2 gap-4 w-full items-center -translate-y-[0.25rem]">
+             <div className="flex items-center gap-2 border border-neutral-300 dark:border-white/10 px-2 py-1 bg-neutral-50 dark:bg-white/5">
+                 <button onClick={toggleMute}><VolumeIcon size={18} className="text-neutral-500 dark:text-neutral-400 hover:text-emerald-500 transition"/></button>
+                 <div className="w-[80px]"><Slider value={volume} max={1} step={0.01} onChange={(v) => handleVolumeChange(v)}/></div>
+                 <span className="text-[10px] font-mono text-neutral-600 dark:text-neutral-400 font-bold w-6 text-right">{volumePercentage}%</span>
+             </div>
+             <button 
+                onClick={navigateToFullPlayer} 
+                className={`p-2 border transition-all rounded-none ${pathname==='/now-playing' ? "text-emerald-500 border-emerald-500/50 bg-emerald-500/10" : "text-neutral-500 dark:text-neutral-400 border-transparent hover:bg-neutral-200 dark:hover:bg-white/5"}`}
+                title="Toggle View"
+             >
+                {pathname === '/now-playing' ? <X size={20}/> : <AlignJustify size={20}/>}
+             </button>
+        </div>
       </div>
 
-      {/* RIGHT: Volume & View Switcher */}
-      <div className="hidden md:flex justify-end pr-2 gap-4 w-full items-center -translate-y-[0.25rem]">
-         <div className="flex items-center gap-2 border border-neutral-300 dark:border-white/10 px-2 py-1 bg-neutral-100 dark:bg-white/5">
-             <button onClick={toggleMute}><VolumeIcon size={18} className="text-neutral-400 hover:text-emerald-500 transition"/></button>
-             <div className="w-[80px]"><Slider value={volume} max={1} step={0.01} onChange={(v) => handleVolumeChange(v)}/></div>
-             {/* INDICATOR MỚI */}
-             <span className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 font-bold w-6 text-right">
-                {volumePercentage}%
-             </span>
-         </div>
-         
-         <button 
-            onClick={toggleNowPlaying} 
-            className={`
-                p-2 border border-transparent hover:border-emerald-500 transition-all rounded-none
-                ${pathname==='/now-playing' ? "text-emerald-500 border-emerald-500/50 bg-emerald-500/10" : "text-neutral-400 hover:text-white hover:bg-white/5"}
-            `}
-            title={pathname==='/now-playing' ? "Close Player" : "Open Player"}
-         >
-            {/* Sử dụng X và AlignJustify đã được import đúng */}
-            {pathname === '/now-playing' ? <X size={20}/> : <AlignJustify size={20}/>}
-         </button>
-      </div>
-
-      {/* MOBILE PLAY BUTTON */}
-      <div className="flex md:hidden col-auto justify-end items-center">
-        <button 
-            onClick={handlePlay} 
-            disabled={!sound || isLoading} 
-            className="h-10 w-10 bg-white text-black flex items-center justify-center shadow-lg active:scale-95 transition"
-        >
-           {isLoading ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"/> : <Icon size={20} fill="currentColor"/>}
-        </button>
-      </div>
     </div>
   );
 };

@@ -27,15 +27,10 @@ if (!supabaseUrl || !supabaseKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
-    // Để mặc định (LocalStorage), Supabase sẽ tự xử lý tốt nhất
+    // Dùng sessionStorage để tự động logout khi đóng tab/trình duyệt
+    storage: typeof window !== 'undefined' ? window.sessionStorage : null, 
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-  },
-  // Đảm bảo cấu hình Realtime được kích hoạt
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
-    },
   },
 })

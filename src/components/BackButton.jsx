@@ -15,7 +15,7 @@ const BackButton = () => {
             border border-neutral-300 dark:border-white/10 
             hover:border-emerald-500 dark:hover:border-emerald-500
             text-neutral-600 dark:text-neutral-400
-            hover:!text-white hover:bg-emerald-500
+            hover:!text-white hover:!bg-emerald-500
             transition-all duration-300 rounded-none
             uppercase text-[10px] font-bold tracking-[0.2em] font-mono
         "

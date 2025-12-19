@@ -1,9 +1,10 @@
 "use client";
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { ScanlineOverlay } from "@/components/CyberComponents";
 import { Volume2, VolumeX, Loader2, Disc, User } from "lucide-react"; 
 import usePlayer from "@/hooks/usePlayer";
+import Image from "next/image";
 
 const HoverImagePreview = ({ 
     src, 
@@ -19,13 +20,17 @@ const HoverImagePreview = ({
     const [isHovering, setIsHovering] = useState(false);
     const [mounted, setMounted] = useState(false);
     const [status, setStatus] = useState("idle"); 
-    
+    const [imgRatio, setImgRatio] = useState(1); 
+
     const popupRef = useRef(null); 
     const audioRef = useRef(null);
     const fadeIntervalRef = useRef(null);
     const playTimeoutRef = useRef(null);
     const isHoveringRef = useRef(false);
     const requestRef = useRef(null);
+
+    // THÊM: Ref lưu tọa độ chuột cuối cùng
+    const lastMousePos = useRef({ x: 0, y: 0 });
 
     useEffect(() => {
         setMounted(true);
@@ -35,44 +40,75 @@ const HoverImagePreview = ({
         }; 
     }, []);
 
-    // --- LOGIC DI CHUYỂN CHUỘT ---
+    // --- LOGIC TÍNH TOÁN VỊ TRÍ (Tách ra hàm riêng để tái sử dụng) ---
+    const updatePopupPosition = useCallback((clientX, clientY) => {
+        if (!popupRef.current) return;
+
+        const offset = 20; 
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        const actualHeight = previewSize / imgRatio; 
+
+        let x = clientX + offset;
+        let y = clientY + offset;
+        
+        // Xử lý tràn ngang
+        if (x + previewSize > viewportWidth - 20) { 
+            x = clientX - previewSize - offset;
+        }
+        
+        // Xử lý tràn dọc
+        const isFlippedY = y + actualHeight > viewportHeight;
+        const translateY = isFlippedY ? `-${actualHeight}px` : '0px';
+
+        popupRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) translateY(${translateY})`;
+    }, [previewSize, imgRatio]);
+
+    // --- LOGIC SỰ KIỆN WINDOW ---
     useEffect(() => {
         if (!isHovering) return;
 
+        // 1. Cập nhật vị trí NGAY LẬP TỨC khi vừa hiện (Fix lỗi hiện góc trái)
+        if (lastMousePos.current.x !== 0 && lastMousePos.current.y !== 0) {
+            // Dùng requestAnimationFrame để đảm bảo DOM đã render xong
+            requestRef.current = requestAnimationFrame(() => {
+                updatePopupPosition(lastMousePos.current.x, lastMousePos.current.y);
+            });
+        }
+
+        // 2. Handler khi di chuột
         const handleWindowMouseMove = (e) => {
-            if (!popupRef.current) return;
+            // Cập nhật tọa độ mới nhất vào ref
+            lastMousePos.current = { x: e.clientX, y: e.clientY };
             
             if (requestRef.current) cancelAnimationFrame(requestRef.current);
-            
             requestRef.current = requestAnimationFrame(() => {
-                const offset = 20; 
-                const viewportWidth = window.innerWidth;
-                const viewportHeight = window.innerHeight;
+                updatePopupPosition(e.clientX, e.clientY);
+            });
+        };
 
-                let x = e.clientX + offset;
-                let y = e.clientY + offset;
-                
-                if (x + previewSize > viewportWidth - 20) { 
-                    x = e.clientX - previewSize - offset;
-                }
-                
-                const isFlippedY = y + previewSize > viewportHeight;
-                const translateY = isFlippedY ? `-${previewSize}px` : '0px';
-
-                popupRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) translateY(${translateY})`;
+        // 3. Handler khi cuộn trang (Để cập nhật lại tính toán tràn màn hình nếu cần)
+        const handleWindowScroll = () => {
+             if (requestRef.current) cancelAnimationFrame(requestRef.current);
+             requestRef.current = requestAnimationFrame(() => {
+                // Dùng lại tọa độ chuột cũ (vì chuột không di chuyển so với màn hình khi scroll)
+                updatePopupPosition(lastMousePos.current.x, lastMousePos.current.y);
             });
         };
 
         window.addEventListener('mousemove', handleWindowMouseMove);
+        window.addEventListener('scroll', handleWindowScroll, { passive: true });
 
         return () => {
             window.removeEventListener('mousemove', handleWindowMouseMove);
+            window.removeEventListener('scroll', handleWindowScroll);
             if (requestRef.current) cancelAnimationFrame(requestRef.current);
         };
-    }, [isHovering, previewSize]);
+    }, [isHovering, updatePopupPosition]); 
 
 
-    // --- AUDIO LOGIC ---
+    // --- AUDIO LOGIC (Giữ nguyên) ---
     useEffect(() => {
         if (player.isPlaying && status === "playing") {
             stopAudioWithFade();
@@ -88,7 +124,6 @@ const HoverImagePreview = ({
                     return (
                         <div 
                             key={i} 
-                            // FIX: Màu xanh đậm hơn ở Light mode để dễ nhìn trên nền sáng
                             className="flex-1 bg-emerald-600 dark:bg-emerald-500 animate-[bounce_1s_infinite]" 
                             style={{
                                 animationDuration: `${duration}s`,
@@ -123,7 +158,7 @@ const HoverImagePreview = ({
         if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
         fadeIntervalRef.current = setInterval(() => {
             if (vol > 0.05) {
-                vol -= 0.01;
+                vol -= 0.005;
                 audio.volume = Math.max(0, vol);
             } else {
                 stopAudioImmediate();
@@ -171,7 +206,7 @@ const HoverImagePreview = ({
                     if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
                     fadeIntervalRef.current = setInterval(() => {
                         if (vol < 0.5) {
-                            vol += 0.001;
+                            vol += 0.003;
                             audio.volume = Math.min(vol, 0.5);
                         } else {
                             clearInterval(fadeIntervalRef.current);
@@ -188,21 +223,13 @@ const HoverImagePreview = ({
         audio.onended = () => stopAudioImmediate();
     };
 
+    // --- HANDLE MOUSE EVENTS (SỬA ĐỔI) ---
     const handleMouseEnter = (e) => {
+        // QUAN TRỌNG: Lưu vị trí chuột ngay khi vừa chạm vào
+        lastMousePos.current = { x: e.clientX, y: e.clientY };
+        
         setIsHovering(true);
         isHoveringRef.current = true;
-
-        if (popupRef.current) {
-             const offset = 20; 
-             const viewportWidth = window.innerWidth;
-             const viewportHeight = window.innerHeight;
-             let x = e.clientX + offset;
-             let y = e.clientY + offset;
-             if (x + previewSize > viewportWidth - 20) x = e.clientX - previewSize - offset;
-             const isFlippedY = y + previewSize > viewportHeight;
-             const translateY = isFlippedY ? `-${previewSize}px` : '0px';
-             popupRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) translateY(${translateY})`;
-        }
         
         if (playTimeoutRef.current) clearTimeout(playTimeoutRef.current);
         playTimeoutRef.current = setTimeout(() => {
@@ -219,13 +246,26 @@ const HoverImagePreview = ({
         stopAudioWithFade();
     };
 
-    // --- RENDER PLACEHOLDER ---
     const renderContent = () => {
         if (src) {
-            return <img src={src} alt={alt || "preview"} className="w-full h-full object-cover" />;
+            return (
+                <div className="relative w-full h-full">
+                    <Image 
+                        src={src} 
+                        alt={alt || "preview"} 
+                        fill
+                        className="object-cover"
+                        onLoadingComplete={(result) => {
+                            if (result.naturalWidth && result.naturalHeight) {
+                                setImgRatio(result.naturalWidth / result.naturalHeight);
+                            }
+                        }}
+                        onError={() => setImgRatio(1)} 
+                    />
+                </div>
+            );
         }
         return (
-            // FIX: Background sáng ở Light mode, tối ở Dark mode
             <div className="w-full h-full bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center">
                 {fallbackIcon === "user" ? (
                     <User size={previewSize * 0.4} className="text-neutral-400 dark:text-neutral-700" strokeWidth={1} />
@@ -240,7 +280,7 @@ const HoverImagePreview = ({
         <>
             <div 
                 className={`relative shrink-0 ${className}`}
-                onMouseEnter={handleMouseEnter}
+                onMouseEnter={handleMouseEnter} // Đã cập nhật hàm này
                 onMouseLeave={handleMouseLeave}
             >
                 {children}
@@ -254,15 +294,17 @@ const HoverImagePreview = ({
                         left: 0, 
                         top: 0,
                         width: previewSize, 
-                        height: previewSize,
+                        height: previewSize / imgRatio, 
                         willChange: "transform", 
+                        transition: "height 0.2s ease",
+                        // Mặc định ẩn đi 1 xíu để tránh nháy ở góc 0,0 nếu máy chậm
+                        // opacity: popupRef.current ? 1 : 0 
                     }}
                 >
                     <div 
                         className={`
                             w-full h-full relative overflow-hidden transition-colors duration-300
                             border-2 shadow-[0_0_30px_rgba(0,0,0,0.2)] dark:shadow-[0_0_30px_rgba(0,0,0,0.5)]
-                            /* FIX: Màu nền và viền thay đổi theo theme */
                             bg-white dark:bg-black
                             ${status === "error" 
                                 ? "border-red-600 dark:border-red-500 shadow-red-500/20" 
@@ -275,10 +317,8 @@ const HoverImagePreview = ({
 
                         <ScanlineOverlay />
                         
-                        {/* Status Bar */}
                         <div className={`
                             absolute top-0 left-0 backdrop-blur border-b text-[10px] font-mono font-bold px-2 py-1 flex items-center gap-2 z-20 w-full
-                            /* FIX: Status bar màu sáng/tối rõ ràng */
                             ${status === "error" 
                                 ? "bg-red-100/90 dark:bg-red-900/80 border-red-500/50 text-red-700 dark:text-red-200" 
                                 : "bg-white/90 dark:bg-black/90 border-emerald-600/20 dark:border-emerald-500/50 text-emerald-700 dark:text-emerald-500"
@@ -298,7 +338,6 @@ const HoverImagePreview = ({
                             )}
                         </div>
                         
-                        {/* Decor Corner */}
                         <div className={`absolute bottom-0 right-0 w-4 h-4 border-l-2 border-t-2 border-white dark:border-black z-20 ${status === "error" ? "bg-red-600 dark:bg-red-500" : "bg-emerald-600 dark:bg-emerald-500"}`}></div>
 
                         {status === "playing" && visualizerBars}

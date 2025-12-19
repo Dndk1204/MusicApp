@@ -20,6 +20,11 @@ const formatDuration = (sec) => {
 const SongItem = ({ data, onClick }) => {
   const imagePath = useLoadImage(data);
 
+  // Xác định nguồn dữ liệu để tạo link chính xác
+  // Nếu data.user_id là 'jamendo_api' -> source=jamendo
+  // Nếu data.user_id là UUID (từ DB) -> source=local
+  const sourceParam = data.user_id === 'jamendo_api' ? 'jamendo' : 'local';
+
   return (
     <CyberCard 
       className="
@@ -33,7 +38,7 @@ const SongItem = ({ data, onClick }) => {
         overflow-hidden
       "
     >
-      <div onClick={() => onClick(data.id)} className="w-full">
+      <div onClick={() => onClick(data.id)} className="w-full" data-song-json={JSON.stringify(data)}>
           
           {/* 1. ẢNH CONTAINER */}
           <div className="relative w-full aspect-square bg-neutral-200 dark:bg-neutral-800 overflow-hidden border-b border-neutral-300 dark:border-white/10 group/img">
@@ -84,7 +89,7 @@ const SongItem = ({ data, onClick }) => {
             {/* Decor Corner */}
             <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
-            <p className="font-bold font-mono truncate w-full text-sm text-neutral-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-500 transition-colors uppercase">
+            <p className="font-bold font-mono truncate w-full text-sm text-neutral-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-500 transition-colors">
                 {data.title}
             </p>
 
@@ -92,9 +97,9 @@ const SongItem = ({ data, onClick }) => {
               <div className="flex items-center gap-2 truncate max-w-[70%]">
                 <span className="w-1 h-1 bg-emerald-500 shrink-0"></span>
                 <Link
-                  href={`/artist/${encodeURIComponent(data.author)}`}
+                  href={`/artist/${encodeURIComponent(data.author)}?source=${sourceParam}`} // THÊM PARAM SOURCE
                   onClick={(e) => e.stopPropagation()}
-                  className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono uppercase tracking-wider hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline transition-colors truncate"
+                  className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono tracking-wider hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline transition-colors truncate"
                 >
                   {data.author}
                 </Link>

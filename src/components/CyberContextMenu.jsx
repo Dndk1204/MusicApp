@@ -13,7 +13,8 @@ import {
   Terminal, 
   Maximize,
   LogOut,
-  LogIn
+  LogIn,
+  ListPlus
 } from "lucide-react";
 import usePlayer from "@/hooks/usePlayer"; 
 import { supabase } from "@/lib/supabaseClient"; 
@@ -31,15 +32,12 @@ const CyberContextMenu = () => {
   
   const [visible, setVisible] = useState(false);
   const [coords, setCoords] = useState({ x: 0, y: 0 });
-  
-  // --- STATE LƯU VOLUME CŨ ---
   const [prevVolume, setPrevVolume] = useState(1);
+  
+  const [targetSong, setTargetSong] = useState(null);
 
   const menuRef = useRef(null);
 
-  // --- EFFECT: THEO DÕI VOLUME TỪ PLAYER ---
-  // Mỗi khi player.volume thay đổi (do chỉnh ở player chính hoặc phím tắt),
-  // nếu nó > 0 thì ta lưu lại làm "mức cũ".
   useEffect(() => {
     if (player.volume > 0) {
       setPrevVolume(player.volume);
@@ -50,8 +48,21 @@ const CyberContextMenu = () => {
     const handleContextMenu = (event) => {
       event.preventDefault();
 
+      const songElement = event.target.closest('[data-song-json]');
+      let foundSong = null;
+      
+      if (songElement) {
+          try {
+              const jsonData = songElement.getAttribute('data-song-json');
+              foundSong = JSON.parse(jsonData);
+          } catch (e) {
+              console.error("Failed to parse song data", e);
+          }
+      }
+      setTargetSong(foundSong);
+
       const menuWidth = 220;
-      const menuHeight = 350;
+      const menuHeight = foundSong ? 400 : 350; 
       let x = event.clientX;
       let y = event.clientY;
 
@@ -90,25 +101,21 @@ const CyberContextMenu = () => {
     setVisible(false);
   };
 
-  // --- LOGIC MUTE THÔNG MINH ---
   const toggleMute = () => {
     if (player.volume > 0) {
-      // Đang có tiếng -> Mute (về 0)
       player.setVolume(0);
     } else {
-      // Đang mute -> Trả về mức cũ (prevVolume)
-      // Nếu prevVolume lỗi thì mặc định về 1
       player.setVolume(prevVolume || 1);
     }
   };
 
   const toggleFullscreen = () => {
-      if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen();
-      } else {
-          if (document.exitFullscreen) document.exitFullscreen();
-      }
-      setVisible(false);
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+    } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+    }
+    setVisible(false);
   };
 
   const handleLogout = async () => {
@@ -123,8 +130,46 @@ const CyberContextMenu = () => {
       setVisible(false);
   };
 
+  // --- MỞ CONSOLE (LOG RA THÔNG ĐIỆP) ---
   const handleDevTools = () => {
-      alert("SYSTEM_ACCESS_DENIED: ADMIN_ONLY", "error");
+      // JavaScript KHÔNG THỂ mở F12 DevTools do bảo mật trình duyệt
+      // Thay vào đó, ta log một thông điệp "ngầu" ra console để user tự mở
+      console.clear();
+      console.log(
+        "%c :: SYSTEM_ACCESS_GRANTED :: ",
+        "background: #10b981; color: #000; font-size: 20px; font-weight: bold; padding: 5px;"
+      );
+      console.log(
+        "%c Welcome to the Matrix. Use F12 to inspect elements. ",
+        "color: #10b981; font-family: monospace; font-size: 14px;"
+      );
+      
+      alert("CONSOLE_LOG_INITIATED. PRESS F12", "info");
+      setVisible(false);
+  };
+
+  // --- XỬ LÝ THÊM VÀO PLAYLIST (CÓ CHECK LOGIN) ---
+  const handleAddToPlaylist = () => {
+      if (!targetSong) return;
+
+      // 1. KIỂM TRA ĐĂNG NHẬP
+      if (!user) {
+          alert("ACCESS_DENIED: LOGIN_REQUIRED", "error");
+          openModal(); // Mở modal đăng nhập
+          setVisible(false);
+          return;
+      }
+      
+      const normalizedSong = {
+          id: targetSong.id || targetSong.encodeId,
+          title: targetSong.title,
+          author: targetSong.artistsNames || targetSong.author,
+          song_url: targetSong.streaming?.mp3 || targetSong.song_url,
+          image_url: targetSong.thumbnailM || targetSong.image_url || targetSong.image_path,
+          duration: targetSong.duration
+      };
+
+      router.push(`/add-to-playlist?song=${encodeURIComponent(JSON.stringify(normalizedSong))}`);
       setVisible(false);
   };
 
@@ -134,7 +179,6 @@ const CyberContextMenu = () => {
       className="fixed z-[99999] w-[220px] bg-black/90 backdrop-blur-md border-2 border-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.3)] animate-in fade-in zoom-in-95 duration-100 origin-top-left overflow-hidden rounded-none"
       style={{ top: coords.y, left: coords.x }}
     >
-        {/* Header Decor */}
         <div className="bg-emerald-500/10 border-b border-emerald-500/30 px-3 py-1 flex justify-between items-center">
             <span className="text-[10px] font-mono font-bold text-emerald-500 tracking-widest">:: SYSTEM_MENU ::</span>
             <div className="flex gap-1">
@@ -143,9 +187,7 @@ const CyberContextMenu = () => {
             </div>
         </div>
 
-        {/* Menu Items */}
         <div className="p-1 flex flex-col gap-0.5">
-            {/* Navigation Group */}
             <div className="flex gap-1 mb-1">
                 <button onClick={handleBack} className="flex-1 p-2 bg-neutral-900 hover:bg-emerald-500 hover:text-black text-neutral-400 transition-colors flex items-center justify-center border border-white/5 hover:border-emerald-500">
                     <ArrowLeft size={16}/>
@@ -157,15 +199,27 @@ const CyberContextMenu = () => {
                     <ArrowRight size={16}/>
                 </button>
             </div>
+            
+            {targetSong && (
+                <>
+                    <div className="px-2 py-1 text-[9px] text-emerald-500 font-mono tracking-widest bg-emerald-500/5 truncate">
+                        TRACK: {targetSong.title}
+                    </div>
+                    <MenuItem 
+                        icon={<ListPlus size={14}/>} 
+                        label="ADD_TO_PLAYLIST" 
+                        onClick={handleAddToPlaylist} 
+                        active 
+                    />
+                    <div className="h-px bg-white/10 my-1 mx-2"></div>
+                </>
+            )}
 
-            {/* Actions List */}
             <MenuItem icon={<Copy size={14}/>} label="COPY_LINK" onClick={handleCopyUrl} />
             <MenuItem icon={<Maximize size={14}/>} label="FULLSCREEN" onClick={toggleFullscreen} />
             
-            {/* Divider */}
             <div className="h-px bg-white/10 my-1 mx-2"></div>
             
-            {/* Music Controls */}
             <div className="px-2 py-1 text-[9px] text-neutral-500 font-mono tracking-widest">AUDIO_CORE</div>
             <MenuItem 
                 icon={player.volume === 0 ? <VolumeX size={14}/> : <Volume2 size={14}/>} 
@@ -181,11 +235,10 @@ const CyberContextMenu = () => {
                 />
             )}
 
-            {/* Divider */}
             <div className="h-px bg-white/10 my-1 mx-2"></div>
 
-            {/* System */}
-            <MenuItem icon={<Terminal size={14}/>} label="DEV_TOOLS" onClick={handleDevTools} />
+            {/* DEV TOOLS - ĐỔI LOGIC: KHÔNG BÁO LỖI NỮA MÀ MỞ LOG */}
+            <MenuItem icon={<Terminal size={14}/>} label="OPEN_CONSOLE" onClick={handleDevTools} />
             
             {user ? (
                 <MenuItem 
@@ -205,7 +258,6 @@ const CyberContextMenu = () => {
 
         </div>
 
-        {/* Footer Decor */}
         <div className="h-1 w-full bg-gradient-to-r from-emerald-500 to-transparent mt-1"></div>
     </div>
   );

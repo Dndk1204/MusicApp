@@ -296,14 +296,20 @@ useEffect(() => {
             try { supabase.removeChannel(channel); } catch (e) { /* ignore */ }
         }
 
+        // Use a client-unique presence key so multiple browsers/clients
+        // for the same user don't collide and presence entries are distinct.
+        const clientKey = `${user.id}_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
         channel = supabase.channel('online-users', {
             config: {
-                // Use the unique user id as presence key so entries don't collide
-                presence: { key: user.id },
+                presence: { key: clientKey },
             },
         });
 
+        // Sync handler for full state updates
         channel.on('presence', { event: 'sync' }, handlePresenceSync);
+        // Also react to incremental changes so UI updates immediately
+        channel.on('presence', { event: 'join' }, () => handlePresenceSync());
+        channel.on('presence', { event: 'leave' }, () => handlePresenceSync());
 
         await channel.subscribe(async (status) => {
             if (status === 'SUBSCRIBED') {
@@ -313,7 +319,7 @@ useEffect(() => {
                     console.warn('Presence track failed', err);
                 }
                 // Update local state immediately after subscribe
-                handlePresenceSync();
+                try { handlePresenceSync(); } catch (e) { /* ignore */ }
             }
         });
     };

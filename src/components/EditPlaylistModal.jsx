@@ -33,8 +33,8 @@ export default function EditPlaylistModal({ playlist, onClose, onUpdated, onDele
         const ext = file.name.split(".").pop();
         const fileName = `playlist_${playlist.id}_${Date.now()}.${ext}`;
         const { error: uploadErr } = await supabase.storage
-          .from("images") // Sửa lại bucket name cho đúng nếu cần (thường là 'images' hoặc 'playlist-covers')
-          .upload(`playlists/${fileName}`, file, { upsert: true }); // Thêm folder playlists/ để gọn
+          .from("images")
+          .upload(`playlists/${fileName}`, file, { upsert: true });
         if (uploadErr) throw uploadErr;
 
         const { data: urlData } = supabase.storage.from("images").getPublicUrl(`playlists/${fileName}`);
@@ -70,7 +70,6 @@ export default function EditPlaylistModal({ playlist, onClose, onUpdated, onDele
     try {
       setLoading(true);
 
-      // If deleting "tunedsongs" playlist, also delete all user_song_settings
       if (playlist.name.toLowerCase() === "tunedsongs") {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
@@ -80,7 +79,6 @@ export default function EditPlaylistModal({ playlist, onClose, onUpdated, onDele
             .eq("user_id", session.user.id);
           if (settingsError) {
             console.error("Error deleting user song settings:", settingsError);
-            // Continue with playlist deletion even if settings deletion fails
           }
         }
       }
@@ -99,46 +97,47 @@ export default function EditPlaylistModal({ playlist, onClose, onUpdated, onDele
   };
 
   return (
-    <div className="fixed inset-0 bg-neutral-900/90 backdrop-blur-sm flex items-center justify-center z-[999] p-4 animate-in fade-in duration-300">
+    <div className="fixed inset-0 bg-neutral-900/90 backdrop-blur-sm flex items-center justify-center z-[9999] p-0 md:p-4 animate-in fade-in duration-300">
       
       {/* 1. CONTAINER CHÍNH (CYBER BRUTALISM) */}
       <div className="
-          w-full max-w-4xl flex flex-col relative overflow-hidden
+          w-full h-full md:h-auto md:max-w-3xl flex flex-col relative overflow-hidden
           bg-white dark:bg-black
-          border-2 border-neutral-400 dark:border-white/20
+          md:border-2 md:border-neutral-400 md:dark:border-white/20
           shadow-[0_0_40px_rgba(0,0,0,0.5)] dark:shadow-[0_0_40px_rgba(255,255,255,0.05)]
           rounded-none
+          max-h-full md:max-h-[90vh]
       ">
         
-        {/* --- DECORATION: 4 GÓC --- */}
-        <div className="absolute top-0 left-0 w-3 h-3 border-t-4 border-l-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
-        <div className="absolute top-0 right-0 w-3 h-3 border-t-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
-        <div className="absolute bottom-0 left-0 w-3 h-3 border-b-4 border-l-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
-        <div className="absolute bottom-0 right-0 w-3 h-3 border-b-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
+        {/* --- DECORATION: 4 GÓC (Ẩn trên mobile cho thoáng) --- */}
+        <div className="hidden md:block absolute top-0 left-0 w-3 h-3 border-t-4 border-l-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
+        <div className="hidden md:block absolute top-0 right-0 w-3 h-3 border-t-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
+        <div className="hidden md:block absolute bottom-0 left-0 w-3 h-3 border-b-4 border-l-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
+        <div className="hidden md:block absolute bottom-0 right-0 w-3 h-3 border-b-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
 
         {/* 2. HEADER */}
-        <div className="bg-neutral-100 dark:bg-neutral-900 border-b border-neutral-300 dark:border-white/10 p-5 flex justify-between items-center relative overflow-hidden shrink-0 z-20">
+        <div className="bg-neutral-100 dark:bg-neutral-900 border-b border-neutral-300 dark:border-white/10 p-4 md:p-5 flex justify-between items-center relative overflow-hidden shrink-0 z-20">
             {/* Decor Line */}
             <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-transparent via-emerald-500 to-transparent"></div>
             
             <div className="flex items-center gap-3">
                 <div className="w-2 h-2 bg-emerald-500 rotate-45 animate-pulse shadow-[0_0_10px_#10b981]"></div>
-                <h2 className="text-xl font-bold font-mono uppercase tracking-widest text-neutral-900 dark:text-white">
-                    <GlitchText text="EDIT_CONFIGURATION" />
+                <h2 className="text-lg md:text-xl font-bold font-mono uppercase tracking-widest text-neutral-900 dark:text-white">
+                    <GlitchText text="EDIT_CONFIG" />
                 </h2>
             </div>
             
-            <button onClick={onClose} className="text-neutral-500 hover:!text-red-500 dark:hover:text-white transition hover:rotate-90 duration-300">
+            <button onClick={onClose} className="text-neutral-500 hover:!text-red-500 dark:hover:text-white transition hover:rotate-90 duration-300 p-2">
                 <X size={24} />
             </button>
         </div>
 
-        {/* 3. BODY */}
-        <div className="p-6 md:p-8 flex flex-col md:flex-row gap-8 bg-neutral-50/50 dark:bg-black/80 relative z-10 min-h-0 overflow-y-auto">
+        {/* 3. BODY (Scrollable) */}
+        <div className="p-4 md:p-8 flex flex-col md:flex-row gap-6 md:gap-8 bg-neutral-50/50 dark:bg-black/80 relative z-10 overflow-y-auto custom-scrollbar flex-1">
             
             {/* LEFT: Image Upload */}
-            <div className="flex flex-col gap-4 items-center shrink-0 md:w-1/3">
-                <div className="relative w-full aspect-square overflow-hidden border-2 border-dashed border-neutral-400 dark:border-white/20 group hover:border-emerald-500 transition-colors bg-white dark:bg-black rounded-none">
+            <div className="flex flex-col gap-4 items-center shrink-0 w-full md:w-1/3">
+                <div className="relative w-48 h-48 md:w-full md:aspect-square overflow-hidden border-2 border-dashed border-neutral-400 dark:border-white/20 group hover:border-emerald-500 transition-colors bg-white dark:bg-black rounded-none mx-auto">
                     {previewUrl ? (
                         <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
                     ) : (
@@ -161,12 +160,12 @@ export default function EditPlaylistModal({ playlist, onClose, onUpdated, onDele
                     </label>
                 </div>
                 <p className="text-[10px] text-neutral-500 font-mono text-center border-t border-neutral-300 dark:border-white/10 pt-2 w-full">
-                    SUPPORTED FORMATS: JPG, PNG, WEBP<br/>MAX SIZE: 5MB
+                    SUPPORTED: JPG, PNG<br/>MAX SIZE: 5MB
                 </p>
             </div>
 
             {/* RIGHT: Inputs */}
-            <div className="flex-1 flex flex-col gap-5">
+            <div className="flex-1 flex flex-col gap-4 md:gap-5 w-full">
                 <div className="group">
                     <label className="text-xs font-mono text-emerald-600 dark:text-emerald-500 font-bold uppercase mb-2 block group-focus-within:animate-pulse">
                         PLAYLIST_DESIGNATION
@@ -195,7 +194,7 @@ export default function EditPlaylistModal({ playlist, onClose, onUpdated, onDele
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         className="
-                            w-full flex-1 p-3 font-mono text-sm transition-all outline-none resize-none min-h-[150px] rounded-none
+                            w-full flex-1 p-3 font-mono text-sm transition-all outline-none resize-none min-h-[100px] md:min-h-[150px] rounded-none
                             /* Light Mode */
                             bg-white border border-neutral-400 text-neutral-900
                             focus:border-emerald-500 focus:shadow-[0_0_10px_rgba(16,185,129,0.2)]
@@ -207,7 +206,7 @@ export default function EditPlaylistModal({ playlist, onClose, onUpdated, onDele
                     />
                 </div>
 
-                <label className="text-xs font-mono font-bold uppercase mb-2 text-neutral-500 dark:text-neutral-400">
+                <label className="text-xs font-mono font-bold uppercase mb-1 text-neutral-500 dark:text-neutral-400">
                     ACCESS_VISIBILITY
                 </label>
                 <CyberButton
@@ -227,21 +226,21 @@ export default function EditPlaylistModal({ playlist, onClose, onUpdated, onDele
         </div>
 
         {/* 4. FOOTER */}
-        <div className="bg-neutral-100 dark:bg-neutral-900 border-t border-neutral-300 dark:border-white/10 p-5 flex justify-between items-center shrink-0 z-20">
+        <div className="bg-neutral-100 dark:bg-neutral-900 border-t border-neutral-300 dark:border-white/10 p-4 md:p-5 flex flex-col md:flex-row gap-3 md:gap-0 justify-between items-stretch md:items-center shrink-0 z-20">
             <GlitchButton 
                 onClick={handleDelete}
                 disabled={loading}
-                className="border-red-500 text-red-600 dark:text-red-500 bg-red-500/10 hover:!text-white text-xs px-6 py-2 rounded-none"
+                className="border-red-500 text-red-600 dark:text-red-500 bg-red-500/10 hover:!text-white text-xs px-6 py-3 rounded-none order-2 md:order-1"
             >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center gap-2">
                     <Trash2 size={14} /> PURGE_DATA
                 </div>
             </GlitchButton>
 
-            <div className="flex gap-4">
+            <div className="flex gap-3 order-1 md:order-2">
                 <NeonButton
                     onClick={onClose}
-                    className="px-6 py-2 border border-neutral-400 dark:border-white/20 text-xs font-mono font-bold text-neutral-600 hover:text-black dark:text-neutral-400 dark:hover:text-white transition uppercase hover:bg-neutral-200 dark:hover:bg-white/10 rounded-none"
+                    className="flex-1 md:flex-none px-6 py-2 border border-neutral-400 dark:border-white/20 text-xs font-mono font-bold text-neutral-600 hover:text-black dark:text-neutral-400 dark:hover:text-white transition uppercase hover:bg-neutral-200 dark:hover:bg-white/10 rounded-none justify-center"
                 >
                     ABORT
                 </NeonButton>
@@ -249,9 +248,9 @@ export default function EditPlaylistModal({ playlist, onClose, onUpdated, onDele
                 <CyberButton 
                     onClick={handleUpdate}
                     disabled={loading}
-                    className="text-xs px-8 py-2 rounded-none"
+                    className="flex-1 md:flex-none text-xs px-8 py-2 rounded-none justify-center"
                 >
-                    {loading ? <Loader2 className="animate-spin" size={14}/> : <Check size={14}/>} SAVE_CHANGES
+                    {loading ? <Loader2 className="animate-spin" size={14}/> : <Check size={14}/>} SAVE
                 </CyberButton>
             </div>
         </div>
