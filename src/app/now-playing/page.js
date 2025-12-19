@@ -140,7 +140,11 @@ const NowPlayingPage = () => {
   const [loadingLyrics, setLoadingLyrics] = useState(false);
   const [activeLineIndex, setActiveLineIndex] = useState(-1);
   const lyricsContainerRef = useRef(null);
+  
   const [queueSongs, setQueueSongs] = useState([]);
+  // --- REF CHO CONTAINER QUEUE ---
+  const queueContainerRef = useRef(null); // <--- THÊM REF NÀY
+
   const [audioSettings, setAudioSettings] = useState({ bass: 0, mid: 0, treble: 0, volume: 100 });
   const [loading, setLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
@@ -173,7 +177,7 @@ const NowPlayingPage = () => {
       };
       window.addEventListener('resize', handleResize);
       return () => window.removeEventListener('resize', handleResize);
-  }, []); // Empty dependency array - only run on mount/unmount
+  }, []); 
 
   const formatTime = (seconds) => {
       if (!seconds || isNaN(seconds) || seconds === 0) return "00:00";
@@ -233,12 +237,32 @@ const NowPlayingPage = () => {
     updateSong();
   }, [player.activeId, isMounted]);
 
-  // Set active tab to 'info' (meta tab) when song changes
   useEffect(() => {
     if (player.activeId) {
       setActiveTab('info');
     }
   }, [player.activeId]);
+
+  // --- LOGIC SCROLL TO ACTIVE SONG IN QUEUE ---
+  // Sử dụng useEffect để theo dõi song.id và activeTab
+  useEffect(() => {
+    if (!song?.id || queueSongs.length === 0) return;
+
+    // Dùng setTimeout để đảm bảo DOM đã render xong danh sách
+    const timer = setTimeout(() => {
+        const activeElement = document.getElementById(`queue-item-${song.id}`);
+        
+        // Kiểm tra xem element có tồn tại và đang hiển thị không
+        if (activeElement) {
+            activeElement.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' // Căn bài hát vào giữa danh sách
+            });
+        }
+    }, 1000); // Delay 500ms để chắc chắn UI đã ổn định
+
+    return () => clearTimeout(timer);
+  }, [song?.id, activeTab, queueSongs.length]);
 
   useEffect(() => { if (song) { setRawLyrics(null); setParsedLyrics([]); setActiveLineIndex(-1); setLoadingLyrics(false); } }, [song?.id]);
 
@@ -259,11 +283,9 @@ const NowPlayingPage = () => {
       try {
         const queueIds = player.ids; if (queueIds.length === 0) { setQueueSongs([]); return; }
 
-        // First, try to get songs from local database
         const { data: localSongs, error } = await supabase.from('songs').select('id, title, author, image_url').in('id', queueIds);
         if (error) { console.error('Error fetching local songs:', error); }
 
-        // Check for cached songs in window.__SONG_MAP__
         const cachedSongs = [];
         if (typeof window !== 'undefined' && window.__SONG_MAP__) {
           queueIds.forEach(id => {
@@ -273,10 +295,8 @@ const NowPlayingPage = () => {
           });
         }
 
-        // Combine local and cached songs
         const allSongsMap = new Map();
 
-        // Add local songs
         if (localSongs) {
           localSongs.forEach(song => {
             allSongsMap.set(song.id, {
@@ -288,7 +308,6 @@ const NowPlayingPage = () => {
           });
         }
 
-        // Add cached songs (will override local if same ID)
         cachedSongs.forEach(song => {
           allSongsMap.set(song.id, {
             id: song.id,
@@ -298,7 +317,6 @@ const NowPlayingPage = () => {
           });
         });
 
-        // For any missing songs, try to fetch from API
         const missingIds = queueIds.filter(id => !allSongsMap.has(id));
         if (missingIds.length > 0) {
           const apiPromises = missingIds.map(async (songId) => {
@@ -325,7 +343,6 @@ const NowPlayingPage = () => {
           });
         }
 
-        // Create sorted queue data
         const sortedQueueData = queueIds.map(queueId => allSongsMap.get(queueId)).filter(Boolean);
         setQueueSongs(sortedQueueData);
       } catch (err) {
@@ -488,18 +505,23 @@ const NowPlayingPage = () => {
           <div className="flex items-center justify-center border-b border-neutral-200 dark:border-white/10 shrink-0 py-4">
              <h3 className="text-[10px] font-mono text-emerald-500 uppercase tracking-wider">:: PLAY_QUEUE ::</h3>
           </div>
-          <div className="flex-1 min-h-0 p-4 custom-scrollbar overflow-y-auto">
+          {/* QUEUE CONTAINER: Gắn ref vào đây */}
+          <div 
+            ref={queueContainerRef} 
+            className="flex-1 min-h-0 p-4 custom-scrollbar overflow-y-auto"
+          >
              {queueSongs.length > 0 ? (
                 <div className="space-y-2">
                    {queueSongs.map((queueSong) => {
                       const isCurrentlyPlaying = queueSong.id === song.id;
                       return (
                          <div
-                            key={queueSong.id}
-                            className={`p-2 border group rounded-none cursor-pointer hover:bg-neutral-200 dark:hover:bg-white/10 ${
-                               isCurrentlyPlaying ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-neutral-100 dark:bg-white/5 border-neutral-200 dark:border-white/10'
-                            }`}
-                            onClick={() => player.setId(queueSong.id)}
+                           id={`queue-item-${queueSong.id}`} // <--- THÊM ID ĐỂ SCROLL TỚI
+                           key={queueSong.id}
+                           className={`p-2 border group rounded-none cursor-pointer hover:bg-neutral-200 dark:hover:bg-white/10 ${
+                              isCurrentlyPlaying ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-neutral-100 dark:bg-white/5 border-neutral-200 dark:border-white/10'
+                           }`}
+                           onClick={() => player.setId(queueSong.id)}
                          >
                             <div className="flex items-center gap-3">
                                <div className="w-8 h-8 shrink-0 relative cursor-none">
