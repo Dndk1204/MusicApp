@@ -40,6 +40,7 @@ export default function AddToPlaylistPage() {
   const [selected, setSelected] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [message, setMessage] = useState(null);
   const [disabledPlaylists, setDisabledPlaylists] = useState([]);
 
   /* -------------------------------------------------------
@@ -87,8 +88,11 @@ export default function AddToPlaylistPage() {
         const res = await fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=3501caaa&format=jsonpretty&id=${songId}`);
         const json = await res.json();
         const tr = json?.results?.[0];
-        
-        if (!tr) { alert("SONG_NOT_FOUND_API", "error"); return; }
+        if (!tr) {
+          // SỬA: Dùng alert thay vì setMessage
+          alert("SONG_NOT_FOUND_API", "error");
+          return;
+        }
 
         const apiSong = {
           id: tr.id,
@@ -111,6 +115,7 @@ export default function AddToPlaylistPage() {
         });
       } catch (err) {
         console.error("API Error", err);
+        // SỬA: Dùng alert thay vì setMessage
         alert("API_CONNECTION_FAILED", "error");
       }
     };
@@ -132,19 +137,25 @@ export default function AddToPlaylistPage() {
         return;
       }
 
+      // 1️⃣ Fetch playlists của user
       const { data: pls } = await supabase
         .from("playlists")
         .select("id, name")
         .eq("user_id", user.id)
         .order("id", { ascending: false });
 
+      // 2️⃣ Fetch playlist đã có bài hát này
       const { data: exists } = await supabase
         .from("playlist_songs")
         .select("playlist_id")
         .eq("song_id", song.id)
-        .in("playlist_id", (pls || []).map((p) => p.id));
+        .in(
+          "playlist_id",
+          (pls || []).map((p) => p.id)
+        );
 
       const disabledIds = exists?.map((x) => x.playlist_id) || [];
+
       setPlaylists(pls || []);
       setDisabledPlaylists(disabledIds);
       setLoading(false);
@@ -161,10 +172,17 @@ export default function AddToPlaylistPage() {
   ------------------------------------------------------- */
   const handleAddMulti = async () => {
     if (!song?.id) return;
-    if (selected.length === 0) { alert("NO_TARGET_SELECTED", "error"); return; }
+
+    // 1. Kiểm tra chọn playlist
+    if (selected.length === 0) {
+      alert("NO_TARGET_SELECTED", "error"); 
+      return;
+    }
 
     setAdding(true);
+
     try {
+      // --- GIỮ NGUYÊN LOGIC UPSERT SONG ---
       const { error: upsertErr } = await supabase.from("songs").upsert(
         {
           id: song.id,
@@ -178,6 +196,7 @@ export default function AddToPlaylistPage() {
       );
       if (upsertErr) throw upsertErr;
 
+      // --- GIỮ NGUYÊN LOGIC CHECK TRÙNG ---
       const { data: existing } = await supabase
         .from("playlist_songs")
         .select("playlist_id")
@@ -193,6 +212,7 @@ export default function AddToPlaylistPage() {
         return;
       }
 
+      // --- GIỮ NGUYÊN LOGIC INSERT ---
       const rows = newTargets.map((pid) => ({
         playlist_id: pid,
         song_id: song.id,
@@ -202,7 +222,9 @@ export default function AddToPlaylistPage() {
       const { error: insertErr } = await supabase.from("playlist_songs").insert(rows);
       if (insertErr) throw insertErr;
 
+      // 2. Thông báo thành công (Cyber Style)
       alert(`SUCCESS: INJECTED TO ${newTargets.length} PLAYLIST(S)`, "success");
+
       setTimeout(() => router.back(), 700);
 
     } catch (err) {
@@ -219,14 +241,7 @@ export default function AddToPlaylistPage() {
     <div className="fixed inset-0 bg-neutral-900/90 backdrop-blur-sm flex items-center justify-center z-[999] p-4 animate-in fade-in duration-300">
       <div
         className="
-          /* MOBILE OPTIMIZATION:
-             - w-[90%]: Chừa lề 2 bên
-             - h-[60vh]: Giảm chiều cao xuống 60% màn hình để không bị che nút
-          */
-          w-[90%] h-[60vh] 
-          md:w-[60vh] md:max-w-xl md:h-[70vh] 
-          
-          flex flex-col relative overflow-hidden
+          !w-[60vh] max-w-xl h-[70vh] flex flex-col relative overflow-hidden
           bg-white dark:bg-black
           border-2 border-neutral-400 dark:border-white/20
           shadow-[0_0_40px_rgba(0,0,0,0.5)] dark:shadow-[0_0_40px_rgba(255,255,255,0.05)]
@@ -307,10 +322,13 @@ export default function AddToPlaylistPage() {
                   <button
                     key={pl.id}
                     disabled={isDisabled}
-                    onClick={() => { if (!isDisabled) toggleSelect(pl.id); }}
+                    onClick={() => {
+                      if (!isDisabled) toggleSelect(pl.id);
+                    }}
                     className={`
                       group flex justify-between items-center p-3 border transition relative
-                      ${isDisabled
+                      ${
+                        isDisabled
                           ? "opacity-40 cursor-not-allowed bg-neutral-200 dark:bg-neutral-800"
                           : isSelected
                           ? "bg-emerald-500/10 border-emerald-500"
@@ -318,11 +336,33 @@ export default function AddToPlaylistPage() {
                       }
                     `}
                   >
-                    <span className={`text-xs md:text-sm font-mono truncate mr-2 ${isDisabled ? "text-neutral-400 italic" : isSelected ? "font-bold text-emerald-700 dark:text-emerald-400" : "text-neutral-700 dark:text-neutral-300"}`}>
-                      {pl.name} {isDisabled && "(Added)"}
+                    <span
+                      className={`
+                        text-sm font-mono
+                        ${
+                          isDisabled
+                            ? "text-neutral-400 italic"
+                            : isSelected
+                            ? "font-bold text-emerald-700 dark:text-emerald-400"
+                            : "text-neutral-700 dark:text-neutral-300"
+                        }
+                      `}
+                    >
+                      {pl.name}
+                      {isDisabled && " (Already added)"}
                     </span>
-                    <div className={`w-4 h-4 md:w-5 md:h-5 border flex items-center justify-center shrink-0 ${isSelected ? "bg-emerald-500 border-emerald-500" : "border-neutral-400 dark:border-neutral-600 bg-neutral-100 dark:bg-black"}`}>
-                      {isSelected && <Check size={10} className="text-white stroke-[3]" />}
+
+                    <div
+                      className={`
+                        w-5 h-5 border flex items-center justify-center
+                        ${
+                          isSelected
+                            ? "bg-emerald-500 border-emerald-500"
+                            : "border-neutral-400 dark:border-neutral-600 bg-neutral-100 dark:bg-black"
+                        }
+                      `}
+                    >
+                      {isSelected && <Check size={12} className="text-white stroke-[3]" />}
                     </div>
                   </button>
                 );

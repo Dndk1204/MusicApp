@@ -1,6 +1,5 @@
 "use client";
-
-import { useEffect, useState, useRef } from "react"; 
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { 
   Library, Plus, ListMusic, Play, Trash2, UploadCloud, 
@@ -137,14 +136,46 @@ const Sidebar = ({ className = "" }) => {
         .subscribe();
   };
 
-  useEffect(() => {
-      return () => { 
-          if (channelRef.current) {
-              supabase.removeChannel(channelRef.current);
-              channelRef.current = null;
-          }
-      };
-  }, []);
+  // =========================
+  //      Realtime Setup
+  // =========================
+// =========================
+//      Realtime Setup
+// =========================
+useEffect(() => {
+  let channel;
+
+  const init = async () => {
+    if (isAuthenticated) {
+      // TRƯỜNG HỢP: ĐÃ ĐĂNG NHẬP
+      setLoading(true); // Đảm bảo hiện loading khi đổi user
+      await fetchPlaylists();
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
+      if (!user) return;
+
+      channel = supabase
+        .channel(`rt-playlists-${user.id}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "playlists", filter: `user_id=eq.${user.id}` },
+          () => fetchPlaylists()
+        )
+        .subscribe();
+    } else {
+      // TRƯỜNG HỢP: LOGOUT (QUAN TRỌNG)
+      setPlaylists([]); // Xóa sạch playlist cũ của user trước đó
+      setLoading(false); // Tắt loading để hiện giao diện [EMPTY] thay vì Skeleton
+    }
+  };
+
+  init();
+
+  return () => {
+    if (channel) supabase.removeChannel(channel);
+  };
+}, [isAuthenticated]); // Lắng nghe thay đổi trạng thái đăng nhập
 
   const handleNewPlaylist = async (name) => {
     try {
@@ -316,6 +347,22 @@ const Sidebar = ({ className = "" }) => {
                                </div>
                            </HoverImagePreview>
                       </div>
+                      <span className="text-[13px]">My Uploads</span>
+                   </button>
+
+                   {/* Nút Tuned Tracks */}
+                   <button
+                      onClick={() => router.push('/tuned-tracks')}
+                      className="flex items-center gap-2 w-full p-1.5 rounded-none hover:!text-emerald-400 hover:bg-neutral-200/50 dark:hover:bg-white/5 transition text-xs text-neutral-900 dark:text-neutral-300 font-medium group"
+                   >
+                      <div className="w-8 h-8 rounded-none bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center group-hover:text-emerald-500 transition shadow-sm border border-neutral-300 dark:border-white/5">
+                          <Disc size={13} />
+                      </div>
+                      <span className="text-[13px]">Tuned Tracks</span>
+                   </button>
+                </div>
+            </div>
+          )}
 
                       {!isCollapsed && (
                         <>

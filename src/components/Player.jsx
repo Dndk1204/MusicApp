@@ -173,7 +173,7 @@ const Player = () => {
     ">
       {/* Decor Line (Top Accent) */}
       <div className="absolute top-0 left-0 h-[2px] w-full bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-50"></div>
-
+      
       <PlayerContent key={`${songUrl}-${player.playTrigger}`} song={song} songUrl={songUrl} />
     </div>
   );
