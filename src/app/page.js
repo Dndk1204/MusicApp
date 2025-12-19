@@ -146,36 +146,36 @@ export default async function Home() {
   const communityTracks = communityUploads || []; 
 
   return (
-    <div className="h-full w-full p-4 pb-[100px] overflow-y-auto scroll-smooth bg-neutral-100 dark:bg-black transition-colors duration-500">
+    <div className="h-full w-full p-3 md:p-6 pb-[120px] overflow-y-auto scroll-smooth bg-neutral-100 dark:bg-black transition-colors duration-500">
       
       {/* 1. HERO */}
       <TrendingHero songs={mostHeardSongs} artists={popularArtists} />
 
       {/* 2. CÁC SECTION KHÁC */}
-      <div className="mt-8 px-2">
+      <div className="mt-6 md:mt-8 px-1 md:px-2">
         
         {/* Main Title */}
-        <div className="mb-10 flex flex-col gap-1 border-l-4 border-emerald-500 pl-4 py-2">
-            <div className="flex items-center gap-3">
-                <Disc className="text-emerald-500 animate-[spin_10s_linear_infinite]" size={28}/>
-                <h1 className="text-3xl md:text-4xl font-black tracking-tighter font-mono text-neutral-900 dark:text-white uppercase">
+        <div className="mb-6 md:mb-10 flex flex-col gap-1 border-l-4 border-emerald-500 pl-3 md:pl-4 py-2">
+            <div className="flex items-center gap-2 md:gap-3">
+                <Disc className="text-emerald-500 animate-[spin_10s_linear_infinite]" size={24} /> {/* Resize icon for mobile */}
+                <h1 className="text-2xl md:text-4xl font-black tracking-tighter font-mono text-neutral-900 dark:text-white uppercase">
                     <VerticalGlitchText text="MUSIC_DASHBOARD" />
                 </h1>
             </div>
             
-            <p className="text-neutral-500 dark:text-neutral-400 text-[10px] tracking-[0.4em] font-mono uppercase">
+            <p className="text-neutral-500 dark:text-neutral-400 text-[9px] md:text-[10px] tracking-[0.4em] font-mono uppercase">
                :: EXPLORE_THE_SOUND_MATRIX ::
             </p>
         </div>
 
-        <div className="flex flex-col gap-y-8"> 
+        <div className="flex flex-col gap-y-6 md:gap-y-10"> {/* Reduced gap on mobile */}
             
             {/* --- SECTION MỚI: COMMUNITY UPLOADS --- */}
             {communityTracks.length > 0 && (
                 <SongSection 
                     title={
-                        <span className="flex items-center gap-2">
-                            <Globe size={18} className="text-blue-500"/> Community Vibes
+                        <span className="flex items-center gap-2 text-sm md:text-base">
+                            <Globe size={16} className="text-blue-500 md:w-[18px] md:h-[18px]"/> Community Vibes
                         </span>
                     }
                     songs={communityTracks} 
@@ -185,8 +185,8 @@ export default async function Home() {
             
             <SongSection 
                 title={
-                    <span className="flex items-center gap-2">
-                        <Sparkles size={18} className="text-yellow-500"/> Discoveries
+                    <span className="flex items-center gap-2 text-sm md:text-base">
+                        <Sparkles size={16} className="text-yellow-500 md:w-[18px] md:h-[18px]"/> Discoveries
                     </span>
                 }
                 songs={discoverySongs} 
@@ -195,8 +195,8 @@ export default async function Home() {
             
             <SongSection 
                 title={
-                    <span className="flex items-center gap-2">
-                         <Radio size={18} className="text-pink-500"/> Pop Hits
+                    <span className="flex items-center gap-2 text-sm md:text-base">
+                         <Radio size={16} className="text-pink-500 md:w-[18px] md:h-[18px]"/> Pop Hits
                     </span>
                 }
                 songs={popTracks} 
@@ -205,8 +205,8 @@ export default async function Home() {
             
             <SongSection 
                 title={
-                    <span className="flex items-center gap-2">
-                        <Zap size={18} className="text-purple-500"/> Electronic Vibes
+                    <span className="flex items-center gap-2 text-sm md:text-base">
+                        <Zap size={16} className="text-purple-500 md:w-[18px] md:h-[18px]"/> Electronic Vibes
                     </span>
                 }
                 songs={electronicTracks} 
@@ -215,8 +215,8 @@ export default async function Home() {
             
             <SongSection 
                 title={
-                    <span className="flex items-center gap-2">
-                        <Disc size={18} className="text-red-500"/> Rock Anthems
+                    <span className="flex items-center gap-2 text-sm md:text-base">
+                        <Disc size={16} className="text-red-500 md:w-[18px] md:h-[18px]"/> Rock Anthems
                     </span>
                 }
                 songs={rockTracks} 
@@ -225,8 +225,8 @@ export default async function Home() {
 
             <SongSection 
                 title={
-                    <span className="flex items-center gap-2">
-                        <Headphones size={18} className="text-orange-500"/> Indie Corner
+                    <span className="flex items-center gap-2 text-sm md:text-base">
+                        <Headphones size={16} className="text-orange-500 md:w-[18px] md:h-[18px]"/> Indie Corner
                     </span>
                 }
                 songs={indieTracks} 
@@ -235,8 +235,8 @@ export default async function Home() {
         </div>
       </div>
 
-      <div className="mt-12 py-8 border-t border-neutral-300 dark:border-white/10 text-center bg-neutral-200/50 dark:bg-white/5 rounded-none mx-2 mb-4">
-         <p className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 uppercase tracking-widest">
+      <div className="mt-8 md:mt-12 py-6 md:py-8 border-t border-neutral-300 dark:border-white/10 text-center bg-neutral-200/50 dark:bg-white/5 rounded-none mx-0 md:mx-2 mb-4">
+         <p className="text-[9px] md:text-[10px] font-mono text-neutral-500 dark:text-neutral-400 uppercase tracking-widest">
             System Online • Powered by Jamendo API • V O I D
          </p>
       </div>

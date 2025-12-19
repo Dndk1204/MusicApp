@@ -469,7 +469,7 @@ const NowPlayingPage = () => {
       </div>
 
       {/* --- MOBILE TABS NAVIGATION (FLOATING, SQUARE, Z-INDEX 99999) --- */}
-      <div className="lg:hidden flex fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md justify-center z-[99999]">
+      <div className="lg:hidden flex fixed bottom-2 left-1/2 -translate-x-1/2 w-[100%] max-w-md justify-center z-[99999]">
           <div className="flex w-full bg-neutral-900/95 dark:bg-black/95 backdrop-blur-xl border border-neutral-500/50 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
               <button onClick={() => setActiveTab('visual')} className={`flex-1 py-3 flex justify-center items-center border-r border-white/10 rounded-none transition-colors ${activeTab==='visual' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><Activity size={20}/></button>
               <button onClick={() => setActiveTab('queue')} className={`flex-1 py-3 flex justify-center items-center border-r border-white/10 rounded-none transition-colors ${activeTab==='queue' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><ListMusic size={20}/></button>

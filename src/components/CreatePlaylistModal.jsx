@@ -31,7 +31,7 @@ const CreatePlaylistModal = ({ onClose, onCreate }) => {
       
       {/* Modal Container (Cyber Brutalism) */}
       <div className="
-        relative z-10 w-full max-w-sm overflow-hidden
+        relative z-10 w-[95%] md:w-full max-w-sm overflow-hidden
         bg-white dark:bg-black 
         border-2 border-neutral-400 dark:border-white/20 
         shadow-[0_0_50px_rgba(0,0,0,0.5)] dark:shadow-[0_0_50px_rgba(255,255,255,0.05)]
@@ -45,7 +45,7 @@ const CreatePlaylistModal = ({ onClose, onCreate }) => {
         <div className="absolute bottom-0 right-0 w-3 h-3 border-b-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
 
         {/* Header Section */}
-        <div className="bg-neutral-100 dark:bg-neutral-900 border-b border-neutral-300 dark:border-white/10 p-6 text-center relative">
+        <div className="bg-neutral-100 dark:bg-neutral-900 border-b border-neutral-300 dark:border-white/10 p-5 md:p-6 text-center relative">
             {/* Top Glow Line */}
             <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-transparent via-emerald-500 to-transparent"></div>
             
@@ -55,18 +55,18 @@ const CreatePlaylistModal = ({ onClose, onCreate }) => {
             </div>
             
             {/* Title */}
-            <h2 className="text-xl font-bold font-mono tracking-widest text-neutral-900 dark:text-white uppercase">
+            <h2 className="text-lg md:text-xl font-bold font-mono tracking-widest text-neutral-900 dark:text-white uppercase">
                 <GlitchText text="NEW_PLAYLIST" />
             </h2>
             
             {/* Subtitle */}
-            <p className="text-[10px] font-mono tracking-[0.2em] uppercase mt-1 opacity-70 text-neutral-500 dark:text-emerald-400/80">
+            <p className="text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase mt-1 opacity-70 text-neutral-500 dark:text-emerald-400/80">
                 :: INITIALIZE_DB_ENTRY ::
             </p>
 
             {/* Close Button */}
             <button 
-                className="absolute top-3 right-3 p-1 text-neutral-400 hover:text-red-500 transition hover:rotate-90 duration-300" 
+                className="absolute top-2 right-2 p-2 text-neutral-400 hover:text-red-500 transition hover:rotate-90 duration-300" 
                 onClick={onClose}
             >
                 <X size={20} />
@@ -74,7 +74,7 @@ const CreatePlaylistModal = ({ onClose, onCreate }) => {
         </div>
 
         {/* Body Section */}
-        <div className="p-8 pt-6 bg-neutral-50/50 dark:bg-black/80">
+        <div className="p-6 md:p-8 pt-6 bg-neutral-50/50 dark:bg-black/80">
             {/* Input Field */}
             <div className="flex flex-col gap-2 mb-8 group">
                 <label className="text-[10px] font-mono uppercase tracking-widest font-bold text-neutral-500 dark:text-neutral-400 group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-500 transition-colors">
@@ -89,7 +89,8 @@ const CreatePlaylistModal = ({ onClose, onCreate }) => {
                     autoFocus
                     placeholder="ENTER_NAME..."
                     className="
-                      w-full p-3 rounded-none text-sm font-mono outline-none transition-all
+                      w-full p-3 rounded-none outline-none transition-all font-mono
+                      text-base md:text-sm /* Text base trên mobile để tránh IOS auto zoom */
                       bg-white border-2 border-neutral-400 text-neutral-900 placeholder-neutral-400
                       focus:border-emerald-500 focus:shadow-[0_0_15px_rgba(16,185,129,0.2)]
                       

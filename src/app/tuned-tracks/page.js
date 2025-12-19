@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
-import { Play, Clock, Music2 } from "lucide-react";
+import { Play, Clock, Music2, ArrowLeft } from "lucide-react";
 import usePlayer from "@/hooks/usePlayer";
+import { useRouter } from "next/navigation";
 // IMPORT HOOK UI & COMPONENTS
 import useUI from "@/hooks/useUI";
 import { CyberCard, HoloButton, ScanlineOverlay, HorizontalGlitchText } from "@/components/CyberComponents";
@@ -54,6 +55,7 @@ const TunedTracksSkeleton = () => {
 };
 
 export default function TunedTracksPage() {
+  const router = useRouter();
   const { alert } = useUI();
   const player = usePlayer();
   const { isAuthenticated } = useAuth();
@@ -206,20 +208,33 @@ export default function TunedTracksPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-100 dark:bg-black text-neutral-900 dark:text-white p-6 pb-32 transition-colors duration-500 relative overflow-hidden">
-      <div className="mb-3">
-        <BackButton /> 
-      </div>
+    <div className="min-h-screen bg-neutral-100 dark:bg-black text-neutral-900 dark:text-white p-4 md:p-6 pb-32 transition-colors duration-500 relative overflow-hidden">
       
       {/* Background Grid */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
 
+      {/* --- NÚT QUAY LẠI --- */}
+      <button 
+        onClick={() => router.back()} 
+        className="
+            relative z-20 mb-6 group flex items-center gap-2 px-3 py-3
+            backdrop-blur-md
+            border border-neutral-300 dark:border-white/10 
+            hover:border-emerald-500 dark:hover:border-emerald-500
+            hover:!text-white hover:bg-emerald-500
+            transition-all duration-300 rounded-none
+            uppercase text-[10px] font-bold tracking-[0.2em] font-mono
+        "
+      >
+        <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+      </button>
+
       {/* HEADER SECTION */}
-      <div className="flex flex-col md:flex-row items-end gap-8 mb-10 relative z-10 animate-in slide-in-from-bottom-5 duration-700">
+      <div className="flex flex-col md:flex-row items-center md:items-end gap-6 md:gap-8 mb-10 relative z-10 animate-in slide-in-from-bottom-5 duration-700">
 
         {/* Cover Image Wrapper (CyberCard + Scanline) */}
         <CyberCard className="p-0 rounded-none shadow-2xl shadow-emerald-500/10 shrink-0 border border-neutral-300 dark:border-white/10">
-            <div className="relative w-52 h-52 md:w-64 md:h-64 overflow-hidden group bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center cursor-none">
+            <div className="relative w-48 h-48 md:w-64 md:h-64 overflow-hidden group bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center cursor-none">
                 <div className="w-full h-full relative">
                     <span className="text-6xl font-bold opacity-30 font-mono flex items-center justify-center h-full w-full">🎛️</span>
                     <ScanlineOverlay />
@@ -229,19 +244,19 @@ export default function TunedTracksPage() {
         </CyberCard>
 
         {/* Info */}
-        <div className="flex flex-col gap-2 flex-1 pb-2 w-full">
-          <div className="flex items-center gap-2 mb-1">
+        <div className="flex flex-col gap-2 flex-1 pb-2 w-full items-center md:items-start text-center md:text-left">
+          <div className="flex items-center gap-2 mb-1 justify-center md:justify-start">
               <span className="w-2 h-2 bg-emerald-500 animate-pulse rounded-none"></span>
               <p className="uppercase text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 tracking-[0.3em]">
                 TUNED_COLLECTION
               </p>
           </div>
 
-          <h1 className="text-3xl md:text-5xl font-black font-mono tracking-tight mb-2 uppercase break-words line-clamp-2">
+          <h1 className="text-3xl md:text-5xl font-black font-mono tracking-tight mb-2 uppercase break-words line-clamp-2 w-full">
             <HorizontalGlitchText text="TUNED_TRACKS" />
           </h1>
 
-          <p className="text-neutral-600 dark:text-neutral-400 italic font-mono text-sm max-w-2xl border-l-2 border-emerald-500/50 pl-3 mb-4">
+          <p className="text-neutral-600 dark:text-neutral-400 italic font-mono text-sm max-w-2xl border-l-2 border-emerald-500/50 pl-3 mb-4 text-left">
             "Your personalized audio adjustments across all playlists."
           </p>
 
@@ -254,7 +269,7 @@ export default function TunedTracksPage() {
       </div>
 
       {/* ACTION BUTTONS (HoloButton) */}
-      <div className="flex flex-wrap gap-4 mb-10 z-20 relative">
+      <div className="flex flex-wrap gap-4 mb-10 z-20 relative justify-center md:justify-start">
         <HoloButton
             onClick={handlePlayTunedPlaylist}
             className="px-8 bg-emerald-500/10 border-emerald-500/50 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white"

@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react"; 
 import { useRouter } from "next/navigation";
 import { 
   Library, Plus, ListMusic, Play, Trash2, UploadCloud, 
-  User, Disc, ChevronLeft, ChevronRight, X 
+  User, Disc, ChevronLeft, ChevronRight 
 } from "lucide-react"; 
 import { supabase } from "@/lib/supabaseClient";
 
@@ -21,7 +21,7 @@ import { CyberButton, ScanlineOverlay } from "@/components/CyberComponents";
 import HoverImagePreview from "@/components/HoverImagePreview";
 
 // =========================
-//    Skeleton Loader
+//    Skeleton Loader (Giữ nguyên)
 // =========================
 const PlaylistSkeleton = ({ collapsed }) => {
   return (
@@ -47,7 +47,7 @@ const PlaylistSkeleton = ({ collapsed }) => {
 const Sidebar = ({ className = "" }) => { 
   const router = useRouter();
   const { alert, confirm } = useUI();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth(); 
   const { openModal } = useModal();
   const player = usePlayer();
   const uploadModal = useUploadModal();
@@ -63,11 +63,17 @@ const Sidebar = ({ className = "" }) => {
   const [user, setUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
 
+  // --- LOGIC AUTH & REALTIME ---
   useEffect(() => {
     const initAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      setUser(data?.session?.user ?? null);
-      setAuthReady(true);
+        const { data } = await supabase.auth.getSession();
+        const currentUser = data?.session?.user ?? null;
+        setUser(currentUser);
+        setAuthReady(true);
+        
+        if (!currentUser) {
+            setLoading(false);
+        }
     };
 
     initAuth();
@@ -76,93 +82,70 @@ const Sidebar = ({ className = "" }) => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
+        setUser(session.user);
         fetchPlaylists(session.user.id);
         setupRealtime(session.user.id);
       } else {
+        setUser(null);
         setPlaylists([]);
+        setLoading(false); 
       }
     });
+
     return () => subscription.unsubscribe();
   }, []);
 
-  // Helper
   const getFirstLetter = (name) => {
     if (!name) return "?";
     return name.trim()[0].toUpperCase();
   };
 
-  // =========================
-  //         Fetch data
-  // =========================
   const fetchPlaylists = async (uid) => {
     setLoading(true);
 
+    if (!uid) {
+        setPlaylists([]);
+        setLoading(false);
+        return;
+    }
+
     const { data, error } = await supabase
-      .from("playlists")
-      .select(`
-        id, name, cover_url,
-        playlist_songs ( song_id )
-      `)
-      .eq("user_id", uid)
-      .order("id", { ascending: true });
+        .from("playlists")
+        .select(`
+          id, name, cover_url,
+          playlist_songs ( song_id )
+        `)
+        .eq("user_id", uid)
+        .order("id", { ascending: true });
 
     if (!error) setPlaylists(data || []);
     setLoading(false);
   };
 
-  // =========================
-  //      Realtime Setup
-  // =========================
   const channelRef = useRef(null);
 
   const setupRealtime = async (userId) => {
-    // remove channel cũ
     if (channelRef.current) {
-      await supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
+        await supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
     }
 
     channelRef.current = supabase
-      .channel(`rt-playlists-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "playlists",
-          filter: `user_id=eq.${userId}`,
-        },
-        fetchPlaylists
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "playlist_songs",
-        },
-        fetchPlaylists
-      )
-      .subscribe();
+        .channel(`rt-playlists-${userId}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "playlists", filter: `user_id=eq.${userId}` }, () => fetchPlaylists(userId))
+        .on("postgres_changes", { event: "*", schema: "public", table: "playlist_songs" }, () => fetchPlaylists(userId))
+        .subscribe();
   };
 
   useEffect(() => {
-    if (!authReady || !user) return;
+      return () => { 
+          if (channelRef.current) {
+              supabase.removeChannel(channelRef.current);
+              channelRef.current = null;
+          }
+      };
+  }, []);
 
-    fetchPlaylists(user.id);
-    setupRealtime(user.id);
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [authReady, user?.id]);
-
-  // =========================
-  //      Handlers
-  // =========================
   const handleNewPlaylist = async (name) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -240,23 +223,22 @@ const Sidebar = ({ className = "" }) => {
       >
         
         {/* ========================================================
-            NÚT TOGGLE COLLAPSE (LUÔN HIỆN)
+            NÚT TOGGLE COLLAPSE (CHỈ HIỆN TRÊN DESKTOP: hidden md:flex)
            ======================================================== */}
         <button 
             onClick={() => setIsCollapsed(!isCollapsed)}
             className={`
+                hidden md:flex
                 absolute -right-4 top-1/2 -translate-y-1/2 z-[100]
                 w-8 h-14 rounded-none 
                 bg-white dark:bg-neutral-900 
                 border border-neutral-300 dark:border-neutral-600
-                flex items-center justify-center 
+                items-center justify-center 
                 shadow-[0_2px_10px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_10px_rgba(0,0,0,0.5)]
                 text-neutral-500 hover:text-emerald-500 dark:text-neutral-400 dark:hover:text-emerald-400
                 transition-all duration-200 cursor-pointer
-                
-                /* Luôn hiện mờ mờ, hover vào sidebar thì hiện rõ */
-                opacity-60 md:opacity-0 group-hover/sidebar:opacity-100 
-                scale-100 hover:!scale-110 hover:!opacity-100
+                opacity-0 group-hover/sidebar:opacity-100 scale-90 group-hover/sidebar:scale-100
+                hover:!scale-110 hover:!opacity-100
             `}
             title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
         >
@@ -265,17 +247,14 @@ const Sidebar = ({ className = "" }) => {
 
 
         {/* PHẦN 1: USER LIBRARY & UPLOAD */}
-        {isAuthenticated && (
+        {user && (
           <div className="bg-white/60 mt-0 md:mt-6 dark:bg-black/60 backdrop-blur-3xl border border-neutral-200 dark:border-white/5 rounded-none p-2 shadow-sm">
-              
-              {/* Header Library */}
               <div className={`flex items-center ${isCollapsed ? 'justify-center flex-col gap-2' : 'justify-between'} px-2 mb-2 transition-all`}>
                  <div className="flex items-center gap-x-2 text-neutral-700 dark:text-neutral-400">
                     <Library size={16} />
                     {!isCollapsed && <p className="font-bold text-[12px] tracking-[0.2em] font-mono whitespace-nowrap">LIBRARY</p>}
                  </div>
 
-                 {/* Nút Upload */}
                  <CyberButton
                     onClick={uploadModal.onOpen}
                     className={`
@@ -296,37 +275,13 @@ const Sidebar = ({ className = "" }) => {
               </div>
 
               <div className="flex flex-col gap-1">
-                 {/* Nút Vào Thư Viện */}
-                 <button
-                    onClick={() => router.push('/user/library')}
-                    className={`
-                        flex items-center gap-2 w-full p-1.5 rounded-none 
-                        hover:!text-emerald-400 hover:bg-neutral-200/50 dark:hover:bg-white/5 
-                        transition text-xs text-neutral-900 dark:text-neutral-300 font-medium group
-                        ${isCollapsed ? 'justify-center' : ''}
-                    `}
-                    title="My Uploads"
-                 >
-                    <div className="w-8 h-8 shrink-0 rounded-none bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center group-hover:text-emerald-500 transition shadow-sm border border-neutral-300 dark:border-white/5">
-                        <User size={13} />
-                    </div>
+                 <button onClick={() => router.push('/user/library')} className={`flex items-center gap-2 w-full p-1.5 rounded-none hover:!text-emerald-400 hover:bg-neutral-200/50 dark:hover:bg-white/5 transition text-xs text-neutral-900 dark:text-neutral-300 font-medium group ${isCollapsed ? 'justify-center' : ''}`} title="My Uploads">
+                    <div className="w-8 h-8 shrink-0 rounded-none bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center group-hover:text-emerald-500 transition shadow-sm border border-neutral-300 dark:border-white/5"><User size={13} /></div>
                     {!isCollapsed && <span className="text-[13px] whitespace-nowrap">My Uploads</span>}
                  </button>
 
-                 {/* Nút Tuned Tracks */}
-                 <button
-                    onClick={() => router.push('/tuned-tracks')}
-                    className={`
-                        flex items-center gap-2 w-full p-1.5 rounded-none 
-                        hover:!text-emerald-400 hover:bg-neutral-200/50 dark:hover:bg-white/5 
-                        transition text-xs text-neutral-900 dark:text-neutral-300 font-medium group
-                        ${isCollapsed ? 'justify-center' : ''}
-                    `}
-                    title="Tuned Tracks"
-                 >
-                    <div className="w-8 h-8 shrink-0 rounded-none bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center group-hover:text-emerald-500 transition shadow-sm border border-neutral-300 dark:border-white/5">
-                        <Disc size={13} />
-                    </div>
+                 <button onClick={() => router.push('/tuned-tracks')} className={`flex items-center gap-2 w-full p-1.5 rounded-none hover:!text-emerald-400 hover:bg-neutral-200/50 dark:hover:bg-white/5 transition text-xs text-neutral-900 dark:text-neutral-300 font-medium group ${isCollapsed ? 'justify-center' : ''}`} title="Tuned Tracks">
+                    <div className="w-8 h-8 shrink-0 rounded-none bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center group-hover:text-emerald-500 transition shadow-sm border border-neutral-300 dark:border-white/5"><Disc size={13} /></div>
                     {!isCollapsed && <span className="text-[13px] whitespace-nowrap">Tuned Tracks</span>}
                  </button>
               </div>
@@ -335,29 +290,11 @@ const Sidebar = ({ className = "" }) => {
 
         {/* PHẦN 2: PLAYLISTS */}
         <div className="flex flex-col flex-1 min-h-0 bg-white/60 dark:bg-black/60 backdrop-blur-3xl border border-neutral-200 dark:border-white/5 rounded-none p-2 shadow-sm overflow-hidden mt-2">
-
-          {/* Header Playlist */}
           <div className={`flex items-center ${isCollapsed ? 'justify-center flex-col gap-2' : 'justify-between'} text-neutral-700 dark:text-neutral-400 px-2 pb-2 border-b border-neutral-200 dark:border-white/5 transition-all`}>
-            {isCollapsed ? (
-                <Disc size={16} className="text-neutral-500" />
-            ) : (
-                <p className="flex gap-2 items-center font-bold text-[12px] tracking-[0.2em] font-mono whitespace-nowrap">
-                    <Disc size={13} /> PLAYLISTS
-                </p>
-            )}
-
-            {isAuthenticated && (
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="hover:text-emerald-500 p-1 transition hover:bg-white/10 rounded-none border border-transparent hover:border-emerald-500/50"
-                title="Create Playlist"
-              >
-                <Plus size={16} />
-              </button>
-            )}
+            {isCollapsed ? (<Disc size={16} className="text-neutral-500" />) : (<p className="flex gap-2 items-center font-bold text-[12px] tracking-[0.2em] font-mono whitespace-nowrap"><Disc size={13} /> PLAYLISTS</p>)}
+            {user && (<button onClick={() => setShowAddModal(true)} className="hover:text-emerald-500 p-1 transition hover:bg-white/10 rounded-none border border-transparent hover:border-emerald-500/50" title="Create Playlist"><Plus size={16} /></button>)}
           </div>
 
-          {/* Playlist List */}
           <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar mt-1">
             {loading ? (
               <PlaylistSkeleton collapsed={isCollapsed} />
@@ -370,72 +307,25 @@ const Sidebar = ({ className = "" }) => {
               <ul className="flex flex-col gap-y-0.5">
                 {playlists.map((pl) => (
                   <li key={pl.id}>
-                    <div
-                      onClick={() => router.push(`/playlist?id=${pl.id}`)}
-                      className={`
-                        group relative flex items-center gap-x-2 px-2 py-1.5 rounded-none
-                        hover:bg-neutral-200/50 dark:hover:bg-white/5
-                        transition-all duration-200 cursor-pointer overflow-hidden
-                        border border-transparent hover:border-white/5
-                        ${isCollapsed ? 'justify-center' : ''}
-                      `}
-                      title={isCollapsed ? pl.name : ""}
-                    >
-                      {/* Cover Image + Hover Preview */}
+                    <div onClick={() => router.push(`/playlist?id=${pl.id}`)} className={`group relative flex items-center gap-x-2 px-2 py-1.5 rounded-none hover:bg-neutral-200/50 dark:hover:bg-white/5 transition-all duration-200 cursor-pointer overflow-hidden border border-transparent hover:border-white/5 ${isCollapsed ? 'justify-center' : ''}`} title={isCollapsed ? pl.name : ""}>
                       <div className="relative group w-8 h-8 shrink-0 rounded-none overflow-hidden border border-neutral-300 dark:border-white/10 shadow-sm flex items-center justify-center bg-neutral-200 dark:bg-neutral-800 cursor-none">
-                           <HoverImagePreview 
-                              src={pl.cover_url} 
-                              alt={pl.name}
-                              className="w-full h-full"
-                              previewSize={160}
-                              fallbackIcon="disc"
-                           >
+                           <HoverImagePreview src={pl.cover_url} alt={pl.name} className="w-full h-full" previewSize={160} fallbackIcon="disc">
                                <div className="w-full h-full relative flex items-center justify-center grayscale group-hover:grayscale-0 transition-all duration-500">
-                                   {pl.cover_url ? (
-                                      <img 
-                                          src={pl.cover_url} 
-                                          alt={pl.name} 
-                                          className="w-full h-full object-cover transition-all duration-300 blur-[2px] group-hover:blur-none group-hover:scale-100" 
-                                      />
-                                   ) : (
-                                      <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 font-mono transition-all duration-300 blur-[2px] group-hover:blur-none">
-                                          {getFirstLetter(pl.name)}
-                                      </span>
-                                   )}
+                                   {pl.cover_url ? (<img src={pl.cover_url} alt={pl.name} className="w-full h-full object-cover transition-all duration-300 blur-[2px] group-hover:blur-none group-hover:scale-100" />) : (<span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 font-mono transition-all duration-300 blur-[2px] group-hover:blur-none">{getFirstLetter(pl.name)}</span>)}
                                    <ScanlineOverlay />
                                </div>
                            </HoverImagePreview>
                       </div>
 
-                      {/* Playlist Name & Count (Chỉ hiện khi KHÔNG collapse) */}
                       {!isCollapsed && (
                         <>
                             <div className="flex-1 min-w-0 flex flex-col justify-center animate-in fade-in zoom-in duration-300">
-                                <p className="font-medium text-xs !text-[13px] text-neutral-700 dark:text-neutral-300 truncate group-hover:text-emerald-500 transition-colors leading-tight font-mono">
-                                {pl.name}
-                                </p>
-                                <p className="text-[13px] text-neutral-400 dark:text-neutral-500 truncate font-mono leading-tight">
-                                {pl.playlist_songs?.length || 0} tracks
-                                </p>
+                                <p className="font-medium text-xs !text-[13px] text-neutral-700 dark:text-neutral-300 truncate group-hover:text-emerald-500 transition-colors leading-tight font-mono">{pl.name}</p>
+                                <p className="text-[13px] text-neutral-400 dark:text-neutral-500 truncate font-mono leading-tight">{pl.playlist_songs?.length || 0} tracks</p>
                             </div>
-
-                            {/* Action Buttons (Chỉ hiện khi KHÔNG collapse) */}
                             <div className="absolute right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-200">
-                                <button
-                                    onClick={(e) => handlePlayPlaylist(e, pl.id)}
-                                    className="p-1 rounded-none bg-emerald-500 text-white hover:bg-emerald-400 hover:scale-105 transition shadow-sm"
-                                    title="Play"
-                                >
-                                    <Play size={13} fill="currentColor" />
-                                </button>
-
-                                <button
-                                    onClick={(e) => handleDeletePlaylist(e, pl.id)}
-                                    className="p-1 rounded-none bg-neutral-200 dark:bg-neutral-800 text-neutral-500 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 transition shadow-sm border border-transparent hover:border-red-500/30"
-                                    title="Delete"
-                                >
-                                    <Trash2 size={13} />
-                                </button>
+                                <button onClick={(e) => handlePlayPlaylist(e, pl.id)} className="p-1 rounded-none bg-emerald-500 text-white hover:bg-emerald-400 hover:scale-105 transition shadow-sm" title="Play"><Play size={13} fill="currentColor" /></button>
+                                <button onClick={(e) => handleDeletePlaylist(e, pl.id)} className="p-1 rounded-none bg-neutral-200 dark:bg-neutral-800 text-neutral-500 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 transition shadow-sm border border-transparent hover:border-red-500/30" title="Delete"><Trash2 size={13} /></button>
                             </div>
                         </>
                       )}
@@ -446,16 +336,9 @@ const Sidebar = ({ className = "" }) => {
             )}
           </div>
         </div>
-
       </div>
 
-      {/* Local Modal (Create Playlist) */}
-      {showAddModal && (
-        <CreatePlaylistModal
-          onClose={() => setShowAddModal(false)}
-          onCreate={handleNewPlaylist}
-        />
-      )}
+      {showAddModal && <CreatePlaylistModal onClose={() => setShowAddModal(false)} onCreate={handleNewPlaylist} />}
     </>
   );
 };
