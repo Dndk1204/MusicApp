@@ -14,6 +14,7 @@ import { useAuth } from "@/components/AuthWrapper";
 import { useModal } from "@/context/ModalContext";
 // Import HOVER PREVIEW
 import HoverImagePreview from "@/components/HoverImagePreview";
+import BackButton from "@/components/BackButton";
 
 // Function to extract audio duration
 const extractAudioDuration = (file) => {
@@ -496,6 +497,10 @@ const MyUploadsPage = () => {
       ) : (
         <div className="h-full w-full p-6 pb-[120px] overflow-y-auto bg-neutral-100 dark:bg-black transition-colors duration-500">
 
+          <div className="mb-3">
+            <BackButton /> 
+        </div>
+
            {/* HEADER */}
            <div className="flex flex-col gap-6 mb-8">
               <div className="flex flex-col gap-2">
@@ -539,7 +544,7 @@ const MyUploadsPage = () => {
                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                           {/* Upload Button Card (Cyber Style) */}
                           {activeTab === 'uploads' && (
-                             <button onClick={onOpen} className="group relative w-[272px] flex flex-col items-center justify-center gap-4 p-4 border border-dashed border-neutral-400 dark:border-white/20 hover:border-emerald-500 bg-transparent hover:bg-emerald-500/5 transition-all cursor-pointer aspect-square min-h-[377px]">
+                             <button onClick={onOpen} className="group relative w-[272px] flex min-w-full flex-1 flex-col items-center justify-center gap-4 p-4 border border-dashed border-neutral-400 dark:border-white/20 hover:border-emerald-500 bg-transparent hover:bg-emerald-500/5 transition-all cursor-pointer aspect-square min-h-[377px]">
                                 <div className="w-20 h-20 bg-neutral-200 dark:bg-white/5 group-hover:bg-emerald-500 group-hover:text-black flex items-center justify-center text-neutral-400 transition-colors border border-neutral-300 dark:border-white/10 group-hover:border-emerald-400 rounded-none">
                                     <Upload size={32}/>
                                 </div>

@@ -7,12 +7,13 @@ import { Play, Clock, Music2 } from "lucide-react";
 import usePlayer from "@/hooks/usePlayer";
 // IMPORT HOOK UI & COMPONENTS
 import useUI from "@/hooks/useUI";
-import { GlitchText, CyberCard, HoloButton, ScanlineOverlay, HorizontalGlitchText } from "@/components/CyberComponents";
+import { CyberCard, HoloButton, ScanlineOverlay, HorizontalGlitchText } from "@/components/CyberComponents";
 // IMPORT AUTH & MODAL
 import { useAuth } from "@/components/AuthWrapper";
 import { useModal } from "@/context/ModalContext";
 // IMPORT HOVER PREVIEW
 import HoverImagePreview from "@/components/HoverImagePreview";
+import BackButton from "@/components/BackButton";
 
 // --- SKELETON LOADER COMPONENT ---
 const TunedTracksSkeleton = () => {
@@ -142,6 +143,10 @@ export default function TunedTracksPage() {
 
   return (
     <div className="min-h-screen bg-neutral-100 dark:bg-black text-neutral-900 dark:text-white p-6 pb-32 transition-colors duration-500 relative overflow-hidden">
+      <div className="mb-3">
+        <BackButton /> 
+      </div>
+      
       {/* Background Grid */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
 

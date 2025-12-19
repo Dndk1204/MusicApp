@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import {
-  Plus,
   Music2,
   Loader2,
   Check,
@@ -20,6 +19,7 @@ import {
   GlitchButton,
   CyberButton,
 } from "@/components/CyberComponents";
+import useUI from "@/hooks/useUI";
 
 export default function AddToPlaylistPage() {
   const router = useRouter();
@@ -39,7 +39,9 @@ export default function AddToPlaylistPage() {
   const [selected, setSelected] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
-  const [message, setMessage] = useState(null);
+  
+  // SỬA: Lấy hàm alert từ useUI
+  const { alert } = useUI(); 
 
   /* -------------------------------------------------------
       LOAD IMAGE — Unified Logic
@@ -112,7 +114,8 @@ export default function AddToPlaylistPage() {
 
         const tr = json?.results?.[0];
         if (!tr) {
-          setMessage({ type: "error", text: "SONG_NOT_FOUND_API" });
+          // SỬA: Dùng alert thay vì setMessage
+          alert("SONG_NOT_FOUND_API", "error");
           return;
         }
 
@@ -140,7 +143,8 @@ export default function AddToPlaylistPage() {
         });
       } catch (err) {
         console.error("API Error", err);
-        setMessage({ type: "error", text: "API_CONNECTION_FAILED" });
+        // SỬA: Dùng alert thay vì setMessage
+        alert("API_CONNECTION_FAILED", "error");
       }
     };
 
@@ -188,16 +192,17 @@ export default function AddToPlaylistPage() {
   ------------------------------------------------------- */
   const handleAddMulti = async () => {
     if (!song?.id) return;
+
+    // 1. Kiểm tra chọn playlist
     if (selected.length === 0) {
-      setMessage({ type: "error", text: "NO_TARGET_SELECTED" });
+      alert("NO_TARGET_SELECTED", "error"); 
       return;
     }
 
     setAdding(true);
-    setMessage(null);
 
     try {
-      // Ensure song exists in DB
+      // --- GIỮ NGUYÊN LOGIC UPSERT SONG ---
       const { error: upsertErr } = await supabase.from("songs").upsert(
         {
           id: song.id,
@@ -212,7 +217,7 @@ export default function AddToPlaylistPage() {
 
       if (upsertErr) throw upsertErr;
 
-      // Check duplicates
+      // --- GIỮ NGUYÊN LOGIC CHECK TRÙNG ---
       const { data: existing } = await supabase
         .from("playlist_songs")
         .select("playlist_id")
@@ -223,12 +228,12 @@ export default function AddToPlaylistPage() {
       const newTargets = selected.filter((pid) => !existed.includes(pid));
 
       if (newTargets.length === 0) {
-        setMessage({ type: "error", text: "TRACK_ALREADY_EXISTS" });
+        alert("TRACK_ALREADY_EXISTS", "warning"); 
         setAdding(false);
         return;
       }
 
-      // Insert
+      // --- GIỮ NGUYÊN LOGIC INSERT ---
       const rows = newTargets.map((pid) => ({
         playlist_id: pid,
         song_id: song.id,
@@ -241,15 +246,14 @@ export default function AddToPlaylistPage() {
 
       if (insertErr) throw insertErr;
 
-      setMessage({
-        type: "success",
-        text: `SUCCESS: INJECTED TO ${newTargets.length} PLAYLIST(S)`,
-      });
+      // 2. Thông báo thành công (Cyber Style)
+      alert(`SUCCESS: INJECTED TO ${newTargets.length} PLAYLIST(S)`, "success");
 
       setTimeout(() => router.back(), 700);
+
     } catch (err) {
       console.error(err);
-      setMessage({ type: "error", text: "SYSTEM_FAILURE" });
+      alert("SYSTEM_CRITICAL_FAILURE", "error");
     }
 
     setAdding(false);
@@ -262,7 +266,7 @@ export default function AddToPlaylistPage() {
     <div className="fixed inset-0 bg-neutral-900/90 backdrop-blur-sm flex items-center justify-center z-[999] p-4 animate-in fade-in duration-300">
       <div
         className="
-          w-full max-w-xl h-[80vh] flex flex-col relative overflow-hidden
+          !w-[60vh] max-w-xl h-[70vh] flex flex-col relative overflow-hidden
           bg-white dark:bg-black
           border-2 border-neutral-400 dark:border-white/20
           shadow-[0_0_40px_rgba(0,0,0,0.5)] dark:shadow-[0_0_40px_rgba(255,255,255,0.05)]
@@ -327,22 +331,6 @@ export default function AddToPlaylistPage() {
               </div>
             </div>
           </div>
-
-          {/* MESSAGE */}
-          {message && (
-            <div
-              className={`
-                mb-6 p-3 text-xs font-mono border animate-in slide-in-from-top-2
-                ${
-                  message.type === "success"
-                    ? "bg-emerald-100 border-emerald-500 text-emerald-700"
-                    : "bg-red-100 border-red-500 text-red-700"
-                }
-              `}
-            >
-              {message.text}
-            </div>
-          )}
 
           {/* PLAYLISTS */}
           <h2 className="font-bold font-mono text-xs uppercase tracking-widest text-neutral-500 mb-4">

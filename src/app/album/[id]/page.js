@@ -8,6 +8,7 @@ import { Disc, Loader2, Play } from "lucide-react";
 import Image from "next/image";
 // Import Cyber Components
 import { DecoderText, GlitchText, CyberCard, ScanlineOverlay } from "@/components/CyberComponents";
+import BackButton from "@/components/BackButton";
 
 // --- COMPONENT SKELETON (CYBER STYLE) ---
 const AlbumSkeleton = () => {
@@ -66,7 +67,10 @@ const AlbumPage = () => {
 
   return (
     <div className="w-full flex flex-col gap-8 p-6 pb-[120px] bg-neutral-100 dark:bg-black min-h-screen transition-colors duration-500">
-      
+      <div className="mb-3">
+          <BackButton /> 
+      </div>
+
        {/* HEADER ALBUM (CYBER STYLE) */}
        <div className="flex flex-col md:flex-row gap-8 items-end mb-8 pb-8 border-b border-neutral-300 dark:border-white/10 animate-in fade-in slide-in-from-bottom-4 duration-700">
         

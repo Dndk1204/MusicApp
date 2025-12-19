@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { Howl } from "howler";
 import {
   Play, Pause, Rewind, FastForward, SkipBack, SkipForward,
-  Volume2, VolumeX, Shuffle, Repeat, Repeat1, AlignJustify, Plus, Save, Square, X 
+  Volume2, VolumeX, Shuffle, Repeat, Repeat1, AlignJustify, Plus, Square, X 
 } from "lucide-react"; 
 import { useRouter, usePathname } from "next/navigation";
 
@@ -12,10 +12,8 @@ import { useRouter, usePathname } from "next/navigation";
 import usePlayer from "@/hooks/usePlayer";
 import useTrackStats from "@/hooks/useTrackStats";
 import useAudioFilters from "@/hooks/useAudioFilters";
-import { useIsTunedTracksPage } from "@/hooks/useIsTunedTracksPage";
 import useUI from "@/hooks/useUI";
 import { supabase } from "@/lib/supabaseClient";
-import { addSongToPlaylist } from "@/lib/addSongToPlaylist";
 
 // --- COMPONENTS ---
 import MediaItem from "./MediaItem";
@@ -29,7 +27,8 @@ const PlayerContent = ({ song, songUrl }) => {
   const { alert } = useUI(); 
 
   const { initAudioNodes, setBass, setMid, setTreble } = useAudioFilters();
-  const isTunedTracksPage = useIsTunedTracksPage();
+  
+  // Track stats hook
   useTrackStats(song);
 
   // --- LOCAL STATE ---
@@ -45,7 +44,7 @@ const PlayerContent = ({ song, songUrl }) => {
   const isDraggingRef = useRef(false);
   const rafRef = useRef(null);
   const playerRef = useRef(player);
-  const loadedSongIdRef = useRef(null); // Track bài hát đã load EQ settings
+  const loadedSongIdRef = useRef(null); 
 
   useEffect(() => { playerRef.current = player; }, [player]);
 
@@ -71,71 +70,32 @@ const PlayerContent = ({ song, songUrl }) => {
     }
   }, [player.volume]);
 
+  // Hàm load EQ Settings (Đã xóa logic Tuned Tracks Page)
   const loadSongSettings = useCallback(async (songId) => {
     if (!songId) return;
     try {
-      console.log("[EQ] Load settings for song:", songId, "isTunedTracksPage:", isTunedTracksPage);
-
-      // Chỉ load EQ settings nếu đang ở trang tuned-tracks
-      if (isTunedTracksPage) {
-        console.log("[EQ] Loading EQ settings for tuned-tracks page");
+        // Mặc định luôn reset về FLAT cho mọi bài hát
+        // Nếu bạn muốn giữ lại tính năng load EQ global (từ profile), có thể uncomment đoạn dưới
+        /*
         const { data: { session } } = await supabase.auth.getSession();
-        const sessionSaved = sessionStorage.getItem(`audioSettings_${songId}`);
-        if (sessionSaved) {
-            const s = JSON.parse(sessionSaved);
-            console.log("[EQ] Applied from sessionStorage:", s);
-            setBass(s.bass || 0); setMid(s.mid || 0); setTreble(s.treble || 0);
-            return;
-        }
         if (session?.user) {
-          const { data: songData } = await supabase
-            .from('user_song_settings').select('settings')
-            .eq('user_id', session.user.id).eq('song_id', songId).single();
-
-          if (songData?.settings) {
-             const s = songData.settings;
-             console.log("[EQ] Applied from database:", s);
-             setBass(s.bass || 0); setMid(s.mid || 0); setTreble(s.treble || 0);
-             return;
-          }
-          const { data: profileData } = await supabase
-            .from('profiles').select('audio_settings').eq('id', session.user.id).single();
-          if (profileData?.audio_settings) {
-             const s = profileData.audio_settings;
-             console.log("[EQ] Applied from profile:", s);
-             setBass(s.bass || 0); setMid(s.mid || 0); setTreble(s.treble || 0);
-          }
+             const { data: profileData } = await supabase
+                .from('profiles').select('audio_settings').eq('id', session.user.id).single();
+             if (profileData?.audio_settings) {
+                 const s = profileData.audio_settings;
+                 setBass(s.bass || 0); setMid(s.mid || 0); setTreble(s.treble || 0);
+                 return;
+             }
         }
-      } else {
-        console.log("[EQ] Not on tuned-tracks page, setting to FLAT");
-      }
-
-      // Ở trang khác: luôn set về default (0, 0, 0) và xóa cache
-      sessionStorage.removeItem(`audioSettings_${songId}`);
-      setBass(0); setMid(0); setTreble(0);
-      console.log("[EQ] Set to FLAT (0,0,0)");
+        */
+        
+        sessionStorage.removeItem(`audioSettings_${songId}`);
+        setBass(0); setMid(0); setTreble(0);
+        console.log("[EQ] Set to FLAT (0,0,0)");
 
     } catch (err) { console.error("Load Settings:", err); }
-  }, [setBass, setMid, setTreble, isTunedTracksPage]);
+  }, [setBass, setMid, setTreble]);
 
-  useEffect(() => {
-    // Chỉ thực hiện realtime sync nếu đang ở trang tuned-tracks
-    if (!userId || !isTunedTracksPage) return;
-
-    const channel = supabase.channel('realtime-player')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'user_song_settings', filter: `user_id=eq.${userId}` },
-        (payload) => {
-            if (song?.id && String(payload.new.song_id) === String(song.id)) {
-                const s = payload.new.settings;
-                if(s.bass !== undefined) setBass(s.bass);
-                if(s.mid !== undefined) setMid(s.mid);
-                if(s.treble !== undefined) setTreble(s.treble);
-            }
-        }
-      ).subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [userId, song?.id, isTunedTracksPage]);
 
   const onPlayNext = useCallback(() => {
     const { ids, activeId, isShuffle, setId, repeatMode } = playerRef.current;
@@ -171,25 +131,24 @@ const PlayerContent = ({ song, songUrl }) => {
     const initialVol = clampVolume(player.volume ?? 1);
     setVolume(initialVol);
 
-    // TỐI ƯU HÓA HOWLER ĐỂ LOAD NHANH
     const newSound = new Howl({
       src: [songUrl],
       format: ["mp3", "mpeg"],
       volume: initialVol,
-      html5: false, // <--- QUAN TRỌNG: Bật Streaming (không đợi tải hết)
-      preload: "auto", // <--- QUAN TRỌNG: Tải ngay lập tức
+      html5: false, 
+      preload: "auto", 
       autoplay: true,
       loop: playerRef.current.repeatMode === 2,
       onplay: () => {
         setIsPlaying(true);
         setDuration(newSound.duration());
         initAudioNodes();
-        // Chỉ load EQ khi thực sự là bài hát mới
+        
         if (song?.id && loadedSongIdRef.current !== song.id) {
-          console.log("[EQ] New song detected, loading settings:", song.id);
           loadSongSettings(song.id);
           loadedSongIdRef.current = song.id;
         }
+        
         const updateSeek = () => {
           if (!isDraggingRef.current && newSound.playing()) setSeek(newSound.seek());
           rafRef.current = requestAnimationFrame(updateSeek);
@@ -203,19 +162,18 @@ const PlayerContent = ({ song, songUrl }) => {
       },
       onload: () => {
           setDuration(newSound.duration());
-          setIsLoading(false); // Tắt loading ngay khi có metadata
+          setIsLoading(false); 
           setError(null);
       },
     });
 
     setSound(newSound);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); newSound.unload(); };
-  }, [songUrl]); // Chỉ chạy lại khi songUrl thay đổi
+  }, [songUrl]); 
 
   // --- LOAD EQ SETTINGS KHI SONG.ID THAY ĐỔI ---
   useEffect(() => {
     if (song?.id && loadedSongIdRef.current !== song.id) {
-      console.log("[EQ] Song changed, loading settings:", song.id);
       loadSongSettings(song.id);
       loadedSongIdRef.current = song.id;
     }
@@ -252,114 +210,56 @@ const PlayerContent = ({ song, songUrl }) => {
     if (pathname === '/now-playing') {
       router.back();
     } else {
-      // Pass thông tin trang hiện tại qua URL parameter
       const from = pathname === '/' ? 'home' : pathname.replace('/', '');
       router.push(`/now-playing?from=${from}`);
     }
   };
 
-  const onSaveTunedSong = async () => {
-    if (!userId || !song) return;
-    try {
-      let playlistId;
-      const { data: playlists } = await supabase
-        .from('playlists').select('id').eq('user_id', userId).eq('name', 'Tuned Songs');
-
-      if (playlists && playlists.length > 0) {
-        playlistId = playlists[0].id;
-      } else {
-        const { data: newPlaylist, error: insertError } = await supabase
-          .from('playlists').insert({ user_id: userId, name: 'Tuned Songs' }).select('id').single();
-        if (insertError) throw insertError;
-        playlistId = newPlaylist.id;
-      }
-      
-      const baseTitle = song.title;
-      let uniqueTitle = baseTitle;
-      let counter = 1;
-      while (true) {
-        const { data: existing } = await supabase.from('songs').select('id').eq('user_id', userId).eq('title', uniqueTitle).limit(1);
-        if (!existing || existing.length === 0) break;
-        uniqueTitle = `${baseTitle}${counter}`;
-        counter++;
-      }
-
-      const modifiedSong = { ...song, title: uniqueTitle };
-      const { success, error } = await addSongToPlaylist(modifiedSong, playlistId);
-      if (error) throw error;
-
-      alert('Song saved as tuned song successfully!', 'success', 'SAVED'); 
-    } catch (err) {
-      console.error('Save tuned song error:', err);
-      alert('Failed to save tuned song', 'error', 'ERROR');
-    }
-  };
-
-  // Tính toán phần trăm âm lượng (0-100) và làm tròn
   const volumePercentage = Math.round(volume * 100);
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 h-full gap-x-6 items-center bg-white dark:bg-black border-t border-neutral-300 dark:border-white/10 px-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 h-full gap-x-6 items-center bg-white/95 dark:bg-black/95 backdrop-blur-md border-t border-neutral-200 dark:border-white/10 px-4 transition-colors duration-300">
       {error && <div className="absolute -top-12 bg-red-500 text-white text-xs py-1 px-3 rounded-none z-50 font-mono">Error</div>}
       
       {/* LEFT: Media Info + Actions */}
-      <div className="flex w-full md:w-[20em] justify-start items-center gap-2 -translate-y-1">
-        <MediaItem data={song} />
+      <div className="flex w-full md:w-[20em] justify-start items-center gap-2 -translate-y-1 min-w-0">
+        <div className="flex-1 min-w-0">
+            <MediaItem data={song} />
+        </div>
         
-        {/* Nút Save Tuned */}
-        <button 
-            onClick={onSaveTunedSong} 
-            disabled={!song} 
-            className="text-neutral-400 hover:text-green-500 transition p-1.5 border border-transparent hover:border-green-500/50" 
-            title="Save as Tuned Song"
-        >
-            <Save size={18}/>
-        </button>
-        
-        {/* Nút Add Playlist */}
-        <button 
-            onClick={() => { 
-                if(song) {
-                    const normalizedSong = {
-                        id: song.id || song.encodeId,
-                        title: song.title,
-                        author: song.artistsNames || song.author,
-                        song_url: song.streaming?.mp3 || song.song_url,
-                        image_url: song.thumbnailM || song.image_url,
-                        duration: song.duration
-                    };
-                    router.push(`/add-to-playlist?song=${encodeURIComponent(JSON.stringify(normalizedSong))}`); 
-                }
-            }} 
-            disabled={!song} 
-            className="
-                group relative flex items-center justify-center w-7 h-7 rounded-none
-                border border-neutral-400 dark:border-neutral-600 hover:border-emerald-500 
-                bg-transparent hover:bg-emerald-500/10 
-                text-neutral-400 hover:text-emerald-500 
-                transition-all duration-200
-            "
-            title="Add to Playlist"
-        >
-            <Plus size={16} />
-        </button>
+        {/* Actions */}
+        <div className="hidden sm:flex items-center gap-1">
+            <button 
+                onClick={() => { 
+                    if(song) {
+                        const normalizedSong = {
+                            id: song.id || song.encodeId,
+                            title: song.title,
+                            author: song.artistsNames || song.author,
+                            song_url: song.streaming?.mp3 || song.song_url,
+                            image_url: song.thumbnailM || song.image_url,
+                            duration: song.duration
+                        };
+                        router.push(`/add-to-playlist?song=${encodeURIComponent(JSON.stringify(normalizedSong))}`); 
+                    }
+                }} 
+                disabled={!song} 
+                className="text-neutral-500 dark:text-neutral-400 hover:text-emerald-600 dark:hover:text-emerald-500 transition p-1.5"
+                title="Add to Playlist"
+            >
+                <Plus size={18} />
+            </button>
 
-        {/* --- NÚT TẮT PLAYER (STOP/CLEAR) --- */}
-        <button 
-            onClick={handleClearPlayer} 
-            className="
-                group relative flex items-center justify-center w-7 h-7 rounded-none
-                border border-neutral-400 dark:border-neutral-600 hover:border-red-500 
-                bg-transparent hover:bg-red-500/10 
-                text-neutral-400 hover:text-red-500 
-                transition-all duration-200
-            "
-            title="Stop & Clear"
-        >
-            <Square size={14} fill="currentColor" />
-        </button>
+            <button 
+                onClick={handleClearPlayer} 
+                className="text-neutral-500 dark:text-neutral-400 hover:text-red-600 dark:hover:text-red-500 transition p-1.5"
+                title="Stop & Clear"
+            >
+                <Square size={16} fill="currentColor" />
+            </button>
+        </div>
 
-        <div className="sm:block ml-2 border-l border-neutral-600 pl-3 h-8 flex items-center">
+        <div className="hidden lg:block ml-2 border-l border-neutral-300 dark:border-neutral-700 pl-3 h-8 items-center">
             <AudioVisualizer isPlaying={isPlaying}/>
         </div>
       </div>
@@ -367,46 +267,47 @@ const PlayerContent = ({ song, songUrl }) => {
       {/* CENTER: CONTROLS */}
       <div className="hidden md:flex flex-col items-center w-full max-w-[722px] gap-y-1">
           <div className="flex items-center gap-x-6 translate-y-1.5">
-            <button onClick={() => player.setIsShuffle(!player.isShuffle)} className={`transition p-1 ${player.isShuffle ? "text-emerald-500" : "text-neutral-400 hover:text-white"}`} title="Shuffle"><Shuffle size={16}/></button>
+            <button onClick={() => player.setIsShuffle(!player.isShuffle)} className={`transition p-1 ${player.isShuffle ? "text-emerald-500" : "text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white"}`} title="Shuffle"><Shuffle size={16}/></button>
             
-            <button onClick={onPlayPrevious} className="text-neutral-400 hover:text-white transition hover:scale-110 p-1"><SkipBack size={20}/></button>
+            <button onClick={onPlayPrevious} className="text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition hover:scale-110 p-1"><SkipBack size={20}/></button>
             
-            <button onClick={() => { if(sound) sound.seek(Math.max(0, seek - 5)); }} className="text-neutral-400 hover:text-white transition hover:scale-110 p-1">
+            <button onClick={() => { if(sound) sound.seek(Math.max(0, seek - 5)); }} className="text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition hover:scale-110 p-1">
               <Rewind size={18}/>
             </button>
             
-            {/* Main Play Button - Tech Style */}
+            {/* Main Play Button */}
             <button 
               onClick={handlePlay} 
               disabled={!sound || isLoading} 
               className="
                   relative
                   flex items-center justify-center h-8 !w-16 
-                  bg-neutral-900 dark:bg-emerald-400/50 text-white dark:text-emerald-300 !border-emerald-300
-                  hover:bg-emerald-500 hover:!text-emerald-200 dark:hover:bg-emerald-300/50 hover:!border-emerald-200
-                  transition-all duration-200 rounded-none border dark:border-transparent
-                  shadow-[0_0_10px_rgba(0,0,0,0.2)] hover:shadow-[0_0_15px_rgba(16,185,129,0.6)]
+                  bg-neutral-200 dark:bg-emerald-400/50 
+                  text-black dark:text-emerald-100 
+                  border border-neutral-300 dark:border-emerald-300
+                  hover:bg-emerald-500 hover:text-white hover:border-emerald-500
+                  transition-all duration-200 rounded-none
+                  shadow-sm
               "
             >
                 <div className="relative w-full h-full flex items-center justify-center">
                     {isLoading ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin relative z-20"/> : <Icon size={20} fill="currentColor" className="relative z-20"/>}
-                    
                     <ScanlineOverlay className="absolute inset-0 z-10"/> 
                 </div>
             </button>
 
-            <button onClick={() => { if(sound) sound.seek(Math.min(duration, seek + 5)); }} className="text-neutral-400 hover:text-white transition hover:scale-110 p-1">
+            <button onClick={() => { if(sound) sound.seek(Math.min(duration, seek + 5)); }} className="text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition hover:scale-110 p-1">
               <FastForward size={18}/>
             </button>
 
-            <button onClick={onPlayNext} className="text-neutral-400 hover:text-white transition hover:scale-110 p-1"><SkipForward size={20}/></button>
+            <button onClick={onPlayNext} className="text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition hover:scale-110 p-1"><SkipForward size={20}/></button>
             
-            <button onClick={() => player.setRepeatMode((player.repeatMode+1)%3)} className={`transition p-1 ${player.repeatMode!==0 ? "text-emerald-500" : "text-neutral-400 hover:text-white"}`} title="Repeat">
+            <button onClick={() => player.setRepeatMode((player.repeatMode+1)%3)} className={`transition p-1 ${player.repeatMode!==0 ? "text-emerald-500" : "text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white"}`} title="Repeat">
               {player.repeatMode===2 ? <Repeat1 size={16}/> : <Repeat size={16}/>}
             </button>
           </div>
           
-          {/* Progress Bar - Cyber Style */}
+          {/* Progress Bar */}
           <div className="w-full flex items-center gap-3 -translate-y-2">
               <span className="text-[10px] font-mono text-neutral-500 w-10 text-right">{formatTime(seek)}</span>
               <div className="flex-1 h-full flex items-center">
@@ -418,11 +319,10 @@ const PlayerContent = ({ song, songUrl }) => {
 
       {/* RIGHT: Volume & View Switcher */}
       <div className="hidden md:flex justify-end pr-2 gap-4 w-full items-center -translate-y-[0.25rem]">
-         <div className="flex items-center gap-2 border border-neutral-300 dark:border-white/10 px-2 py-1 bg-neutral-100 dark:bg-white/5">
-             <button onClick={toggleMute}><VolumeIcon size={18} className="text-neutral-400 hover:text-emerald-500 transition"/></button>
+         <div className="flex items-center gap-2 border border-neutral-300 dark:border-white/10 px-2 py-1 bg-neutral-50 dark:bg-white/5">
+             <button onClick={toggleMute}><VolumeIcon size={18} className="text-neutral-500 dark:text-neutral-400 hover:text-emerald-500 transition"/></button>
              <div className="w-[80px]"><Slider value={volume} max={1} step={0.01} onChange={(v) => handleVolumeChange(v)}/></div>
-             {/* INDICATOR MỚI */}
-             <span className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 font-bold w-6 text-right">
+             <span className="text-[10px] font-mono text-neutral-600 dark:text-neutral-400 font-bold w-6 text-right">
                 {volumePercentage}%
              </span>
          </div>
@@ -430,24 +330,37 @@ const PlayerContent = ({ song, songUrl }) => {
          <button 
             onClick={toggleNowPlaying} 
             className={`
-                p-2 border border-transparent hover:border-emerald-500 transition-all rounded-none
-                ${pathname==='/now-playing' ? "text-emerald-500 border-emerald-500/50 bg-emerald-500/10" : "text-neutral-400 hover:text-white hover:bg-white/5"}
+                p-2 border transition-all rounded-none
+                ${pathname==='/now-playing' 
+                    ? "text-emerald-500 border-emerald-500/50 bg-emerald-500/10" 
+                    : "text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white border-transparent hover:bg-neutral-200 dark:hover:bg-white/5"}
             `}
             title={pathname==='/now-playing' ? "Close Player" : "Open Player"}
          >
-            {/* Sử dụng X và AlignJustify đã được import đúng */}
             {pathname === '/now-playing' ? <X size={20}/> : <AlignJustify size={20}/>}
          </button>
       </div>
 
       {/* MOBILE PLAY BUTTON */}
-      <div className="flex md:hidden col-auto justify-end items-center">
+      <div className="flex md:hidden col-auto justify-end items-center gap-3">
+        <button 
+            onClick={toggleNowPlaying} 
+            className="text-neutral-500 dark:text-neutral-400 p-2"
+        >
+            {pathname === '/now-playing' ? <X size={20}/> : <AlignJustify size={20}/>}
+        </button>
+
         <button 
             onClick={handlePlay} 
             disabled={!sound || isLoading} 
-            className="h-10 w-10 bg-white text-black flex items-center justify-center shadow-lg active:scale-95 transition"
+            className="
+                h-10 w-10 flex items-center justify-center shadow-lg active:scale-95 transition
+                bg-neutral-900 dark:bg-white 
+                text-white dark:text-black
+                border border-transparent dark:border-neutral-200
+            "
         >
-           {isLoading ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"/> : <Icon size={20} fill="currentColor"/>}
+           {isLoading ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"/> : <Icon size={20} fill="currentColor"/>}
         </button>
       </div>
     </div>

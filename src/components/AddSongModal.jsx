@@ -128,7 +128,7 @@ export default function AddSongModal({ playlistId, onClose, onAdded }) {
 
   /* ---------------- UI (CYBER BRUTALISM) ------------------- */
   return (
-    <div className="fixed inset-0 bg-neutral-900/90 backdrop-blur-sm flex items-center justify-center z-[999] p-4 animate-in fade-in duration-300">
+    <div className="fixed inset-0 bg-neutral-900/90 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-300">
       
       {/* CARD CONTAINER (Manual Layout for strict flex control) */}
       <div className="

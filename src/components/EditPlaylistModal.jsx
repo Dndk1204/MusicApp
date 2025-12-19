@@ -99,11 +99,11 @@ export default function EditPlaylistModal({ playlist, onClose, onUpdated, onDele
   };
 
   return (
-    <div className="fixed inset-0 bg-neutral-900/90 backdrop-blur-sm flex items-center justify-center z-[999] p-4 animate-in fade-in duration-300">
+    <div className="fixed inset-0 bg-neutral-900/90 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-300">
       
       {/* 1. CONTAINER CHÍNH (CYBER BRUTALISM) */}
       <div className="
-          w-full max-w-4xl flex flex-col relative overflow-hidden
+          w-full max-w-3xl flex flex-col relative overflow-hidden
           bg-white dark:bg-black
           border-2 border-neutral-400 dark:border-white/20
           shadow-[0_0_40px_rgba(0,0,0,0.5)] dark:shadow-[0_0_40px_rgba(255,255,255,0.05)]

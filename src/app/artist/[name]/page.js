@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
-import { ListMusic, User, Play, Loader2, Heart, Calendar, Library, Mic2, Disc, Users, BarChart3, Clock } from "lucide-react";
+import { Music, User, Play, Loader2, Heart, Calendar, Library, Mic2, Disc, Users, BarChart3, Clock } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import getSongs from "@/app/actions/getSongs";
@@ -12,6 +12,7 @@ import SongSection from "@/components/SongSection";
 import FollowButton from "@/components/FollowButton";
 // Import Cyber Components
 import { DecoderText, GlitchText, CyberCard, ScanlineOverlay } from "@/components/CyberComponents";
+import BackButton from "@/components/BackButton";
 
 // --- SKELETON LOADER ---
 const ArtistSkeleton = () => (
@@ -158,6 +159,10 @@ const ArtistPage = ({ params }) => {
   return (
     <div className="w-full flex flex-col gap-8 p-6 pb-[120px] bg-neutral-100 dark:bg-black min-h-screen transition-colors duration-500">
       
+        <div className="mb-3">
+            <BackButton /> 
+        </div>
+
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row items-end gap-8 pb-8 border-b border-neutral-300 dark:border-white/10 mt-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
          
