@@ -13,6 +13,7 @@ const usePlayer = create(
       activeId: undefined,    // ID bài đang phát
       songData: null,         // Dữ liệu đầy đủ bài hát hiện tại
       isPlaying: false,       // <--- TRẠNG THÁI PHÁT NHẠC (QUAN TRỌNG CHO PREVIEW)
+      playTrigger: 0,         // Trigger để reset khi bấm cùng 1 bài
 
       // ===========================================
       // VOLUME
@@ -26,6 +27,13 @@ const usePlayer = create(
       setId: (id, fromHistory = false) =>
         set((state) => {
           const newState = { activeId: id, isPlaying: true }; // Mặc định khi set bài mới là phát luôn
+
+          // Nếu bấm cùng 1 bài thì tăng trigger để reset
+          if (state.activeId === id) {
+            newState.playTrigger = state.playTrigger + 1;
+          } else {
+            newState.playTrigger = 0; // Reset trigger khi đổi bài
+          }
 
           // Lưu lịch sử nếu không gọi từ "quay lại"
           if (!fromHistory && state.activeId && state.activeId !== id) {
@@ -54,6 +62,7 @@ const usePlayer = create(
           history: [],
           seekHistory: {},
           isPlaying: false,
+          playTrigger: 0,
         }),
 
       // ===========================================

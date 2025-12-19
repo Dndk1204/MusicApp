@@ -12,7 +12,8 @@ import { useRouter, usePathname } from "next/navigation";
 import usePlayer from "@/hooks/usePlayer";
 import useTrackStats from "@/hooks/useTrackStats";
 import useAudioFilters from "@/hooks/useAudioFilters";
-import useUI from "@/hooks/useUI"; 
+import { useIsTunedTracksPage } from "@/hooks/useIsTunedTracksPage";
+import useUI from "@/hooks/useUI";
 import { supabase } from "@/lib/supabaseClient";
 import { addSongToPlaylist } from "@/lib/addSongToPlaylist";
 
@@ -28,6 +29,7 @@ const PlayerContent = ({ song, songUrl }) => {
   const { alert } = useUI(); 
 
   const { initAudioNodes, setBass, setMid, setTreble } = useAudioFilters();
+  const isTunedTracksPage = useIsTunedTracksPage();
   useTrackStats(song);
 
   // --- LOCAL STATE ---
@@ -43,6 +45,7 @@ const PlayerContent = ({ song, songUrl }) => {
   const isDraggingRef = useRef(false);
   const rafRef = useRef(null);
   const playerRef = useRef(player);
+  const loadedSongIdRef = useRef(null); // Track bài hát đã load EQ settings
 
   useEffect(() => { playerRef.current = player; }, [player]);
 
@@ -71,35 +74,54 @@ const PlayerContent = ({ song, songUrl }) => {
   const loadSongSettings = useCallback(async (songId) => {
     if (!songId) return;
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const sessionSaved = sessionStorage.getItem(`audioSettings_${songId}`);
-      if (sessionSaved) {
-          const s = JSON.parse(sessionSaved);
-          setBass(s.bass || 0); setMid(s.mid || 0); setTreble(s.treble || 0);
-          return;
-      }
-      if (session?.user) {
-        const { data: songData } = await supabase
-          .from('user_song_settings').select('settings')
-          .eq('user_id', session.user.id).eq('song_id', songId).single();
+      console.log("[EQ] Load settings for song:", songId, "isTunedTracksPage:", isTunedTracksPage);
 
-        if (songData?.settings) {
-           const s = songData.settings;
-           setBass(s.bass || 0); setMid(s.mid || 0); setTreble(s.treble || 0);
-           return;
+      // Chỉ load EQ settings nếu đang ở trang tuned-tracks
+      if (isTunedTracksPage) {
+        console.log("[EQ] Loading EQ settings for tuned-tracks page");
+        const { data: { session } } = await supabase.auth.getSession();
+        const sessionSaved = sessionStorage.getItem(`audioSettings_${songId}`);
+        if (sessionSaved) {
+            const s = JSON.parse(sessionSaved);
+            console.log("[EQ] Applied from sessionStorage:", s);
+            setBass(s.bass || 0); setMid(s.mid || 0); setTreble(s.treble || 0);
+            return;
         }
-        const { data: profileData } = await supabase
-          .from('profiles').select('audio_settings').eq('id', session.user.id).single();
-        if (profileData?.audio_settings) {
-           const s = profileData.audio_settings;
-           setBass(s.bass || 0); setMid(s.mid || 0); setTreble(s.treble || 0);
+        if (session?.user) {
+          const { data: songData } = await supabase
+            .from('user_song_settings').select('settings')
+            .eq('user_id', session.user.id).eq('song_id', songId).single();
+
+          if (songData?.settings) {
+             const s = songData.settings;
+             console.log("[EQ] Applied from database:", s);
+             setBass(s.bass || 0); setMid(s.mid || 0); setTreble(s.treble || 0);
+             return;
+          }
+          const { data: profileData } = await supabase
+            .from('profiles').select('audio_settings').eq('id', session.user.id).single();
+          if (profileData?.audio_settings) {
+             const s = profileData.audio_settings;
+             console.log("[EQ] Applied from profile:", s);
+             setBass(s.bass || 0); setMid(s.mid || 0); setTreble(s.treble || 0);
+          }
         }
+      } else {
+        console.log("[EQ] Not on tuned-tracks page, setting to FLAT");
       }
+
+      // Ở trang khác: luôn set về default (0, 0, 0) và xóa cache
+      sessionStorage.removeItem(`audioSettings_${songId}`);
+      setBass(0); setMid(0); setTreble(0);
+      console.log("[EQ] Set to FLAT (0,0,0)");
+
     } catch (err) { console.error("Load Settings:", err); }
-  }, [setBass, setMid, setTreble]);
+  }, [setBass, setMid, setTreble, isTunedTracksPage]);
 
   useEffect(() => {
-    if (!userId) return;
+    // Chỉ thực hiện realtime sync nếu đang ở trang tuned-tracks
+    if (!userId || !isTunedTracksPage) return;
+
     const channel = supabase.channel('realtime-player')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'user_song_settings', filter: `user_id=eq.${userId}` },
@@ -113,7 +135,7 @@ const PlayerContent = ({ song, songUrl }) => {
         }
       ).subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [userId, song?.id]);
+  }, [userId, song?.id, isTunedTracksPage]);
 
   const onPlayNext = useCallback(() => {
     const { ids, activeId, isShuffle, setId, repeatMode } = playerRef.current;
@@ -146,23 +168,28 @@ const PlayerContent = ({ song, songUrl }) => {
     if (sound) sound.unload();
     setIsLoading(true); setSeek(0); setError(null);
 
-    const initialVol = clampVolume(player.volume ?? 1); 
+    const initialVol = clampVolume(player.volume ?? 1);
     setVolume(initialVol);
 
     // TỐI ƯU HÓA HOWLER ĐỂ LOAD NHANH
     const newSound = new Howl({
-      src: [songUrl], 
-      format: ["mp3", "mpeg"], 
+      src: [songUrl],
+      format: ["mp3", "mpeg"],
       volume: initialVol,
       html5: false, // <--- QUAN TRỌNG: Bật Streaming (không đợi tải hết)
       preload: "auto", // <--- QUAN TRỌNG: Tải ngay lập tức
       autoplay: true,
-      loop: playerRef.current.repeatMode === 2, 
+      loop: playerRef.current.repeatMode === 2,
       onplay: () => {
-        setIsPlaying(true); 
+        setIsPlaying(true);
         setDuration(newSound.duration());
         initAudioNodes();
-        if (song?.id) loadSongSettings(song.id);
+        // Chỉ load EQ khi thực sự là bài hát mới
+        if (song?.id && loadedSongIdRef.current !== song.id) {
+          console.log("[EQ] New song detected, loading settings:", song.id);
+          loadSongSettings(song.id);
+          loadedSongIdRef.current = song.id;
+        }
         const updateSeek = () => {
           if (!isDraggingRef.current && newSound.playing()) setSeek(newSound.seek());
           rafRef.current = requestAnimationFrame(updateSeek);
@@ -174,16 +201,25 @@ const PlayerContent = ({ song, songUrl }) => {
         if (playerRef.current.repeatMode === 2) { setIsPlaying(true); setSeek(0); }
         else { setIsPlaying(false); setSeek(0); onPlayNext(); }
       },
-      onload: () => { 
-          setDuration(newSound.duration()); 
+      onload: () => {
+          setDuration(newSound.duration());
           setIsLoading(false); // Tắt loading ngay khi có metadata
-          setError(null); 
+          setError(null);
       },
     });
 
     setSound(newSound);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); newSound.unload(); };
   }, [songUrl]); // Chỉ chạy lại khi songUrl thay đổi
+
+  // --- LOAD EQ SETTINGS KHI SONG.ID THAY ĐỔI ---
+  useEffect(() => {
+    if (song?.id && loadedSongIdRef.current !== song.id) {
+      console.log("[EQ] Song changed, loading settings:", song.id);
+      loadSongSettings(song.id);
+      loadedSongIdRef.current = song.id;
+    }
+  }, [song?.id, loadSongSettings]);
 
   useEffect(() => { if (sound) sound.loop(player.repeatMode === 2); }, [player.repeatMode, sound]);
 
@@ -216,7 +252,9 @@ const PlayerContent = ({ song, songUrl }) => {
     if (pathname === '/now-playing') {
       router.back();
     } else {
-      router.push('/now-playing');
+      // Pass thông tin trang hiện tại qua URL parameter
+      const from = pathname === '/' ? 'home' : pathname.replace('/', '');
+      router.push(`/now-playing?from=${from}`);
     }
   };
 
@@ -287,7 +325,11 @@ const PlayerContent = ({ song, songUrl }) => {
                         title: song.title,
                         author: song.artistsNames || song.author,
                         song_url: song.streaming?.mp3 || song.song_url,
-                        image_url: song.thumbnailM || song.image_url,
+                        image_url:
+                              song.image_url?.startsWith("http")
+                                ? song.image_url
+                                : null,
+                        image_path: song.image_path || null,
                         duration: song.duration
                     };
                     router.push(`/add-to-playlist?song=${encodeURIComponent(JSON.stringify(normalizedSong))}`); 

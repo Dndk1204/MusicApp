@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import {
-  Plus,
   Music2,
   Loader2,
   Check,
@@ -20,6 +19,7 @@ import {
   GlitchButton,
   CyberButton,
 } from "@/components/CyberComponents";
+import useUI from "@/hooks/useUI";
 
 export default function AddToPlaylistPage() {
   const router = useRouter();
@@ -40,6 +40,7 @@ export default function AddToPlaylistPage() {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [message, setMessage] = useState(null);
+  const [disabledPlaylists, setDisabledPlaylists] = useState([]);
 
   /* -------------------------------------------------------
       LOAD IMAGE — Unified Logic
@@ -112,7 +113,8 @@ export default function AddToPlaylistPage() {
 
         const tr = json?.results?.[0];
         if (!tr) {
-          setMessage({ type: "error", text: "SONG_NOT_FOUND_API" });
+          // SỬA: Dùng alert thay vì setMessage
+          alert("SONG_NOT_FOUND_API", "error");
           return;
         }
 
@@ -140,7 +142,8 @@ export default function AddToPlaylistPage() {
         });
       } catch (err) {
         console.error("API Error", err);
-        setMessage({ type: "error", text: "API_CONNECTION_FAILED" });
+        // SỬA: Dùng alert thay vì setMessage
+        alert("API_CONNECTION_FAILED", "error");
       }
     };
 
@@ -155,24 +158,39 @@ export default function AddToPlaylistPage() {
       const { data: sess } = await supabase.auth.getSession();
       const user = sess?.session?.user;
 
-      if (!user) {
+      if (!user || !song?.id) {
         setPlaylists([]);
+        setDisabledPlaylists([]);
         setLoading(false);
         return;
       }
 
-      const { data } = await supabase
+      // 1️⃣ Fetch playlists của user
+      const { data: pls } = await supabase
         .from("playlists")
         .select("id, name")
         .eq("user_id", user.id)
         .order("id", { ascending: false });
 
-      setPlaylists(data || []);
+      // 2️⃣ Fetch playlist đã có bài hát này
+      const { data: exists } = await supabase
+        .from("playlist_songs")
+        .select("playlist_id")
+        .eq("song_id", song.id)
+        .in(
+          "playlist_id",
+          (pls || []).map((p) => p.id)
+        );
+
+      const disabledIds = exists?.map((x) => x.playlist_id) || [];
+
+      setPlaylists(pls || []);
+      setDisabledPlaylists(disabledIds);
       setLoading(false);
     };
 
     loadPlaylists();
-  }, []);
+  }, [song?.id]);
 
   /* -------------------------------------------------------
       SELECT PLAYLIST
@@ -188,16 +206,17 @@ export default function AddToPlaylistPage() {
   ------------------------------------------------------- */
   const handleAddMulti = async () => {
     if (!song?.id) return;
+
+    // 1. Kiểm tra chọn playlist
     if (selected.length === 0) {
-      setMessage({ type: "error", text: "NO_TARGET_SELECTED" });
+      alert("NO_TARGET_SELECTED", "error"); 
       return;
     }
 
     setAdding(true);
-    setMessage(null);
 
     try {
-      // Ensure song exists in DB
+      // --- GIỮ NGUYÊN LOGIC UPSERT SONG ---
       const { error: upsertErr } = await supabase.from("songs").upsert(
         {
           id: song.id,
@@ -212,7 +231,7 @@ export default function AddToPlaylistPage() {
 
       if (upsertErr) throw upsertErr;
 
-      // Check duplicates
+      // --- GIỮ NGUYÊN LOGIC CHECK TRÙNG ---
       const { data: existing } = await supabase
         .from("playlist_songs")
         .select("playlist_id")
@@ -223,12 +242,12 @@ export default function AddToPlaylistPage() {
       const newTargets = selected.filter((pid) => !existed.includes(pid));
 
       if (newTargets.length === 0) {
-        setMessage({ type: "error", text: "TRACK_ALREADY_EXISTS" });
+        alert("TRACK_ALREADY_EXISTS", "warning"); 
         setAdding(false);
         return;
       }
 
-      // Insert
+      // --- GIỮ NGUYÊN LOGIC INSERT ---
       const rows = newTargets.map((pid) => ({
         playlist_id: pid,
         song_id: song.id,
@@ -241,15 +260,14 @@ export default function AddToPlaylistPage() {
 
       if (insertErr) throw insertErr;
 
-      setMessage({
-        type: "success",
-        text: `SUCCESS: INJECTED TO ${newTargets.length} PLAYLIST(S)`,
-      });
+      // 2. Thông báo thành công (Cyber Style)
+      alert(`SUCCESS: INJECTED TO ${newTargets.length} PLAYLIST(S)`, "success");
 
       setTimeout(() => router.back(), 700);
+
     } catch (err) {
       console.error(err);
-      setMessage({ type: "error", text: "SYSTEM_FAILURE" });
+      alert("SYSTEM_CRITICAL_FAILURE", "error");
     }
 
     setAdding(false);
@@ -262,7 +280,7 @@ export default function AddToPlaylistPage() {
     <div className="fixed inset-0 bg-neutral-900/90 backdrop-blur-sm flex items-center justify-center z-[999] p-4 animate-in fade-in duration-300">
       <div
         className="
-          w-full max-w-xl h-[80vh] flex flex-col relative overflow-hidden
+          !w-[60vh] max-w-xl h-[70vh] flex flex-col relative overflow-hidden
           bg-white dark:bg-black
           border-2 border-neutral-400 dark:border-white/20
           shadow-[0_0_40px_rgba(0,0,0,0.5)] dark:shadow-[0_0_40px_rgba(255,255,255,0.05)]
@@ -328,22 +346,6 @@ export default function AddToPlaylistPage() {
             </div>
           </div>
 
-          {/* MESSAGE */}
-          {message && (
-            <div
-              className={`
-                mb-6 p-3 text-xs font-mono border animate-in slide-in-from-top-2
-                ${
-                  message.type === "success"
-                    ? "bg-emerald-100 border-emerald-500 text-emerald-700"
-                    : "bg-red-100 border-red-500 text-red-700"
-                }
-              `}
-            >
-              {message.text}
-            </div>
-          )}
-
           {/* PLAYLISTS */}
           <h2 className="font-bold font-mono text-xs uppercase tracking-widest text-neutral-500 mb-4">
             Select_Directory
@@ -367,14 +369,21 @@ export default function AddToPlaylistPage() {
             <div className="flex flex-col gap-2">
               {playlists.map((pl) => {
                 const isSelected = selected.includes(pl.id);
+                const isDisabled = disabledPlaylists.includes(pl.id);
+
                 return (
                   <button
                     key={pl.id}
-                    onClick={() => toggleSelect(pl.id)}
+                    disabled={isDisabled}
+                    onClick={() => {
+                      if (!isDisabled) toggleSelect(pl.id);
+                    }}
                     className={`
                       group flex justify-between items-center p-3 border transition relative
                       ${
-                        isSelected
+                        isDisabled
+                          ? "opacity-40 cursor-not-allowed bg-neutral-200 dark:bg-neutral-800"
+                          : isSelected
                           ? "bg-emerald-500/10 border-emerald-500"
                           : "bg-white dark:bg-neutral-900 border-neutral-300 dark:border-white/10 hover:border-emerald-500/50"
                       }
@@ -384,13 +393,16 @@ export default function AddToPlaylistPage() {
                       className={`
                         text-sm font-mono
                         ${
-                          isSelected
+                          isDisabled
+                            ? "text-neutral-400 italic"
+                            : isSelected
                             ? "font-bold text-emerald-700 dark:text-emerald-400"
                             : "text-neutral-700 dark:text-neutral-300"
                         }
                       `}
                     >
                       {pl.name}
+                      {isDisabled && " (Already added)"}
                     </span>
 
                     <div
@@ -399,13 +411,11 @@ export default function AddToPlaylistPage() {
                         ${
                           isSelected
                             ? "bg-emerald-500 border-emerald-500"
-                            : "border-neutral-400 dark:border-neutral-600 bg-neutral-100 dark:bg-black group-hover:border-emerald-500"
+                            : "border-neutral-400 dark:border-neutral-600 bg-neutral-100 dark:bg-black"
                         }
                       `}
                     >
-                      {isSelected && (
-                        <Check size={12} className="text-white stroke-[3]" />
-                      )}
+                      {isSelected && <Check size={12} className="text-white stroke-[3]" />}
                     </div>
                   </button>
                 );
