@@ -269,43 +269,88 @@ const AdminDashboard = () => {
       }
   }, [uploadModal.isOpen]);
 
-  // --- PRESENCE LOGIC (ONLINE STATUS) ---
-  useEffect(() => {
-    // Kênh theo dõi user online
-    const channel = supabase.channel('online-users', {
-        config: {
-            presence: {
-                key: 'admin-dashboard-listener',
-            },
-        },
-    });
+// --- PRESENCE LOGIC (ONLINE STATUS) ---
+useEffect(() => {
+    let channel = null;
+    let authListener = null;
 
-    channel
-        .on('presence', { event: 'sync' }, () => {
-            const newState = channel.presenceState();
-            const onlineIds = new Set();
-            
-            for (const id in newState) {
-                const users = newState[id];
-                users.forEach(u => {
-                    if (u.user_id) onlineIds.add(u.user_id);
-                });
-            }
-            setOnlineUsers(onlineIds);
-        })
-        .subscribe(async (status) => {
+    const handlePresenceSync = () => {
+        if (!channel) return;
+        const newState = channel.presenceState();
+        const onlineIds = new Set();
+
+        Object.keys(newState).forEach((key) => {
+            newState[key].forEach((presence) => {
+                if (presence.user_id) onlineIds.add(presence.user_id);
+            });
+        });
+
+        setOnlineUsers(onlineIds);
+    };
+
+    const createChannelForUser = async (user) => {
+        if (!user) return;
+
+        // If an old channel exists, remove it first
+        if (channel) {
+            try { supabase.removeChannel(channel); } catch (e) { /* ignore */ }
+        }
+
+        channel = supabase.channel('online-users', {
+            config: {
+                // Use the unique user id as presence key so entries don't collide
+                presence: { key: user.id },
+            },
+        });
+
+        channel.on('presence', { event: 'sync' }, handlePresenceSync);
+
+        await channel.subscribe(async (status) => {
             if (status === 'SUBSCRIBED') {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
+                try {
                     await channel.track({ user_id: user.id, online_at: new Date().toISOString() });
+                } catch (err) {
+                    console.warn('Presence track failed', err);
+                }
+                // Update local state immediately after subscribe
+                handlePresenceSync();
+            }
+        });
+    };
+
+    (async () => {
+        // Try to get current session first
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+            await createChannelForUser(session.user);
+        }
+
+        // Also listen for auth state changes (in case session isn't ready yet)
+        const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' && session?.user) {
+                createChannelForUser(session.user);
+            }
+            if (event === 'SIGNED_OUT') {
+                setOnlineUsers(new Set());
+                if (channel) {
+                    try { supabase.removeChannel(channel); } catch (e) { }
+                    channel = null;
                 }
             }
         });
+        authListener = listener;
+    })();
 
     return () => {
-        supabase.removeChannel(channel);
+        if (authListener?.subscription) {
+            try { authListener.subscription.unsubscribe(); } catch (e) { }
+        }
+        if (channel) {
+            try { supabase.removeChannel(channel); } catch (e) { }
+            channel = null;
+        }
     };
-  }, []);
+}, []);
 
   useEffect(() => {
     const init = async () => {
@@ -733,9 +778,7 @@ const AdminDashboard = () => {
       {currentView === 'artists_list' && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex justify-between items-center mb-4">
-                <button onClick={() => { setCurrentView('dashboard'); setSongSearchTerm(""); }} className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white font-mono text-xs uppercase tracking-widest group border border-transparent hover:border-neutral-500 px-3 py-1 transition-all">
-                    <ArrowLeft size={14}/> RETURN_TO_BASE
-                </button>
+                <button onClick={() => { setCurrentView('dashboard'); setArtistSearchTerm(""); }} className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white font-mono text-xs uppercase tracking-widest border border-transparent hover:border-neutral-500 px-3 py-1 transition-all"><ArrowLeft size={14}/> RETURN</button>
                 <div className="relative w-64">
                     <Search className="absolute left-2 top-2 text-neutral-500" size={12}/>
                     <input value={artistSearchTerm} onChange={(e) => setArtistSearchTerm(e.target.value)} placeholder="SEARCH_LOGS..." className="w-full bg-neutral-100 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none pl-8 py-1.5 text-xs text-neutral-900 dark:text-white outline-none focus:border-blue-500 placeholder:text-[10px]"/>
@@ -760,9 +803,7 @@ const AdminDashboard = () => {
       {currentView === 'db_artists_list' && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex justify-between items-center mb-4">
-                <button onClick={() => { setCurrentView('dashboard'); setSongSearchTerm(""); }} className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white font-mono text-xs uppercase tracking-widest group border border-transparent hover:border-neutral-500 px-3 py-1 transition-all">
-                    <ArrowLeft size={14}/> RETURN_TO_BASE
-                </button>
+                <button onClick={() => setCurrentView('dashboard')} className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white text-xs font-mono uppercase tracking-widest border border-transparent hover:border-neutral-500 px-3 py-1 transition-all"><ArrowLeft size={14}/> RETURN</button>
                 <div className="flex items-center gap-4">
                     <GlitchButton onClick={handleCleanupArtists} disabled={cleaning} className="bg-red-500/10 border-red-500/50 text-red-600 dark:text-red-400 dark:hover:!text-white px-4 py-2 text-xs rounded-none">{cleaning ? <Loader2 className="animate-spin" size={14}/> : <Eraser size={14}/>} CLEANUP_DB</GlitchButton>
                     <div className="relative w-64"><Search className="absolute left-2 top-2 text-neutral-500" size={12}/><input value={artistSearchTerm} onChange={(e) => setArtistSearchTerm(e.target.value)} placeholder="SEARCH_ARTIST..." className="w-full bg-neutral-100 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none pl-8 py-1.5 text-xs text-neutral-900 dark:text-white outline-none focus:border-pink-500 placeholder:text-[10px]"/></div>
