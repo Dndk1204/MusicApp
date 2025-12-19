@@ -208,7 +208,7 @@ const NowPlayingPage = () => {
             const { data: dbSong } = await supabase.from('songs').select(`*, profiles (full_name, role, avatar_url)`).eq('id', player.activeId).maybeSingle();
             if (dbSong) {
                 let uploaderName = "Unknown User"; let uploaderRole = "user"; let uploaderAvatar = null;
-                if (dbSong.profiles) { uploaderName = dbSong.profiles.full_name || "Anonymous User"; uploaderRole = dbSong.profiles.role; uploaderAvatar = dbSong.profiles.avatar_url; } 
+                if (dbSong.profiles) { uploaderName = dbSong.profiles.full_name || "Anonymous User"; uploaderRole = dbSong.profiles.role; uploaderAvatar = dbSong.profiles.avatar_url; }
                 else { uploaderName = "System Admin"; uploaderRole = "admin"; }
                 setSong({ id: dbSong.id, title: dbSong.title, author: dbSong.author, image_path: dbSong.image_url, song_url: dbSong.song_url, uploader: uploaderName, uploader_role: uploaderRole, uploader_avatar: uploaderAvatar, uploader_id: dbSong.user_id, is_public: dbSong.is_public, source: 'database', lyric_url: dbSong.lyric_url, lyrics: dbSong.lyrics });
             } else {
@@ -232,6 +232,13 @@ const NowPlayingPage = () => {
     };
     updateSong();
   }, [player.activeId, isMounted]);
+
+  // Set active tab to 'info' (meta tab) when song changes
+  useEffect(() => {
+    if (player.activeId) {
+      setActiveTab('info');
+    }
+  }, [player.activeId]);
 
   useEffect(() => { if (song) { setRawLyrics(null); setParsedLyrics([]); setActiveLineIndex(-1); setLoadingLyrics(false); } }, [song?.id]);
 

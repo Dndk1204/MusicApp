@@ -268,27 +268,7 @@ export default function TunedTracksPage() {
         {Object.entries(songsTuned).map(([userId, userSongs]) => (
           <CyberCard key={userId} className="overflow-hidden bg-white/50 dark:bg-white/5 backdrop-blur-md rounded-none border-neutral-200 dark:border-white/10">
             {/* User Header */}
-            <div className="p-4 bg-neutral-200/50 dark:bg-black/40 border-b border-neutral-300 dark:border-white/10">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-emerald-500/20 border border-emerald-500/50 rounded-full flex items-center justify-center">
-                    <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">U{userId.slice(-4)}</span>
-                  </div>
-                  <div>
-                    <h3 className="font-mono font-bold text-sm uppercase tracking-wider text-neutral-800 dark:text-white">
-                      USER_{userId.slice(-8)}
-                    </h3>
-                    <p className="text-xs text-neutral-500 font-mono">{userSongs.length} TUNED TRACKS</p>
-                  </div>
-                </div>
-                <HoloButton
-                  onClick={() => handlePlayUserSongs(userSongs)}
-                  className="px-4 py-2 text-xs bg-emerald-500/10 border-emerald-500/50 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white"
-                >
-                  <Play size={14} fill="currentColor" className="mr-1" /> PLAY
-                </HoloButton>
-              </div>
-            </div>
+            
 
             {/* Song List Table */}
             <div className="overflow-x-auto">
