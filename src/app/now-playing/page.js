@@ -167,13 +167,13 @@ const NowPlayingPage = () => {
 
   useEffect(() => {
       const handleResize = () => {
-          if (window.innerWidth >= 1024 && activeTab === 'visual') {
-              setActiveTab('equalizer'); 
+          if (window.innerWidth >= 1024) {
+              setActiveTab('equalizer');
           }
       };
       window.addEventListener('resize', handleResize);
       return () => window.removeEventListener('resize', handleResize);
-  }, [activeTab]);
+  }, []); // Empty dependency array - only run on mount/unmount
 
   const formatTime = (seconds) => {
       if (!seconds || isNaN(seconds) || seconds === 0) return "00:00";
@@ -251,11 +251,80 @@ const NowPlayingPage = () => {
       if (!player.ids || player.ids.length === 0) { setQueueSongs([]); return; }
       try {
         const queueIds = player.ids; if (queueIds.length === 0) { setQueueSongs([]); return; }
-        const { data: queueData, error } = await supabase.from('songs').select('id, title, author, image_url').in('id', queueIds);
-        if (error) { setQueueSongs([]); return; }
-        const sortedQueueData = queueIds.map(queueId => { const songData = queueData.find(song => song.id === queueId); return songData ? { id: songData.id, title: songData.title, author: songData.author, image_path: songData.image_url || '/images/default_song.png' } : null; }).filter(Boolean);
+
+        // First, try to get songs from local database
+        const { data: localSongs, error } = await supabase.from('songs').select('id, title, author, image_url').in('id', queueIds);
+        if (error) { console.error('Error fetching local songs:', error); }
+
+        // Check for cached songs in window.__SONG_MAP__
+        const cachedSongs = [];
+        if (typeof window !== 'undefined' && window.__SONG_MAP__) {
+          queueIds.forEach(id => {
+            if (window.__SONG_MAP__[id]) {
+              cachedSongs.push(window.__SONG_MAP__[id]);
+            }
+          });
+        }
+
+        // Combine local and cached songs
+        const allSongsMap = new Map();
+
+        // Add local songs
+        if (localSongs) {
+          localSongs.forEach(song => {
+            allSongsMap.set(song.id, {
+              id: song.id,
+              title: song.title,
+              author: song.author,
+              image_path: song.image_url || '/images/default_song.png'
+            });
+          });
+        }
+
+        // Add cached songs (will override local if same ID)
+        cachedSongs.forEach(song => {
+          allSongsMap.set(song.id, {
+            id: song.id,
+            title: song.title,
+            author: song.author,
+            image_path: song.image_path || song.image_url || '/images/default_song.png'
+          });
+        });
+
+        // For any missing songs, try to fetch from API
+        const missingIds = queueIds.filter(id => !allSongsMap.has(id));
+        if (missingIds.length > 0) {
+          const apiPromises = missingIds.map(async (songId) => {
+            try {
+              const res = await fetch(`/api/get-song?id=${songId}`);
+              const data = await res.json();
+              if (data.song) {
+                return {
+                  id: data.song.id,
+                  title: data.song.title,
+                  author: data.song.author,
+                  image_path: data.song.image_path || data.song.image_url || '/images/default_song.png'
+                };
+              }
+            } catch (err) {
+              console.error(`Failed to fetch song ${songId} from API:`, err);
+            }
+            return null;
+          });
+
+          const apiSongs = await Promise.all(apiPromises);
+          apiSongs.filter(song => song).forEach(song => {
+            allSongsMap.set(song.id, song);
+          });
+        }
+
+        // Create sorted queue data
+        const sortedQueueData = queueIds.map(queueId => allSongsMap.get(queueId)).filter(Boolean);
         setQueueSongs(sortedQueueData);
-      } catch (err) { setQueueSongs([]); }
+      } catch (err) {
+        console.error('Error in fetchQueueSongs:', err);
+        setQueueSongs([]);
+      }
     };
     fetchQueueSongs();
   }, [player.ids, player.activeId]);
@@ -546,7 +615,13 @@ const NowPlayingPage = () => {
                         <div className="flex-1 relative overflow-hidden" ref={lyricsContainerRef}>
                              <div className="absolute inset-0 overflow-y-auto custom-scrollbar pr-2 pb-20 text-center">
                                  {rawLyrics === "NO_LYRICS_AVAILABLE" ? (
-                                     <div className="h-full flex flex-col items-center justify-center text-neutral-400 opacity-60"><FileText size={32} className="mb-2 opacity-50"/><p className="font-mono text-xs">NO_DATA_FOUND</p></div>
+                                     <div className="h-full flex flex-col items-center justify-center text-neutral-400 opacity-60 space-y-3">
+                                         <FileText size={48} className="opacity-30"/>
+                                         <div className="text-center space-y-1">
+                                             <p className="font-mono text-sm font-bold tracking-wider">NO LYRICS AVAILABLE</p>
+                                             <p className="font-mono text-xs opacity-70">THIS SONG HAS NO LYRICS</p>
+                                         </div>
+                                     </div>
                                  ) : parsedLyrics.length > 0 ? (
                                      <ul className="space-y-6 py-[40%] px-2">
                                          {parsedLyrics.map((line, index) => {

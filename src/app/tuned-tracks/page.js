@@ -66,40 +66,84 @@ export default function TunedTracksPage() {
       FETCH TUNED SONGS DATA
     ========================================================== */
   const getMyTunedSongs = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    // Get all song IDs and their tuned dates
+    // Get all song IDs and their tuned dates for all users
     const { data: userSettings } = await supabase
       .from('user_song_settings')
-      .select('song_id, updated_at')
-      .eq('user_id', user.id);
+      .select('user_id, song_id, updated_at, song_title, song_author')
+      .order('updated_at', { ascending: false });
 
     if (!userSettings || userSettings.length === 0) {
         setSongsTuned([]); setLoadingTuned(false); return;
     }
 
-    const songIds = userSettings.map(setting => setting.song_id);
+    // Group by user_id
+    const groupedByUser = userSettings.reduce((acc, setting) => {
+      if (!acc[setting.user_id]) {
+        acc[setting.user_id] = [];
+      }
+      acc[setting.user_id].push(setting);
+      return acc;
+    }, {});
 
-    // Get the song details for these IDs
-    const { data: songs } = await supabase
+    // Get unique song IDs
+    const allSongIds = [...new Set(userSettings.map(setting => setting.song_id))];
+
+    // First, try to get songs from local database
+    const { data: localSongs } = await supabase
       .from('songs')
       .select('*')
-      .in('id', songIds);
+      .in('id', allSongIds);
 
-    // Combine song data with tuned date
-    const songsWithTunedDate = songs?.map(song => {
-      const setting = userSettings.find(s => s.song_id === song.id);
-      return {
-        ...song,
-        tuned_at: setting?.updated_at
-      };
-    }) || [];
+    const localSongsMap = new Map(localSongs?.map(song => [song.id, song]) || []);
 
-    // Sort by tuned date (most recent first)
-    songsWithTunedDate.sort((a, b) => new Date(b.tuned_at) - new Date(a.tuned_at));
+    // For songs not in local database, fetch from API
+    const apiPromises = [];
+    const missingSongIds = allSongIds.filter(id => !localSongsMap.has(id));
 
-    setSongsTuned(songsWithTunedDate);
+    for (const songId of missingSongIds) {
+      apiPromises.push(
+        fetch(`/api/get-song?id=${songId}`)
+          .then(res => res.json())
+          .then(data => data.song ? { ...data.song, id: Number(songId) } : null)
+          .catch(err => {
+            console.error(`Failed to fetch song ${songId} from API:`, err);
+            return null;
+          })
+      );
+    }
+
+    const apiSongs = await Promise.all(apiPromises);
+    const apiSongsMap = new Map(apiSongs.filter(song => song).map(song => [song.id, song]));
+
+    // Combine all songs
+    const allSongsMap = new Map([...localSongsMap, ...apiSongsMap]);
+
+    // Create final grouped data
+    const finalGroupedSongs = {};
+    for (const [userId, settings] of Object.entries(groupedByUser)) {
+      finalGroupedSongs[userId] = settings.map(setting => {
+        const song = allSongsMap.get(setting.song_id);
+        if (song) {
+          return {
+            ...song,
+            tuned_at: setting.updated_at,
+            user_id: userId
+          };
+        }
+        // Fallback for songs that couldn't be fetched
+        return {
+          id: setting.song_id,
+          title: setting.song_title || 'Unknown Title',
+          author: setting.song_author || 'Unknown Artist',
+          tuned_at: setting.updated_at,
+          user_id: userId,
+          image_url: null,
+          duration: 0
+        };
+      }).sort((a, b) => new Date(b.tuned_at) - new Date(a.tuned_at));
+    }
+
+    setSongsTuned(finalGroupedSongs);
     setLoadingTuned(false);
   };
 
@@ -116,17 +160,37 @@ export default function TunedTracksPage() {
   };
 
   const handlePlayTunedPlaylist = () => {
-    if (!songsTuned.length) return;
+    const allSongs = Object.values(songsTuned).flat();
+    if (!allSongs.length) return;
 
     if (!isAuthenticated) {
       openModal();
       return;
     }
 
-    const ids = songsTuned.map((song) => Number(song.id));
+    const ids = allSongs.map((song) => Number(song.id));
     if (typeof window !== 'undefined') {
       const songMap = {};
-      songsTuned.forEach(song => songMap[song.id] = song);
+      allSongs.forEach(song => songMap[song.id] = song);
+      window.__SONG_MAP__ = { ...window.__SONG_MAP__, ...songMap };
+    }
+
+    player.setIds(ids);
+    player.setId(ids[0]);
+  };
+
+  const handlePlayUserSongs = (userSongs) => {
+    if (!userSongs.length) return;
+
+    if (!isAuthenticated) {
+      openModal();
+      return;
+    }
+
+    const ids = userSongs.map((song) => Number(song.id));
+    if (typeof window !== 'undefined') {
+      const songMap = {};
+      userSongs.forEach(song => songMap[song.id] = song);
       window.__SONG_MAP__ = { ...window.__SONG_MAP__, ...songMap };
     }
 
@@ -182,7 +246,7 @@ export default function TunedTracksPage() {
           </p>
 
           <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-neutral-500 dark:text-neutral-500 uppercase tracking-widest mt-auto">
-            <span className="flex items-center gap-1"><Music2 size={14}/> {songsTuned.length} TRACKS TUNED</span>
+            <span className="flex items-center gap-1"><Music2 size={14}/> {Object.keys(songsTuned).length} USERS</span>
             <span>//</span>
             <span className="flex items-center gap-1"><Clock size={14}/> LAST_SYNC: {new Date().toLocaleDateString("vi-VN")}</span>
           </div>
@@ -199,103 +263,130 @@ export default function TunedTracksPage() {
         </HoloButton>
       </div>
 
-      {/* SONG LIST TABLE (CyberCard) */}
-      <CyberCard className="p-0 overflow-hidden bg-white/50 dark:bg-white/5 backdrop-blur-md rounded-none border-neutral-200 dark:border-white/10">
-        <div className="overflow-x-auto">
-            <table className="w-full text-left font-mono text-sm">
-            <thead className="bg-neutral-200/50 dark:bg-black/40 text-neutral-500 dark:text-neutral-400 uppercase text-[10px] tracking-widest border-b border-neutral-300 dark:border-white/10">
-                <tr>
-                <th className="p-4 w-12 text-center">#</th>
-                <th className="p-4">Track_Title</th>
-                <th className="p-4 hidden md:table-cell">Artist</th>
-                <th className="p-4 text-center">Tuned_Date</th>
-                <th className="p-4 text-right">Duration</th>
-                </tr>
-            </thead>
-
-            <tbody className="divide-y divide-neutral-200 dark:divide-white/5">
-                {songsTuned.map((song, index) => (
-                <tr
-                key={song.id}
-                onClick={() => {
-                    if (!isAuthenticated) {
-                      openModal();
-                      return;
-                    }
-                    const ids = songsTuned.map((s) => Number(s.id));
-                    player.setIds(ids);
-                    player.setId(Number(song.id));
-                }}
-                className="group/song hover:bg-emerald-500/10 transition-colors duration-200 cursor-pointer"
+      {/* USER SECTIONS */}
+      <div className="space-y-8">
+        {Object.entries(songsTuned).map(([userId, userSongs]) => (
+          <CyberCard key={userId} className="overflow-hidden bg-white/50 dark:bg-white/5 backdrop-blur-md rounded-none border-neutral-200 dark:border-white/10">
+            {/* User Header */}
+            <div className="p-4 bg-neutral-200/50 dark:bg-black/40 border-b border-neutral-300 dark:border-white/10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-emerald-500/20 border border-emerald-500/50 rounded-full flex items-center justify-center">
+                    <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">U{userId.slice(-4)}</span>
+                  </div>
+                  <div>
+                    <h3 className="font-mono font-bold text-sm uppercase tracking-wider text-neutral-800 dark:text-white">
+                      USER_{userId.slice(-8)}
+                    </h3>
+                    <p className="text-xs text-neutral-500 font-mono">{userSongs.length} TUNED TRACKS</p>
+                  </div>
+                </div>
+                <HoloButton
+                  onClick={() => handlePlayUserSongs(userSongs)}
+                  className="px-4 py-2 text-xs bg-emerald-500/10 border-emerald-500/50 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white"
                 >
-                <td className="p-4 text-center text-neutral-400 group-hover/song:text-emerald-500">
-                    {index + 1}
-                </td>
+                  <Play size={14} fill="currentColor" className="mr-1" /> PLAY
+                </HoloButton>
+              </div>
+            </div>
 
-                <td className="p-4">
-                    <div className="flex items-center gap-4">
-                        {/* HOVER PREVIEW CHO SONG LIST */}
-                        <div className="relative w-10 h-10 shrink-0 overflow-hidden rounded-none border border-neutral-300 dark:border-white/10 group-hover/song:border-emerald-500 transition-colors bg-neutral-200 dark:bg-black cursor-none">
+            {/* Song List Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left font-mono text-sm">
+                <thead className="bg-neutral-100/50 dark:bg-black/20 text-neutral-500 dark:text-neutral-400 uppercase text-[10px] tracking-widest border-b border-neutral-200 dark:border-white/5">
+                  <tr>
+                    <th className="p-4 w-12 text-center">#</th>
+                    <th className="p-4">Track_Title</th>
+                    <th className="p-4 hidden md:table-cell">Artist</th>
+                    <th className="p-4 text-center">Tuned_Date</th>
+                    <th className="p-4 text-right">Duration</th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-neutral-100 dark:divide-white/5">
+                  {userSongs.map((song, index) => (
+                    <tr
+                      key={`${userId}-${song.id}`}
+                      onClick={() => {
+                        if (!isAuthenticated) {
+                          openModal();
+                          return;
+                        }
+                        const ids = userSongs.map((s) => Number(s.id));
+                        player.setIds(ids);
+                        player.setId(Number(song.id));
+                      }}
+                      className="group/song hover:bg-emerald-500/10 transition-colors duration-200 cursor-pointer"
+                    >
+                      <td className="p-4 text-center text-neutral-400 group-hover/song:text-emerald-500">
+                        {index + 1}
+                      </td>
+
+                      <td className="p-4">
+                        <div className="flex items-center gap-4">
+                          <div className="relative w-10 h-10 shrink-0 overflow-hidden rounded-none border border-neutral-300 dark:border-white/10 group-hover/song:border-emerald-500 transition-colors bg-neutral-200 dark:bg-black cursor-none">
                             <HoverImagePreview
-                                src={song.image_url || "/default_song.jpg"}
-                                alt={song.title}
-                                audioSrc={song.song_url}
-                                className="w-full h-full"
-                                previewSize={200}
-                                fallbackIcon="disc"
+                              src={song.image_url || "/default_song.jpg"}
+                              alt={song.title}
+                              audioSrc={song.song_url}
+                              className="w-full h-full"
+                              previewSize={200}
+                              fallbackIcon="disc"
                             >
-                                <div className="w-full h-full relative flex items-center justify-center">
-                                    {song.image_url ? (
-                                        <Image
-                                            src={song.image_url}
-                                            fill
-                                            alt={song.title}
-                                            className="object-cover group-hover/song:scale-110 transition-transform duration-500 grayscale group-hover/song:grayscale-0"
-                                        />
-                                    ) : (
-                                        <Music2 size={16} className="text-neutral-400" />
-                                    )}
-                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/song:opacity-100 transition-opacity">
-                                        <Play size={16} fill="white" className="text-white"/>
-                                    </div>
+                              <div className="w-full h-full relative flex items-center justify-center">
+                                {song.image_url ? (
+                                  <Image
+                                    src={song.image_url}
+                                    fill
+                                    alt={song.title}
+                                    className="object-cover group-hover/song:scale-110 transition-transform duration-500 grayscale group-hover/song:grayscale-0"
+                                  />
+                                ) : (
+                                  <Music2 size={16} className="text-neutral-400" />
+                                )}
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/song:opacity-100 transition-opacity">
+                                  <Play size={16} fill="white" className="text-white"/>
                                 </div>
+                              </div>
                             </HoverImagePreview>
-                        </div>
+                          </div>
 
-                        <div className="flex flex-col min-w-0">
+                          <div className="flex flex-col min-w-0">
                             <span className="font-bold text-neutral-800 dark:text-white group-hover/song:text-emerald-500 transition-colors truncate max-w-[150px] md:max-w-xs uppercase">
-                                {song.title}
+                              {song.title}
                             </span>
                             <span className="text-xs text-neutral-500 md:hidden truncate">{song.author}</span>
+                          </div>
                         </div>
-                    </div>
-                </td>
+                      </td>
 
-                <td className="p-4 text-neutral-500 dark:text-neutral-400 group-hover/song:text-white transition-colors hidden md:table-cell">
-                    {song.author}
-                </td>
+                      <td className="p-4 text-neutral-500 dark:text-neutral-400 group-hover/song:text-white transition-colors hidden md:table-cell">
+                        {song.author}
+                      </td>
 
-                <td className="p-4 text-center font-mono text-neutral-500 group-hover/song:text-emerald-500">
-                    {song.tuned_at ? new Date(song.tuned_at).toLocaleDateString("vi-VN") : "--/--/--"}
-                </td>
+                      <td className="p-4 text-center font-mono text-neutral-500 group-hover/song:text-emerald-500">
+                        {song.tuned_at ? new Date(song.tuned_at).toLocaleDateString("vi-VN") : "--/--/--"}
+                      </td>
 
-                <td className="p-4 text-right font-mono text-neutral-500 group-hover/song:text-emerald-500">
-                    {formatDuration(song.duration)}
-                </td>
-              </tr>
-                ))}
-
-                {songsTuned.length === 0 && (
-                    <tr>
-                        <td colSpan="5" className="p-12 text-center text-neutral-400 italic font-mono border-t border-dashed border-neutral-300 dark:border-white/10">
-                            [EMPTY_DATA] No tuned tracks found. Start adjusting EQ settings on your favorite songs!
-                        </td>
+                      <td className="p-4 text-right font-mono text-neutral-500 group-hover/song:text-emerald-500">
+                        {formatDuration(song.duration)}
+                      </td>
                     </tr>
-                )}
-            </tbody>
-            </table>
-        </div>
-      </CyberCard>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CyberCard>
+        ))}
+
+        {Object.keys(songsTuned).length === 0 && (
+          <div className="text-center py-16">
+            <div className="text-neutral-400 italic font-mono text-sm">
+              [EMPTY_DATA] No tuned tracks found. Start adjusting EQ settings on your favorite songs!
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
