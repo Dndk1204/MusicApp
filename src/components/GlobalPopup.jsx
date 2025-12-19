@@ -51,7 +51,7 @@ const GlobalPopup = () => {
   return (
     <AnimatePresence>
       {popup.isOpen && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center px-4">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           
           {/* Backdrop */}
           <motion.div
@@ -64,11 +64,11 @@ const GlobalPopup = () => {
 
           {/* Popup Content - CYBER BRUTALISM */}
           <motion.div
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            initial={{ scale: 0.95, opacity: 0, y: 10 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            exit={{ scale: 0.95, opacity: 0, y: 10 }}
             className={`
-                relative w-full max-w-sm p-6 shadow-[0_0_50px_rgba(0,0,0,0.5)]
+                relative w-[90%] md:w-full max-w-sm p-5 md:p-6 shadow-[0_0_50px_rgba(0,0,0,0.5)]
                 bg-white dark:bg-black 
                 border-2 ${styles.border}
                 rounded-none /* Vuông góc */
@@ -88,10 +88,10 @@ const GlobalPopup = () => {
                 
                 {/* Icon & Title Row */}
                 <div className="flex items-center gap-3 border-b border-neutral-200 dark:border-white/10 pb-3">
-                    <div className={`p-2 rounded-none ${styles.bgIcon} ${styles.color}`}>
+                    <div className={`p-2 rounded-none shrink-0 ${styles.bgIcon} ${styles.color}`}>
                         {styles.icon}
                     </div>
-                    <h3 className={`text-lg font-bold font-mono uppercase tracking-widest ${styles.color}`}>
+                    <h3 className={`text-base md:text-lg font-bold font-mono uppercase tracking-widest ${styles.color} truncate pr-6`}>
                         {popup.title || "SYSTEM_MESSAGE"}
                     </h3>
                 </div>
@@ -103,20 +103,20 @@ const GlobalPopup = () => {
                     </p>
                 </div>
 
-                {/* Actions Buttons */}
-                <div className="flex justify-end gap-3 pt-2">
+                {/* Actions Buttons (Flex-Col on Mobile for bigger touch targets) */}
+                <div className="flex flex-col md:flex-row justify-end gap-3 pt-2">
                     {popup.type === 'confirm' ? (
                         <>
                             <GlitchButton 
                                 onClick={closePopup}
-                                className="px-4 py-2 border-red-500 dark:border-red/30 text-neutral-600 dark:text-neutral-400 font-mono text-xs hover:text-black dark:hover:text-white"
+                                className="order-2 md:order-1 px-4 py-3 md:py-2 border-red-500 dark:border-red/30 text-neutral-600 dark:text-neutral-400 font-mono text-xs hover:text-black dark:hover:text-white justify-center"
                             >
                                 CANCEL
                             </GlitchButton>
                             
                             <HoloButton 
                                 onClick={confirmAction}
-                                className="px-6 py-2 !bg-yellow-500 !text-black !border-yellow-500 hover:!bg-yellow-400 hover:!text-black font-mono text-xs font-bold shadow-lg"
+                                className="order-1 md:order-2 px-6 py-3 md:py-2 !bg-yellow-500 !text-black !border-yellow-500 hover:!bg-yellow-400 hover:!text-black font-mono text-xs font-bold shadow-lg justify-center"
                             >
                                 CONFIRM_ACTION
                             </HoloButton>
@@ -125,7 +125,7 @@ const GlobalPopup = () => {
                         <CyberButton 
                             onClick={closePopup}
                             className={`
-                                px-6 py-2 font-bold font-mono text-xs shadow-lg transition-all
+                                w-full md:w-auto px-6 py-3 md:py-2 font-bold font-mono text-xs shadow-lg transition-all justify-center
                                 ${popup.type === 'error' ? '!bg-red-600 !border-red-600 !text-white hover:!bg-red-500' : 
                                   popup.type === 'success' ? '!bg-emerald-600 !border-emerald-600 !text-white hover:!bg-emerald-500' :
                                   'bg-blue-600 !border-blue-600 !text-white hover:!bg-blue-500'}
@@ -137,9 +137,9 @@ const GlobalPopup = () => {
                 </div>
               </div>
 
-              {/* Close Icon (Top Right) */}
-              <button onClick={closePopup} className="absolute top-3 right-3 text-neutral-400 hover:text-red-500 transition hover:rotate-90 duration-300 z-30">
-                <X size={18}/>
+              {/* Close Icon (Top Right) - Increased touch area */}
+              <button onClick={closePopup} className="absolute top-0 right-0 p-3 text-neutral-400 hover:text-red-500 transition hover:rotate-90 duration-300 z-30">
+                <X size={20}/>
               </button>
 
           </motion.div>

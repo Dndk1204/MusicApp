@@ -26,64 +26,8 @@ import Slider from "@/components/Slider";
 import SpectrumVisualizer from "@/components/SpectrumVisualizer";
 import useUI from "@/hooks/useUI";
 import { GlitchText, CyberButton, GlitchButton, ScanlineOverlay } from "@/components/CyberComponents";
+// Import Hover Preview
 import HoverImagePreview from "@/components/HoverImagePreview";
-
-// ==================================================================================
-// --- CUSTOM COMPONENT: HOVER MARQUEE (CHỮ CHẠY) ---
-// ==================================================================================
-const HoverMarquee = ({ children, className = "", speed = 10 }) => {
-  const containerRef = useRef(null);
-  const innerRef = useRef(null);
-  const [isOverflowing, setIsOverflowing] = useState(false);
-
-  useEffect(() => {
-    const calculate = () => {
-      if (containerRef.current && innerRef.current) {
-        const container = containerRef.current.offsetWidth;
-        const content = innerRef.current.scrollWidth;
-        setIsOverflowing(content > container);
-      }
-    };
-    calculate();
-    setTimeout(calculate, 500); // Re-calc after render
-    window.addEventListener('resize', calculate);
-    return () => window.removeEventListener('resize', calculate);
-  }, [children]);
-
-  return (
-    <div 
-      ref={containerRef} 
-      className={`relative overflow-hidden whitespace-nowrap group ${className}`}
-      style={{ maskImage: isOverflowing ? 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)' : 'none' }}
-    >
-      {isOverflowing && (
-          <style jsx>{`
-            @keyframes marquee-slide {
-              0% { transform: translateX(0); }
-              100% { transform: translateX(-50%); }
-            }
-            .marquee-track {
-              display: inline-flex;
-              animation: marquee-slide ${speed}s linear infinite;
-              animation-play-state: paused; 
-            }
-            .group:hover .marquee-track {
-              animation-play-state: running;
-            }
-          `}</style>
-      )}
-
-      {isOverflowing ? (
-        <div className="marquee-track">
-           <div ref={innerRef} className="pr-12">{children}</div>
-           <div className="pr-12">{children}</div>
-        </div>
-      ) : (
-        <div ref={innerRef} className="truncate w-full block text-center">{children}</div>
-      )}
-    </div>
-  );
-};
 
 // ==================================================================================
 // --- 1. SRT PARSER ---
@@ -189,7 +133,6 @@ const NowPlayingPage = () => {
   const [realDuration, setRealDuration] = useState(0); 
   const [seek, setSeek] = useState(0); 
   
-  // Tab mặc định
   const [activeTab, setActiveTab] = useState('visual'); 
   
   const [rawLyrics, setRawLyrics] = useState(null);
@@ -197,7 +140,11 @@ const NowPlayingPage = () => {
   const [loadingLyrics, setLoadingLyrics] = useState(false);
   const [activeLineIndex, setActiveLineIndex] = useState(-1);
   const lyricsContainerRef = useRef(null);
+  
   const [queueSongs, setQueueSongs] = useState([]);
+  // --- REF CHO CONTAINER QUEUE ---
+  const queueContainerRef = useRef(null); // <--- THÊM REF NÀY
+
   const [audioSettings, setAudioSettings] = useState({ bass: 0, mid: 0, treble: 0, volume: 100 });
   const [loading, setLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
@@ -222,16 +169,15 @@ const NowPlayingPage = () => {
       audioHandlers.current = { setBass, setMid, setTreble };
   }, [setBass, setMid, setTreble]);
 
-  // Tự động chuyển tab Equalizer khi lên desktop
   useEffect(() => {
       const handleResize = () => {
-          if (window.innerWidth >= 1024 && activeTab === 'visual') {
-              setActiveTab('equalizer'); 
+          if (window.innerWidth >= 1024) {
+              setActiveTab('equalizer');
           }
       };
       window.addEventListener('resize', handleResize);
       return () => window.removeEventListener('resize', handleResize);
-  }, [activeTab]);
+  }, []); 
 
   const formatTime = (seconds) => {
       if (!seconds || isNaN(seconds) || seconds === 0) return "00:00";
@@ -240,7 +186,6 @@ const NowPlayingPage = () => {
       return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // --- SYNC SEEK & DURATION ---
   useEffect(() => {
     if (durationCheckRef.current) clearInterval(durationCheckRef.current);
     durationCheckRef.current = setInterval(() => {
@@ -257,7 +202,6 @@ const NowPlayingPage = () => {
     return () => { if (durationCheckRef.current) clearInterval(durationCheckRef.current); };
   }, [player.activeId]);
 
-  // --- FETCH SONG LOGIC ---
   useEffect(() => {
     if (!isMounted) return;
     const updateSong = async () => {
@@ -268,7 +212,7 @@ const NowPlayingPage = () => {
             const { data: dbSong } = await supabase.from('songs').select(`*, profiles (full_name, role, avatar_url)`).eq('id', player.activeId).maybeSingle();
             if (dbSong) {
                 let uploaderName = "Unknown User"; let uploaderRole = "user"; let uploaderAvatar = null;
-                if (dbSong.profiles) { uploaderName = dbSong.profiles.full_name || "Anonymous User"; uploaderRole = dbSong.profiles.role; uploaderAvatar = dbSong.profiles.avatar_url; } 
+                if (dbSong.profiles) { uploaderName = dbSong.profiles.full_name || "Anonymous User"; uploaderRole = dbSong.profiles.role; uploaderAvatar = dbSong.profiles.avatar_url; }
                 else { uploaderName = "System Admin"; uploaderRole = "admin"; }
                 setSong({ id: dbSong.id, title: dbSong.title, author: dbSong.author, image_path: dbSong.image_url, song_url: dbSong.song_url, uploader: uploaderName, uploader_role: uploaderRole, uploader_avatar: uploaderAvatar, uploader_id: dbSong.user_id, is_public: dbSong.is_public, source: 'database', lyric_url: dbSong.lyric_url, lyrics: dbSong.lyrics });
             } else {
@@ -293,7 +237,33 @@ const NowPlayingPage = () => {
     updateSong();
   }, [player.activeId, isMounted]);
 
-  // --- FETCH LYRICS ---
+  useEffect(() => {
+    if (player.activeId) {
+      setActiveTab('info');
+    }
+  }, [player.activeId]);
+
+  // --- LOGIC SCROLL TO ACTIVE SONG IN QUEUE ---
+  // Sử dụng useEffect để theo dõi song.id và activeTab
+  useEffect(() => {
+    if (!song?.id || queueSongs.length === 0) return;
+
+    // Dùng setTimeout để đảm bảo DOM đã render xong danh sách
+    const timer = setTimeout(() => {
+        const activeElement = document.getElementById(`queue-item-${song.id}`);
+        
+        // Kiểm tra xem element có tồn tại và đang hiển thị không
+        if (activeElement) {
+            activeElement.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' // Căn bài hát vào giữa danh sách
+            });
+        }
+    }, 1000); // Delay 500ms để chắc chắn UI đã ổn định
+
+    return () => clearTimeout(timer);
+  }, [song?.id, activeTab, queueSongs.length]);
+
   useEffect(() => { if (song) { setRawLyrics(null); setParsedLyrics([]); setActiveLineIndex(-1); setLoadingLyrics(false); } }, [song?.id]);
 
   useEffect(() => {
@@ -307,25 +277,84 @@ const NowPlayingPage = () => {
     }
   }, [activeTab, song]);
 
-  // --- FETCH QUEUE ---
   useEffect(() => {
     const fetchQueueSongs = async () => {
       if (!player.ids || player.ids.length === 0) { setQueueSongs([]); return; }
       try {
         const queueIds = player.ids; if (queueIds.length === 0) { setQueueSongs([]); return; }
-        const { data: queueData, error } = await supabase.from('songs').select('id, title, author, image_url').in('id', queueIds);
-        if (error) { setQueueSongs([]); return; }
-        const sortedQueueData = queueIds.map(queueId => { const songData = queueData.find(song => song.id === queueId); return songData ? { id: songData.id, title: songData.title, author: songData.author, image_path: songData.image_url || '/images/default_song.png' } : null; }).filter(Boolean);
+
+        const { data: localSongs, error } = await supabase.from('songs').select('id, title, author, image_url').in('id', queueIds);
+        if (error) { console.error('Error fetching local songs:', error); }
+
+        const cachedSongs = [];
+        if (typeof window !== 'undefined' && window.__SONG_MAP__) {
+          queueIds.forEach(id => {
+            if (window.__SONG_MAP__[id]) {
+              cachedSongs.push(window.__SONG_MAP__[id]);
+            }
+          });
+        }
+
+        const allSongsMap = new Map();
+
+        if (localSongs) {
+          localSongs.forEach(song => {
+            allSongsMap.set(song.id, {
+              id: song.id,
+              title: song.title,
+              author: song.author,
+              image_path: song.image_url || '/images/default_song.png'
+            });
+          });
+        }
+
+        cachedSongs.forEach(song => {
+          allSongsMap.set(song.id, {
+            id: song.id,
+            title: song.title,
+            author: song.author,
+            image_path: song.image_path || song.image_url || '/images/default_song.png'
+          });
+        });
+
+        const missingIds = queueIds.filter(id => !allSongsMap.has(id));
+        if (missingIds.length > 0) {
+          const apiPromises = missingIds.map(async (songId) => {
+            try {
+              const res = await fetch(`/api/get-song?id=${songId}`);
+              const data = await res.json();
+              if (data.song) {
+                return {
+                  id: data.song.id,
+                  title: data.song.title,
+                  author: data.song.author,
+                  image_path: data.song.image_path || data.song.image_url || '/images/default_song.png'
+                };
+              }
+            } catch (err) {
+              console.error(`Failed to fetch song ${songId} from API:`, err);
+            }
+            return null;
+          });
+
+          const apiSongs = await Promise.all(apiPromises);
+          apiSongs.filter(song => song).forEach(song => {
+            allSongsMap.set(song.id, song);
+          });
+        }
+
+        const sortedQueueData = queueIds.map(queueId => allSongsMap.get(queueId)).filter(Boolean);
         setQueueSongs(sortedQueueData);
-      } catch (err) { setQueueSongs([]); }
+      } catch (err) {
+        console.error('Error in fetchQueueSongs:', err);
+        setQueueSongs([]);
+      }
     };
     fetchQueueSongs();
   }, [player.ids, player.activeId]);
 
-  // --- SCROLL LYRICS ---
   useEffect(() => { if (parsedLyrics.length > 0) { const index = parsedLyrics.findIndex((line, i) => { const nextLine = parsedLyrics[i + 1]; return seek >= line.time && (!nextLine || seek < nextLine.time); }); if (index !== -1 && index !== activeLineIndex) { setActiveLineIndex(index); const element = document.getElementById(`lyric-line-${index}`); if (element) { element.scrollIntoView({ behavior: 'smooth', block: 'center' }); } } } }, [seek, parsedLyrics]);
 
-  // --- LOAD & SAVE SETTINGS ---
   const applySettings = useCallback((settings) => { setAudioSettings(prev => ({...prev, ...settings})); const handlers = audioHandlers.current; if (settings.bass !== undefined && handlers.setBass) handlers.setBass(settings.bass); if (settings.mid !== undefined && handlers.setMid) handlers.setMid(settings.mid); if (settings.treble !== undefined && handlers.setTreble) handlers.setTreble(settings.treble); }, []);
 
   const handleAudioChange = (key, value) => { const numValue = parseFloat(value); setAudioSettings(prev => ({ ...prev, [key]: numValue })); if (['bass', 'mid', 'treble'].includes(key)) { if (song?.id) { const handlers = audioHandlers.current; setTimeout(() => { if (key === 'bass' && handlers.setBass) handlers.setBass(numValue); if (key === 'mid' && handlers.setMid) handlers.setMid(numValue); if (key === 'treble' && handlers.setTreble) handlers.setTreble(numValue); }, 0); } } };
@@ -394,18 +423,20 @@ const NowPlayingPage = () => {
           </div>
 
           <div className="mt-4 lg:mt-2 text-center z-20 space-y-2 max-w-lg w-full flex flex-col items-center">
+             {/* Title - Đã xóa Marquee, dùng GlitchText tĩnh */}
              <div className="w-full px-4 overflow-hidden">
-                <HoverMarquee className="text-2xl md:text-5xl font-black text-neutral-900 dark:text-white tracking-tighter uppercase font-mono w-full" speed={15}>
+                <h1 className="text-2xl md:text-5xl font-black text-neutral-900 dark:text-white tracking-tighter uppercase font-mono w-full truncate text-center">
                     <GlitchText text={song.title} />
-                </HoverMarquee>
+                </h1>
              </div>
 
              <div className="flex items-center justify-center gap-2 w-full px-4 lg:px-12">
                  <span className="w-4 md:w-8 h-px bg-emerald-500 shrink-0"></span>
+                 {/* Author - Đã xóa Marquee, dùng text tĩnh */}
                  <div className="overflow-hidden max-w-[200px] md:max-w-[300px]">
-                    <HoverMarquee className="text-xs md:text-base font-bold font-mono text-emerald-600 dark:text-emerald-500 tracking-[0.3em] uppercase" speed={10}>
+                    <p className="text-xs md:text-base font-bold font-mono text-emerald-600 dark:text-emerald-500 tracking-[0.3em] uppercase truncate text-center">
                         {song.author}
-                    </HoverMarquee>
+                    </p>
                  </div>
                  <span className="w-4 md:w-8 h-px bg-emerald-500 shrink-0"></span>
              </div>
@@ -455,9 +486,8 @@ const NowPlayingPage = () => {
       </div>
 
       {/* --- MOBILE TABS NAVIGATION (FLOATING, SQUARE, Z-INDEX 99999) --- */}
-      <div className="lg:hidden flex fixed bottom-24 left-1/2 -translate-x-1/2 w-[80%] max-w-md justify-center z-[99999]">
+      <div className="lg:hidden flex fixed bottom-2 left-1/2 -translate-x-1/2 w-[100%] max-w-md justify-center z-[99999]">
           <div className="flex w-full bg-neutral-900/95 dark:bg-black/95 backdrop-blur-xl border border-neutral-500/50 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
-              {/* Tab Visual = chỉ hiện đĩa */}
               <button onClick={() => setActiveTab('visual')} className={`flex-1 py-3 flex justify-center items-center border-r border-white/10 rounded-none transition-colors ${activeTab==='visual' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><Activity size={20}/></button>
               <button onClick={() => setActiveTab('queue')} className={`flex-1 py-3 flex justify-center items-center border-r border-white/10 rounded-none transition-colors ${activeTab==='queue' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><ListMusic size={20}/></button>
               <button onClick={() => setActiveTab('lyrics')} className={`flex-1 py-3 flex justify-center items-center border-r border-white/10 rounded-none transition-colors ${activeTab==='lyrics' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><Mic2 size={20}/></button>
@@ -467,7 +497,6 @@ const NowPlayingPage = () => {
       </div>
 
       {/* --- CỘT GIỮA (QUEUE) --- */}
-      {/* Mobile: Order-2 (dưới đĩa), flex nếu active tab = queue */}
       <div className={`lg:col-span-3 flex flex-col h-[50vh] lg:h-[103%] w-full lg:w-[80%] bg-white/60 dark:bg-black/30 backdrop-blur-xl border border-neutral-200 dark:border-white/10 rounded-none overflow-hidden shadow-xl z-20 relative lg:-translate-x-10 order-2 ${activeTab === 'queue' ? 'flex' : 'hidden lg:flex'}`}>
           <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-emerald-500 z-40"></div>
           <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-emerald-500 z-40"></div>
@@ -476,18 +505,23 @@ const NowPlayingPage = () => {
           <div className="flex items-center justify-center border-b border-neutral-200 dark:border-white/10 shrink-0 py-4">
              <h3 className="text-[10px] font-mono text-emerald-500 uppercase tracking-wider">:: PLAY_QUEUE ::</h3>
           </div>
-          <div className="flex-1 min-h-0 p-4 custom-scrollbar overflow-y-auto">
+          {/* QUEUE CONTAINER: Gắn ref vào đây */}
+          <div 
+            ref={queueContainerRef} 
+            className="flex-1 min-h-0 p-4 custom-scrollbar overflow-y-auto"
+          >
              {queueSongs.length > 0 ? (
                 <div className="space-y-2">
                    {queueSongs.map((queueSong) => {
                       const isCurrentlyPlaying = queueSong.id === song.id;
                       return (
                          <div
-                            key={queueSong.id}
-                            className={`p-2 border group rounded-none cursor-pointer hover:bg-neutral-200 dark:hover:bg-white/10 ${
-                               isCurrentlyPlaying ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-neutral-100 dark:bg-white/5 border-neutral-200 dark:border-white/10'
-                            }`}
-                            onClick={() => player.setId(queueSong.id)}
+                           id={`queue-item-${queueSong.id}`} // <--- THÊM ID ĐỂ SCROLL TỚI
+                           key={queueSong.id}
+                           className={`p-2 border group rounded-none cursor-pointer hover:bg-neutral-200 dark:hover:bg-white/10 ${
+                              isCurrentlyPlaying ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-neutral-100 dark:bg-white/5 border-neutral-200 dark:border-white/10'
+                           }`}
+                           onClick={() => player.setId(queueSong.id)}
                          >
                             <div className="flex items-center gap-3">
                                <div className="w-8 h-8 shrink-0 relative cursor-none">
@@ -523,7 +557,6 @@ const NowPlayingPage = () => {
       </div>
 
       {/* --- CỘT PHẢI (TABS: EQ, LYRICS, INFO) --- */}
-      {/* Mobile: Order-2 (dưới đĩa), hiển thị nếu chọn đúng tab */}
       <div className={`lg:col-span-3 flex flex-col w-full lg:w-[135%] h-[60vh] lg:h-[103%] bg-white/80 dark:bg-black/40 backdrop-blur-2xl border border-neutral-200 dark:border-white/10 rounded-none overflow-hidden shadow-2xl z-30 relative lg:-translate-x-24 order-2 ${(activeTab === 'equalizer' || activeTab === 'lyrics' || activeTab === 'info') ? 'flex' : 'hidden lg:flex'}`}>
           <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-emerald-500 z-40"></div>
           <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-emerald-500 z-40"></div>
@@ -578,7 +611,6 @@ const NowPlayingPage = () => {
                                 ))}
                             </div>
                             <div className="flex gap-2 pt-2 w-full">
-                                {/* Button Save Full Width */}
                                 <CyberButton onClick={handleSaveSettings} disabled={isSaving} className="flex-1 w-full text-neutral-400 dark:hover:!text-white hover:text-green-500 transition p-1.5 justify-center border border-transparent hover:border-green-500/50 flex items-center gap-2 rounded-none" title="Save EQ Configuration">
                                     {isSaving ? <Loader2 className="animate-spin" size={14}/> : <Save size={14}/>}
                                     <span className="text-xs font-mono">SAVE_CONFIG</span>
@@ -612,7 +644,13 @@ const NowPlayingPage = () => {
                         <div className="flex-1 relative overflow-hidden" ref={lyricsContainerRef}>
                              <div className="absolute inset-0 overflow-y-auto custom-scrollbar pr-2 pb-20 text-center">
                                  {rawLyrics === "NO_LYRICS_AVAILABLE" ? (
-                                     <div className="h-full flex flex-col items-center justify-center text-neutral-400 opacity-60"><FileText size={32} className="mb-2 opacity-50"/><p className="font-mono text-xs">NO_DATA_FOUND</p></div>
+                                     <div className="h-full flex flex-col items-center justify-center text-neutral-400 opacity-60 space-y-3">
+                                         <FileText size={48} className="opacity-30"/>
+                                         <div className="text-center space-y-1">
+                                             <p className="font-mono text-sm font-bold tracking-wider">NO LYRICS AVAILABLE</p>
+                                             <p className="font-mono text-xs opacity-70">THIS SONG HAS NO LYRICS</p>
+                                         </div>
+                                     </div>
                                  ) : parsedLyrics.length > 0 ? (
                                      <ul className="space-y-6 py-[40%] px-2">
                                          {parsedLyrics.map((line, index) => {

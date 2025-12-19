@@ -121,8 +121,15 @@ const UploadModal = () => {
       const { data: songData, error: songError } = await supabase.storage
         .from('songs')
         .upload(songPath, songFile, { cacheControl: '3600', upsert: false });
-      
-      if (songError) throw new Error("Audio upload failed: " + songError.message);
+
+      if (songError) {
+        // Handle case where Supabase returns HTML instead of JSON for storage errors
+        const errorMessage = songError.message;
+        if (errorMessage.includes('<html>') || errorMessage.includes('Unexpected token')) {
+          throw new Error("Audio upload failed: Storage bucket 'songs' may not exist or you don't have permission to upload. Please contact an administrator.");
+        }
+        throw new Error("Audio upload failed: " + errorMessage);
+      }
 
       // 2. Upload Image
       const imagePath = `image-${safeTitle}-${uniqueID}`;
@@ -130,7 +137,14 @@ const UploadModal = () => {
         .from('images')
         .upload(imagePath, imageFile, { cacheControl: '3600', upsert: false });
 
-      if (imageError) throw new Error("Image upload failed: " + imageError.message);
+      if (imageError) {
+        // Handle case where Supabase returns HTML instead of JSON for storage errors
+        const errorMessage = imageError.message;
+        if (errorMessage.includes('<html>') || errorMessage.includes('Unexpected token')) {
+          throw new Error("Image upload failed: Storage bucket 'images' may not exist or you don't have permission to upload. Please contact an administrator.");
+        }
+        throw new Error("Image upload failed: " + errorMessage);
+      }
 
       // 3. Upload Lyric
       let lyricUrl = null;
@@ -142,7 +156,14 @@ const UploadModal = () => {
           .from('songs')
           .upload(lyricPath, lyricFile, { cacheControl: '3600', upsert: false });
 
-        if (lyricError) throw new Error("Lyric upload failed: " + lyricError.message);
+        if (lyricError) {
+          // Handle case where Supabase returns HTML instead of JSON for storage errors
+          const errorMessage = lyricError.message;
+          if (errorMessage.includes('<html>') || errorMessage.includes('Unexpected token')) {
+            throw new Error("Lyric upload failed: Storage bucket 'songs' may not exist or you don't have permission to upload. Please contact an administrator.");
+          }
+          throw new Error("Lyric upload failed: " + errorMessage);
+        }
 
         const { data: lyricUrlData } = supabase.storage.from('songs').getPublicUrl(lyricData.path);
         lyricUrl = lyricUrlData.publicUrl;
@@ -184,46 +205,47 @@ const UploadModal = () => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex justify-center items-center p-4 font-sans animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[9999] flex justify-center items-center p-0 md:p-4 font-sans animate-in fade-in duration-300">
       
       {/* BACKDROP */}
       <div className="absolute inset-0 bg-neutral-900/90 backdrop-blur-sm" onClick={onClose} />
 
       {/* CARD CONTAINER */}
       <div className="
-          w-full max-w-lg overflow-hidden relative
+          w-full h-full md:h-auto md:max-w-lg overflow-hidden relative
           bg-white dark:bg-black 
-          border-2 border-neutral-400 dark:border-white/20 
+          md:border-2 md:border-neutral-400 md:dark:border-white/20 
           shadow-[0_0_50px_rgba(0,0,0,0.5)] dark:shadow-[0_0_50px_rgba(16,185,129,0.15)]
           rounded-none
-          max-h-[90vh] overflow-y-auto custom-scrollbar
+          flex flex-col
+          max-h-full md:max-h-[90vh]
       ">
-        {/* Decoration Corners */}
-        <div className="absolute top-0 left-0 w-3 h-3 border-t-4 border-l-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
-        <div className="absolute top-0 right-0 w-3 h-3 border-t-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
-        <div className="absolute bottom-0 left-0 w-3 h-3 border-b-4 border-l-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
-        <div className="absolute bottom-0 right-0 w-3 h-3 border-b-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
+        {/* Decoration Corners (Hidden on Mobile for cleaner look) */}
+        <div className="hidden md:block absolute top-0 left-0 w-3 h-3 border-t-4 border-l-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
+        <div className="hidden md:block absolute top-0 right-0 w-3 h-3 border-t-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
+        <div className="hidden md:block absolute bottom-0 left-0 w-3 h-3 border-b-4 border-l-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
+        <div className="hidden md:block absolute bottom-0 right-0 w-3 h-3 border-b-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
 
         {/* Header */}
-        <div className="p-5 flex justify-between items-center border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-neutral-900 sticky top-0 z-40">
+        <div className="p-4 md:p-5 flex justify-between items-center border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-neutral-900 shrink-0 sticky top-0 z-40">
             <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-transparent via-emerald-500 to-transparent"></div>
             
             <div>
-                <h2 className="text-xl font-bold font-mono flex items-center gap-2 uppercase tracking-widest text-neutral-900 dark:text-white">
+                <h2 className="text-lg md:text-xl font-bold font-mono flex items-center gap-2 uppercase tracking-widest text-neutral-900 dark:text-white">
                     <GlitchText text={isAdmin ? "ADMIN_UPLOAD" : "UPLOAD_MODULE"} />
                 </h2>
-                <p className="text-[10px] font-mono tracking-[0.2em] uppercase mt-1 text-emerald-600 dark:text-emerald-500">
+                <p className="text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase mt-1 text-emerald-600 dark:text-emerald-500">
                     {isAdmin ? ":: SYSTEM_OVERRIDE_ENABLED ::" : ":: USER_CONTRIBUTION ::"}
                 </p>
             </div>
 
-            <button onClick={onClose} className="text-neutral-500 hover:text-red-600 dark:text-neutral-400 dark:hover:text-red-500 transition hover:rotate-90 duration-300">
+            <button onClick={onClose} className="p-2 text-neutral-500 hover:text-red-600 dark:text-neutral-400 dark:hover:text-red-500 transition hover:rotate-90 duration-300">
                 <X size={24}/>
             </button>
         </div>
 
-        {/* Body */}
-        <div className="p-6 md:p-8 bg-neutral-50 dark:bg-black/80">
+        {/* Body (Scrollable) */}
+        <div className="p-4 md:p-6 lg:p-8 bg-neutral-50 dark:bg-black/80 overflow-y-auto custom-scrollbar flex-1">
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                 
                 {/* 1. Track Info Inputs */}
@@ -270,20 +292,20 @@ const UploadModal = () => {
                     </div>
                 </div>
 
-                {/* 2. File Uploads Grid (3 CỘT) */}
-                <div className="grid grid-cols-3 gap-3">
+                {/* 2. File Uploads Grid (Responsive: 1 cột mobile, 3 cột desktop) */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     {/* Audio Upload */}
                     <div className={`
-                        relative p-3 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-col items-center justify-center gap-1
+                        relative p-3 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-row md:flex-col items-center justify-start md:justify-center gap-3 md:gap-1 h-16 md:h-auto
                         ${songFile
                             ? 'border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/5'
                             : 'border-neutral-300 bg-white hover:bg-neutral-50 hover:border-emerald-500/50 dark:border-white/20 dark:bg-black/30 dark:hover:bg-white/5'}
                     `}>
-                        <div className={`p-2 rounded-none border ${songFile ? 'border-emerald-500 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'border-neutral-300 bg-neutral-100 text-neutral-500 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400 group-hover:text-emerald-500 group-hover:border-emerald-500'}`}>
+                        <div className={`p-2 rounded-none border shrink-0 ${songFile ? 'border-emerald-500 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'border-neutral-300 bg-neutral-100 text-neutral-500 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400 group-hover:text-emerald-500 group-hover:border-emerald-500'}`}>
                             <FileAudio size={20} />
                         </div>
-                        <span className={`text-[9px] font-mono text-center truncate w-full px-1 uppercase ${songFile ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-neutral-600 dark:text-neutral-400'}`}>
-                            {songFile ? songFile.name : "AUDIO"}
+                        <span className={`text-[10px] font-mono text-left md:text-center truncate w-full px-1 uppercase ${songFile ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-neutral-600 dark:text-neutral-400'}`}>
+                            {songFile ? songFile.name : "AUDIO FILE"}
                         </span>
                         <input
                             type="file"
@@ -297,16 +319,16 @@ const UploadModal = () => {
 
                     {/* Image Upload */}
                     <div className={`
-                        relative p-3 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-col items-center justify-center gap-1
+                        relative p-3 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-row md:flex-col items-center justify-start md:justify-center gap-3 md:gap-1 h-16 md:h-auto
                         ${imageFile
                             ? 'border-pink-500 bg-pink-500/10 dark:bg-pink-500/5'
                             : 'border-neutral-300 bg-white hover:bg-neutral-50 hover:border-pink-500/50 dark:border-white/20 dark:bg-black/30 dark:hover:bg-white/5'}
                     `}>
-                        <div className={`p-2 rounded-none border ${imageFile ? 'border-pink-500 bg-pink-500/20 text-pink-600 dark:text-pink-400' : 'border-neutral-300 bg-neutral-100 text-neutral-500 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400 group-hover:text-pink-500 group-hover:border-pink-500'}`}>
+                        <div className={`p-2 rounded-none border shrink-0 ${imageFile ? 'border-pink-500 bg-pink-500/20 text-pink-600 dark:text-pink-400' : 'border-neutral-300 bg-neutral-100 text-neutral-500 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400 group-hover:text-pink-500 group-hover:border-pink-500'}`}>
                             <ImageIcon size={20} />
                         </div>
-                        <span className={`text-[9px] font-mono text-center truncate w-full px-1 uppercase ${imageFile ? 'text-pink-700 dark:text-pink-400 font-bold' : 'text-neutral-600 dark:text-neutral-400'}`}>
-                            {imageFile ? imageFile.name : "COVER"}
+                        <span className={`text-[10px] font-mono text-left md:text-center truncate w-full px-1 uppercase ${imageFile ? 'text-pink-700 dark:text-pink-400 font-bold' : 'text-neutral-600 dark:text-neutral-400'}`}>
+                            {imageFile ? imageFile.name : "COVER IMAGE"}
                         </span>
                         <input
                             type="file"
@@ -320,15 +342,15 @@ const UploadModal = () => {
 
                     {/* Lyrics Upload */}
                     <div className={`
-                        relative p-3 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-col items-center justify-center gap-1
+                        relative p-3 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-row md:flex-col items-center justify-start md:justify-center gap-3 md:gap-1 h-16 md:h-auto
                         ${lyricFile
                             ? 'border-purple-500 bg-purple-500/10 dark:bg-purple-500/5'
                             : 'border-neutral-300 bg-white hover:bg-neutral-50 hover:border-purple-500/50 dark:border-white/20 dark:bg-black/30 dark:hover:bg-white/5'}
                     `}>
-                        <div className={`p-2 rounded-none border ${lyricFile ? 'border-purple-500 bg-purple-500/20 text-purple-600 dark:text-purple-400' : 'border-neutral-300 bg-neutral-100 text-neutral-500 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400 group-hover:text-purple-500 group-hover:border-purple-500'}`}>
+                        <div className={`p-2 rounded-none border shrink-0 ${lyricFile ? 'border-purple-500 bg-purple-500/20 text-purple-600 dark:text-purple-400' : 'border-neutral-300 bg-neutral-100 text-neutral-500 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400 group-hover:text-purple-500 group-hover:border-purple-500'}`}>
                             <FileText size={20} />
                         </div>
-                        <span className={`text-[9px] font-mono text-center truncate w-full px-1 uppercase ${lyricFile ? 'text-purple-700 dark:text-purple-400 font-bold' : 'text-neutral-600 dark:text-neutral-400'}`}>
+                        <span className={`text-[9px] font-mono text-left md:text-center truncate w-full px-1 uppercase ${lyricFile ? 'text-purple-700 dark:text-purple-400 font-bold' : 'text-neutral-600 dark:text-neutral-400'}`}>
                             {lyricFile ? lyricFile.name : "LYRICS (.srt)"}
                         </span>
                         <input
@@ -345,7 +367,7 @@ const UploadModal = () => {
                 {!isAdmin && (
                     <div className="flex p-1 rounded-none border border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-black/40">
                         <label className={`
-                            flex-1 flex items-center justify-center gap-2 p-2 rounded-none cursor-pointer transition-all border border-transparent
+                            flex-1 flex items-center justify-center gap-2 p-3 md:p-2 rounded-none cursor-pointer transition-all border border-transparent
                             ${isPublic === "true" 
                                 ? 'bg-white dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold border-emerald-500 shadow-sm' 
                                 : 'text-neutral-500 hover:text-black dark:hover:text-white'}
@@ -354,7 +376,7 @@ const UploadModal = () => {
                             <Globe size={14}/> <span className="text-[10px] font-mono uppercase">Public</span>
                         </label>
                         <label className={`
-                            flex-1 flex items-center justify-center gap-2 p-2 rounded-none cursor-pointer transition-all border border-transparent
+                            flex-1 flex items-center justify-center gap-2 p-3 md:p-2 rounded-none cursor-pointer transition-all border border-transparent
                             ${isPublic === "false" 
                                 ? 'bg-white dark:bg-red-500/20 text-red-700 dark:text-red-400 font-bold border-red-500 shadow-sm' 
                                 : 'text-neutral-500 hover:text-black dark:hover:text-white'}
@@ -372,6 +394,7 @@ const UploadModal = () => {
                     className="
                         w-full py-4 text-xs tracking-widest disabled:opacity-50 disabled:cursor-not-allowed rounded-none
                         border-emerald-500 bg-emerald-600 hover:bg-emerald-500 text-white hover:!text-white
+                        mb-4 md:mb-0
                     "
                 >
                     {isLoading ? (

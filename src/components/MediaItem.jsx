@@ -17,6 +17,11 @@ const formatDuration = (sec) => {
 const MediaItem = ({ data, onClick }) => {
   const imageUrl = useLoadImage(data);
 
+  // Xác định nguồn dữ liệu để tạo link chính xác
+  // Nếu data.user_id là 'jamendo_api' -> source=jamendo
+  // Nếu data.user_id là UUID (từ DB) -> source=local
+  const sourceParam = data.user_id === 'jamendo_api' ? 'jamendo' : 'local';
+
   return (
     <div 
       className="
@@ -75,7 +80,7 @@ const MediaItem = ({ data, onClick }) => {
         {/* 3. TÊN NGHỆ SĨ & THỜI GIAN */}
         <div className="flex items-center gap-2">
             <Link
-                href={`/artist/${encodeURIComponent(data.author)}`}
+                href={`/artist/${encodeURIComponent(data.author)}?source=${sourceParam}`} // THÊM PARAM SOURCE
                 className="
                     text-[10px] font-mono truncate cursor-pointer 
                     text-neutral-500 dark:text-neutral-400

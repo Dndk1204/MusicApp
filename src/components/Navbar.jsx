@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link"; 
-import { User, LogOut, LogIn, UserPlus, ShieldCheck, Search, Disc, Sun, Moon, SlidersHorizontal, X } from "lucide-react"; 
+import { User, LogOut, LogIn, UserPlus, ShieldCheck, Search, Disc, Sun, Moon, SlidersHorizontal, X, Menu } from "lucide-react"; 
 import { supabase } from "@/lib/supabaseClient";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useModal } from "@/context/ModalContext";
@@ -10,7 +10,7 @@ import qs from "query-string";
 import AdvancedSearchModal from "./AdvancedSearchModal"; 
 import { useAuth } from "@/components/AuthWrapper";
 
-const Navbar = () => {
+const Navbar = ({ onToggleSidebar }) => {
   const router = useRouter();
   const { openModal } = useModal(); 
   const { user } = useAuth(); 
@@ -140,6 +140,7 @@ const Navbar = () => {
   const handleLogout = async () => {
     setShowMenu(false);
     await supabase.auth.signOut();
+    router.push('/');
     router.refresh();
   };
 
@@ -160,23 +161,43 @@ const Navbar = () => {
       if (!searchValue) return;
       const url = qs.stringifyUrl({ url: '/search', query: { title: searchValue } }, { skipEmptyString: true, skipNull: true });
       router.push(url);
-      setShowMobileSearch(false); // Close mobile search after submit
+      setShowMobileSearch(false); 
+  };
+  
+  const handleSidebarToggle = () => {
+      if (onToggleSidebar) onToggleSidebar();
   };
 
   return (
-    <div className="w-full h-full flex items-center justify-between px-4 md:px-6 bg-white/90 dark:bg-black/90 backdrop-blur-md border-b border-neutral-300 dark:border-white/10 relative z-50 transition-colors duration-300">
+    <div className="
+        w-full max-w-[100vw] /* Chặn tràn ngang */
+        h-14 md:h-16 /* Cố định chiều cao */
+        flex items-center justify-between px-4 md:px-6 
+        bg-white/90 dark:bg-black/90 backdrop-blur-md 
+        border-b border-neutral-300 dark:border-white/10 
+        relative z-50 transition-colors duration-300
+    ">
       
-      {/* LEFT: LOGO */}
-      <div className="flex items-center gap-x-6 shrink-0">
-        <Link href="/" className="flex items-center gap-x-3 cursor-pointer group">
+      {/* LEFT: LOGO & MENU TOGGLE */}
+      <div className="flex items-center gap-x-3 md:gap-x-4 shrink-0">
+        
+        {/* Mobile Menu Button */}
+        <button 
+            onClick={handleSidebarToggle}
+            className="md:hidden p-1 text-neutral-600 dark:text-neutral-400 hover:text-emerald-500 transition active:scale-95"
+        >
+            <Menu size={24} />
+        </button>
+
+        <Link href="/" className="flex items-center gap-x-3 cursor-pointer group shrink-0">
           {/* Logo Icon Box */}
           <div className="relative w-8 h-8 md:w-10 md:h-10 bg-neutral-900 dark:bg-black flex items-center justify-center border border-neutral-400 dark:border-white/20 group-hover:border-emerald-500 transition-colors duration-300 rounded-none overflow-hidden shadow-sm group-hover:shadow-[0_0_15px_rgba(16,185,129,0.4)]">
               <Disc size={18} className="md:w-5 md:h-5 text-neutral-500 dark:text-neutral-400 group-hover:text-white animate-[spin_4s_linear_infinite] relative z-10 transition-colors duration-300" />
               <div className="absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.5)_50%)] bg-[size:100%_4px] pointer-events-none z-20 opacity-50"></div>
           </div>
           
-          {/* Logo Text (Hidden on small mobile if search is open, visible on larger screens) */}
-          <div className={`flex flex-col items-start justify-center h-10 ${showMobileSearch ? 'hidden sm:flex' : 'flex'}`}>
+          {/* Logo Text (Ẩn hoàn toàn trên mobile) */}
+          <div className="hidden md:flex flex-col items-start justify-center h-10">
               <div className="relative">
                   <h1 className="text-xl md:text-2xl font-black font-mono text-neutral-900 dark:text-white tracking-[0.35em] leading-none transition-colors duration-300 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-emerald-600 group-hover:to-cyan-600 dark:group-hover:from-emerald-500 dark:group-hover:to-cyan-500 pl-1">
                       VOID
@@ -190,7 +211,7 @@ const Navbar = () => {
         </Link>
       </div>
 
-      {/* CENTER: SEARCH (DESKTOP) */}
+      {/* CENTER: SEARCH (DESKTOP ONLY) */}
       <div className="flex-1 max-w-[500px] mx-4 hidden md:block"> 
         <div className="relative group w-full">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none border-r border-neutral-300 dark:border-white/10 pr-2">
@@ -220,9 +241,9 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* MOBILE SEARCH OVERLAY (When activated) */}
+      {/* MOBILE SEARCH OVERLAY (Fixed Layout) */}
       {showMobileSearch && (
-        <div className="absolute inset-0 z-50 bg-white dark:bg-black flex items-center px-4 md:hidden animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute inset-0 z-50 bg-white dark:bg-black flex items-center px-4 md:hidden animate-in fade-in slide-in-from-top-2 duration-200 border-b border-neutral-300 dark:border-white/10">
             <div className="flex-1 relative">
                 <input 
                     type="text" 
@@ -231,7 +252,7 @@ const Navbar = () => {
                     value={searchValue} 
                     onChange={(e) => setSearchValue(e.target.value)} 
                     onKeyDown={(e) => e.key === "Enter" && handleSearch()} 
-                    className="w-full h-10 bg-neutral-100 dark:bg-white/10 border border-neutral-300 dark:border-white/20 pl-3 pr-10 text-sm font-mono text-neutral-900 dark:text-white outline-none focus:border-emerald-500"
+                    className="w-full h-10 bg-neutral-100 dark:bg-white/10 border border-neutral-300 dark:border-white/20 pl-3 pr-10 text-sm font-mono text-neutral-900 dark:text-white outline-none focus:border-emerald-500 rounded-none"
                 />
                 <button onClick={handleSearch} className="absolute right-0 top-0 h-full px-3 text-neutral-500"><Search size={16}/></button>
             </div>
@@ -240,7 +261,7 @@ const Navbar = () => {
       )}
 
       {/* RIGHT: ACTIONS & MENU */}
-      <div className="flex items-center gap-x-2 md:gap-x-4 relative" ref={menuRef}>
+      <div className="flex items-center gap-x-2 md:gap-x-4 relative shrink-0" ref={menuRef}>
           {/* Mobile Search Button */}
           {!showMobileSearch && (
             <button className="md:hidden p-2 text-neutral-600 dark:text-neutral-400 hover:text-emerald-500 transition" onClick={() => setShowMobileSearch(true)}>
@@ -249,7 +270,7 @@ const Navbar = () => {
           )}
           
           {/* Avatar Menu Button */}
-          <button onClick={() => setShowMenu(!showMenu)} className="relative h-8 w-8 md:h-10 md:w-10 flex items-center justify-center bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/20 hover:border-emerald-500 transition-all duration-300 group rounded-none overflow-hidden">
+          <button onClick={() => setShowMenu(!showMenu)} className="relative h-8 w-8 md:h-10 md:w-10 flex items-center justify-center bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/20 hover:border-emerald-500 transition-all duration-300 group rounded-none overflow-hidden shrink-0">
             {user && avatarUrl ? <img src={avatarUrl} alt="Avatar" className="object-cover w-full h-full grayscale group-hover:grayscale-0 transition-all duration-500" /> : <User className="text-neutral-500 dark:text-neutral-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-500 transition-colors" size={20} />}
             
             <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -258,7 +279,7 @@ const Navbar = () => {
 
           {/* DROPDOWN MENU */}
           {showMenu && (
-            <div className="absolute top-full right-0 mt-4 w-64 bg-white dark:bg-black border border-neutral-300 dark:border-white/20 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-200 rounded-none">
+            <div className="absolute top-full right-0 mt-4 w-[260px] max-w-[90vw] bg-white dark:bg-black border border-neutral-300 dark:border-white/20 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-200 rounded-none">
                <div className="h-0.5 w-full bg-gradient-to-r from-emerald-500 via-blue-500 to-purple-500"></div>
                {user ? (
                 <>

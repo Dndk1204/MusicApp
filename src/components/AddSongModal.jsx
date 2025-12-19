@@ -128,34 +128,34 @@ export default function AddSongModal({ playlistId, onClose, onAdded }) {
 
   /* ---------------- UI (CYBER BRUTALISM) ------------------- */
   return (
-    <div className="fixed inset-0 bg-neutral-900/90 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-300">
+    <div className="fixed inset-0 bg-neutral-900/90 backdrop-blur-sm flex items-center justify-center z-[9999] p-0 md:p-4 animate-in fade-in duration-300">
       
       {/* CARD CONTAINER (Manual Layout for strict flex control) */}
       <div className="
-          w-full max-w-2xl h-[85vh] flex flex-col relative overflow-hidden
+          w-full h-full md:h-[85vh] md:max-w-2xl flex flex-col relative overflow-hidden
           bg-white dark:bg-black 
-          border-2 border-neutral-400 dark:border-white/20 
+          md:border-2 md:border-neutral-400 md:dark:border-white/20 
           shadow-[0_0_40px_rgba(0,0,0,0.5)] dark:shadow-[0_0_40px_rgba(255,255,255,0.05)]
           rounded-none
       ">
-         {/* Decoration Corners */}
-         <div className="absolute top-0 left-0 w-3 h-3 border-t-4 border-l-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
-         <div className="absolute top-0 right-0 w-3 h-3 border-t-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
-         <div className="absolute bottom-0 left-0 w-3 h-3 border-b-4 border-l-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
-         <div className="absolute bottom-0 right-0 w-3 h-3 border-b-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
+         {/* Decoration Corners (Hidden on Mobile) */}
+         <div className="hidden md:block absolute top-0 left-0 w-3 h-3 border-t-4 border-l-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
+         <div className="hidden md:block absolute top-0 right-0 w-3 h-3 border-t-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
+         <div className="hidden md:block absolute bottom-0 left-0 w-3 h-3 border-b-4 border-l-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
+         <div className="hidden md:block absolute bottom-0 right-0 w-3 h-3 border-b-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
 
          {/* === HEADER === */}
-         <div className="bg-neutral-100 dark:bg-neutral-900 border-b border-neutral-300 dark:border-white/10 p-5 flex justify-between items-center relative shrink-0 z-20">
+         <div className="bg-neutral-100 dark:bg-neutral-900 border-b border-neutral-300 dark:border-white/10 p-4 md:p-5 flex justify-between items-center relative shrink-0 z-20">
              {/* Gradient Line */}
              <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-transparent via-emerald-500 to-transparent"></div>
              
              <div className="flex items-center gap-3">
                  <ListPlus className="text-emerald-600 dark:text-emerald-500" size={20}/>
-                 <h1 className="text-xl font-bold font-mono uppercase tracking-widest text-neutral-900 dark:text-white">
+                 <h1 className="text-lg md:text-xl font-bold font-mono uppercase tracking-widest text-neutral-900 dark:text-white">
                     <GlitchText text="INJECT_TRACKS" />
                  </h1>
              </div>
-             <button onClick={onClose} className="text-neutral-500 hover:!text-red-500 dark:hover:text-white transition hover:rotate-90">
+             <button onClick={onClose} className="text-neutral-500 hover:!text-red-500 dark:hover:text-white transition hover:rotate-90 p-2">
                  <X size={24} />
              </button>
          </div>
@@ -216,7 +216,7 @@ export default function AddSongModal({ playlistId, onClose, onAdded }) {
                             <label
                                 key={s.id}
                                 className={`
-                                    group flex items-center gap-3 p-2 border transition-all duration-200 relative overflow-hidden cursor-pointer
+                                    group flex items-center gap-3 p-2 md:p-3 border transition-all duration-200 relative overflow-hidden cursor-pointer
                                     ${isInPlaylist 
                                         ? "opacity-50 cursor-not-allowed border-transparent bg-neutral-200/50 dark:bg-white/5 grayscale" 
                                         : isSelected 
@@ -252,7 +252,7 @@ export default function AddSongModal({ playlistId, onClose, onAdded }) {
                                 </div>
 
                                 {/* Image with Hover Preview */}
-                                <div className="w-10 h-10 relative flex-shrink-0 border border-neutral-300 dark:border-white/10 bg-neutral-200 dark:bg-black cursor-none">
+                                <div className="w-10 h-10 md:w-12 md:h-12 relative flex-shrink-0 border border-neutral-300 dark:border-white/10 bg-neutral-200 dark:bg-black cursor-none">
                                     <HoverImagePreview
                                         src={s.image_url}
                                         alt={s.title}
@@ -275,8 +275,8 @@ export default function AddSongModal({ playlistId, onClose, onAdded }) {
                                 </div>
 
                                 {/* Info */}
-                                <div className="flex-1 min-w-0 flex flex-col">
-                                    <span className={`font-mono text-sm truncate uppercase ${isSelected && !isInPlaylist ? "text-emerald-700 dark:text-emerald-400 font-bold" : "text-neutral-900 dark:text-neutral-300"}`}>
+                                <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                                    <span className={`font-mono text-xs md:text-sm truncate uppercase ${isSelected && !isInPlaylist ? "text-emerald-700 dark:text-emerald-400 font-bold" : "text-neutral-900 dark:text-neutral-300"}`}>
                                         {s.title || "UNKNOWN_TITLE"}
                                     </span>
                                     <span className="font-mono text-[10px] text-neutral-500 dark:text-neutral-500 truncate uppercase tracking-wide">
@@ -285,7 +285,7 @@ export default function AddSongModal({ playlistId, onClose, onAdded }) {
                                 </div>
 
                                 {/* Duration / Status */}
-                                <span className="font-mono text-xs w-16 text-right">
+                                <span className="font-mono text-[10px] md:text-xs w-14 text-right shrink-0">
                                     {isInPlaylist ? (
                                         <span className="text-neutral-400 dark:text-neutral-600 text-[9px] uppercase border border-neutral-300 dark:border-white/10 px-1">ADDED</span>
                                     ) : (
@@ -311,7 +311,7 @@ export default function AddSongModal({ playlistId, onClose, onAdded }) {
             <div className="flex gap-3">
                 <GlitchButton
                     onClick={onClose}
-                    className="text-xs px-6 py-3 border-red-400 dark:border-red/20 text-red-600 dark:text-red-400 hover:text-black dark:hover:text-white"
+                    className="text-[10px] md:text-xs px-4 md:px-6 py-3 border-red-400 dark:border-red/20 text-red-600 dark:text-red-400 hover:text-black dark:hover:text-white"
                 >
                     ABORT
                 </GlitchButton>
@@ -319,7 +319,7 @@ export default function AddSongModal({ playlistId, onClose, onAdded }) {
                 <CyberButton 
                     onClick={handleBulkAdd}
                     disabled={selectedIds.length === 0}
-                    className="text-xs py-3 px-8 rounded-none"
+                    className="text-[10px] md:text-xs py-3 px-6 md:px-8 rounded-none"
                 >
                     CONFIRM_INJECTION
                 </CyberButton>

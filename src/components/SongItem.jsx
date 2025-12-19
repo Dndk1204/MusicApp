@@ -20,6 +20,11 @@ const formatDuration = (sec) => {
 const SongItem = ({ data, onClick }) => {
   const imagePath = useLoadImage(data);
 
+  // Xác định nguồn dữ liệu để tạo link chính xác
+  // Nếu data.user_id là 'jamendo_api' -> source=jamendo
+  // Nếu data.user_id là UUID (từ DB) -> source=local
+  const sourceParam = data.user_id === 'jamendo_api' ? 'jamendo' : 'local';
+
   return (
     <CyberCard 
       className="
@@ -92,7 +97,7 @@ const SongItem = ({ data, onClick }) => {
               <div className="flex items-center gap-2 truncate max-w-[70%]">
                 <span className="w-1 h-1 bg-emerald-500 shrink-0"></span>
                 <Link
-                  href={`/artist/${encodeURIComponent(data.author)}`}
+                  href={`/artist/${encodeURIComponent(data.author)}?source=${sourceParam}`} // THÊM PARAM SOURCE
                   onClick={(e) => e.stopPropagation()}
                   className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono tracking-wider hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline transition-colors truncate"
                 >

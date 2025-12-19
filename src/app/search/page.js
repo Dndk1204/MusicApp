@@ -267,26 +267,26 @@ const SearchPage = async ({ searchParams }) => {
     }
 
     return (
-        <div className="flex flex-col !w-full p-3.5 !min-h-full !overflow-y-auto transition-colors duration-500">
+        <div className="flex flex-col w-full p-4 md:p-6 min-h-full overflow-y-auto transition-colors duration-500 pb-24 md:pb-6">
             
             {/* HEADER */}
-            <div className="mb-8 flex flex-col gap-6">
+            <div className="mb-6 md:mb-8 flex flex-col gap-4 md:gap-6">
 
                 {/* Title Area With Back Button */}
-                <div className="flex items-end gap-6">
+                <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-6">
                     {/* BACK BUTTON */}
-                    <div className="mb-3">
+                    <div className="md:mb-3 self-start">
                         <BackButton /> 
                     </div>
 
-                    <div className="flex flex-col gap-2">
-                        <h1 className="text-3xl md:text-5xl font-black font-mono text-neutral-900 dark:text-white tracking-tighter uppercase flex items-center gap-3">
-                            {activeTab === 'users' ? <Users className="text-blue-500" size={32} /> :
-                             activeTab === 'playlists' ? <Music className="text-purple-500" size={32} /> :
-                             <Search className="text-emerald-500" size={32} />}
-                            <GlitchText text={pageTitle} />
+                    <div className="flex flex-col gap-2 w-full overflow-hidden">
+                        <h1 className="text-2xl md:text-5xl font-black font-mono text-neutral-900 dark:text-white tracking-tighter uppercase flex items-center gap-3 truncate">
+                            {activeTab === 'users' ? <Users className="text-blue-500 shrink-0" size={24} /> :
+                             activeTab === 'playlists' ? <Music className="text-purple-500 shrink-0" size={24} /> :
+                             <Search className="text-emerald-500 shrink-0" size={24} />}
+                            <span className="truncate w-full"><GlitchText text={pageTitle} /></span>
                         </h1>
-                        <div className="h-1 w-24 bg-emerald-500"></div>
+                        <div className="h-1 w-16 md:w-24 bg-emerald-500"></div>
                     </div>
                 </div>
 
@@ -295,48 +295,54 @@ const SearchPage = async ({ searchParams }) => {
                     <div className="grid grid-cols-3 border-b-2 border-neutral-300 dark:border-white/10">
                         <Link
                             href={qs.stringifyUrl({ url: '/search', query: { ...params, tab: 'songs' } }, { skipNull: true })}
-                            className={`py-3 text-xs font-mono font-bold tracking-[0.2em] uppercase flex items-center justify-center gap-2 transition-all relative group ${
+                            className={`py-2 md:py-3 text-[10px] md:text-xs font-mono font-bold tracking-[0.1em] md:tracking-[0.2em] uppercase flex items-center justify-center gap-1 md:gap-2 transition-all relative group ${
                                 activeTab === 'songs'
                                     ? 'bg-neutral-900 dark:bg-white text-white dark:text-black'
                                     : 'text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-200 dark:hover:bg-white/5'
                             }`}
                         >
-                            <Disc size={14} /> SONGS <span className="opacity-50">[{songs.length}]</span>
+                            <Disc size={12} className="md:w-[14px] md:h-[14px]" /> 
+                            <span>SONGS</span> 
+                            <span className="opacity-50 hidden sm:inline">[{songs.length}]</span>
                             {activeTab === 'songs' && <div className="absolute bottom-0 left-0 w-full h-1 bg-emerald-500 translate-y-full"></div>}
                         </Link>
 
                         <Link
                             href={qs.stringifyUrl({ url: '/search', query: { ...params, tab: 'playlists' } }, { skipNull: true })}
-                            className={`py-3 text-xs font-mono font-bold tracking-[0.2em] uppercase flex items-center justify-center gap-2 transition-all relative group ${
+                            className={`py-2 md:py-3 text-[10px] md:text-xs font-mono font-bold tracking-[0.1em] md:tracking-[0.2em] uppercase flex items-center justify-center gap-1 md:gap-2 transition-all relative group ${
                                 activeTab === 'playlists'
                                     ? 'bg-neutral-900 dark:bg-white text-white dark:text-black'
                                     : 'text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-200 dark:hover:bg-white/5'
                             }`}
                         >
-                            <Music size={14} /> PLAYLISTS <span className="opacity-50">[{playlists.length}]</span>
+                            <Music size={12} className="md:w-[14px] md:h-[14px]" /> 
+                            <span>PLAYLISTS</span> 
+                            <span className="opacity-50 hidden sm:inline">[{playlists.length}]</span>
                             {activeTab === 'playlists' && <div className="absolute bottom-0 left-0 w-full h-1 bg-purple-500 translate-y-full"></div>}
                         </Link>
 
                         <Link
                             href={qs.stringifyUrl({ url: '/search', query: { ...params, tab: 'users' } }, { skipNull: true })}
-                            className={`py-3 text-xs font-mono font-bold tracking-[0.2em] uppercase flex items-center justify-center gap-2 transition-all relative group ${
+                            className={`py-2 md:py-3 text-[10px] md:text-xs font-mono font-bold tracking-[0.1em] md:tracking-[0.2em] uppercase flex items-center justify-center gap-1 md:gap-2 transition-all relative group ${
                                 activeTab === 'users'
                                     ? 'bg-neutral-900 dark:bg-white text-white dark:text-black'
                                     : 'text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-200 dark:hover:bg-white/5'
                             }`}
                         >
-                            <Users size={14} /> USERS <span className="opacity-50">[{users.length}]</span>
+                            <Users size={12} className="md:w-[14px] md:h-[14px]" /> 
+                            <span>USERS</span> 
+                            <span className="opacity-50 hidden sm:inline">[{users.length}]</span>
                             {activeTab === 'users' && <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-500 translate-y-full"></div>}
                         </Link>
                     </div>
                 )}
 
                 {/* Status Bar */}
-                <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-neutral-900 dark:text-neutral-400 border-l-2 border-emerald-500 pl-3">
-                    <span>:: SYSTEM_FILTER ::</span>
+                <div className="flex flex-wrap items-center gap-2 md:gap-3 text-xs font-mono text-neutral-900 dark:text-neutral-400 border-l-2 border-emerald-500 pl-3">
+                    <span className="text-[10px] md:text-xs">:: SYSTEM_FILTER ::</span>
                     {params.title && (
                         <div className="flex items-center gap-1 bg-neutral-200 dark:bg-white/10 px-2 py-0.5 rounded-none text-neutral-900 dark:text-white border border-neutral-400 dark:border-white/20">
-                            <span>QUERY="{params.title}"</span>
+                            <span className="truncate max-w-[100px] md:max-w-none">QUERY="{params.title}"</span>
                             <Link href={qs.stringifyUrl({ url: '/search', query: { tag: params.tag, uploader: params.uploader } }, { skipNull: true })}>
                                 <X size={12} className="hover:text-red-500 cursor-pointer"/>
                             </Link>
@@ -345,7 +351,7 @@ const SearchPage = async ({ searchParams }) => {
                     {params.uploader && (
                         <div className="flex items-center gap-1 bg-blue-500/10 border border-blue-500 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-none">
                             <CircleUser size={12} />
-                            <span>USER="{params.uploader}"</span>
+                            <span className="truncate max-w-[100px] md:max-w-none">USER="{params.uploader}"</span>
                             <Link href={qs.stringifyUrl({ url: '/search', query: { title: params.title, tag: params.tag } }, { skipNull: true })}>
                                 <X size={12} className="hover:text-red-500 cursor-pointer ml-1"/>
                             </Link>
@@ -369,7 +375,7 @@ const SearchPage = async ({ searchParams }) => {
 
             {/* FILTER TAGS */}
             {activeTab === 'songs' && (
-                <CyberCard className="mb-8 p-4 bg-white dark:bg-black/20 rounded-none border border-neutral-300 dark:border-white/10 hover:border-emerald-500/50 transition-colors">
+                <CyberCard className="mb-6 md:mb-8 p-3 md:p-4 bg-white dark:bg-black/20 rounded-none border border-neutral-300 dark:border-white/10 hover:border-emerald-500/50 transition-colors">
                     <div className="flex items-center gap-2 mb-3 text-xs font-mono text-neutral-500 dark:text-neutral-400 tracking-widest border-b border-dashed border-neutral-300 dark:border-white/10 pb-2">
                         <Filter size={14}/>
                         <span>GENRE_MATRIX</span>
@@ -386,7 +392,7 @@ const SearchPage = async ({ searchParams }) => {
                                     key={genre}
                                     href={href}
                                     className={`
-                                        px-3 py-1.5 rounded-none text-xs font-mono transition-all border
+                                        px-3 py-1.5 rounded-none text-[10px] md:text-xs font-mono transition-all border
                                         ${isSelected
                                             ? "bg-emerald-500 text-black border-emerald-500 font-bold shadow-[0_0_10px_rgba(16,185,129,0.4)] hover:bg-emerald-400"
                                             : "bg-transparent text-neutral-600 dark:text-neutral-400 border-neutral-300 dark:border-white/10 hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400"
@@ -411,9 +417,9 @@ const SearchPage = async ({ searchParams }) => {
                     )}
 
                     {songs.length > 0 && (
-                        <div className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="mb-6 md:mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div className="flex items-center justify-between mb-4 border-b border-neutral-300 dark:border-white/10 pb-2">
-                                <h2 className="text-sm font-bold font-mono text-neutral-900 dark:text-white tracking-[0.2em] flex items-center gap-2">
+                                <h2 className="text-xs md:text-sm font-bold font-mono text-neutral-900 dark:text-white tracking-[0.2em] flex items-center gap-2">
                                     <span className="w-2 h-2 bg-emerald-500"></span>
                                     SONGS_MATCHED
                                 </h2>
@@ -425,13 +431,13 @@ const SearchPage = async ({ searchParams }) => {
                     )}
 
                     {songs.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 opacity-70 font-mono gap-4 animate-in fade-in zoom-in duration-500 text-neutral-500 dark:text-neutral-400 border border-dashed border-neutral-300 dark:border-white/10">
+                        <div className="flex flex-col items-center justify-center py-10 md:py-20 opacity-70 font-mono gap-4 animate-in fade-in zoom-in duration-500 text-neutral-500 dark:text-neutral-400 border border-dashed border-neutral-300 dark:border-white/10">
                             <div className="relative">
-                                <Disc size={60} className="text-neutral-300 dark:text-neutral-700 animate-spin-slow"/>
-                                <Search size={24} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-neutral-800 dark:text-white"/>
+                                <Disc size={40} className="md:w-[60px] md:h-[60px] text-neutral-300 dark:text-neutral-700 animate-spin-slow"/>
+                                <Search size={18} className="md:w-[24px] md:h-[24px] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-neutral-800 dark:text-white"/>
                             </div>
-                            <p className="text-lg tracking-widest">[NO_DATA_MATCHED]</p>
-                            <p className="text-xs">No tracks found within database parameters.</p>
+                            <p className="text-base md:text-lg tracking-widest">[NO_DATA_MATCHED]</p>
+                            <p className="text-[10px] md:text-xs">No tracks found within database parameters.</p>
                         </div>
                     ) : (
                         <SearchContent songs={songs} />
@@ -443,19 +449,19 @@ const SearchPage = async ({ searchParams }) => {
             {activeTab === 'users' && (
                 <div className="space-y-4">
                     {users.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 opacity-70 font-mono gap-4 animate-in fade-in zoom-in duration-500 text-neutral-500 dark:text-neutral-400 border border-dashed border-neutral-300 dark:border-white/10">
+                        <div className="flex flex-col items-center justify-center py-10 md:py-20 opacity-70 font-mono gap-4 animate-in fade-in zoom-in duration-500 text-neutral-500 dark:text-neutral-400 border border-dashed border-neutral-300 dark:border-white/10">
                             <div className="relative">
-                                <Users size={60} className="text-blue-300 dark:text-blue-700 animate-pulse"/>
-                                <Search size={24} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-neutral-800 dark:text-white"/>
+                                <Users size={40} className="md:w-[60px] md:h-[60px] text-blue-300 dark:text-blue-700 animate-pulse"/>
+                                <Search size={18} className="md:w-[24px] md:h-[24px] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-neutral-800 dark:text-white"/>
                             </div>
-                            <p className="text-lg tracking-widest">[NO_USERS_FOUND]</p>
-                            <p className="text-xs">Try different query parameters.</p>
+                            <p className="text-base md:text-lg tracking-widest">[NO_USERS_FOUND]</p>
+                            <p className="text-[10px] md:text-xs">Try different query parameters.</p>
                         </div>
                     ) : (
                         <>
                             <div className="mb-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 <div className="flex items-center justify-between mb-4 border-b border-neutral-300 dark:border-white/10 pb-2">
-                                    <h2 className="text-sm font-bold font-mono text-neutral-900 dark:text-white tracking-[0.2em] flex items-center gap-2">
+                                    <h2 className="text-xs md:text-sm font-bold font-mono text-neutral-900 dark:text-white tracking-[0.2em] flex items-center gap-2">
                                         <span className="w-2 h-2 bg-blue-500"></span>
                                         USERS_DETECTED
                                     </h2>
@@ -471,36 +477,36 @@ const SearchPage = async ({ searchParams }) => {
                                         <CyberCard className="group h-full p-0 bg-white dark:bg-neutral-900/40 border border-neutral-300 dark:border-white/10 hover:border-blue-500 dark:hover:border-blue-500 transition-all duration-300 relative overflow-hidden">
                                             <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-blue-500/30 group-hover:border-blue-500 transition-colors z-10"></div>
                                             <div className="flex h-full">
-                                                <div className="w-24 shrink-0 border-r border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-black/50 relative group/img">
-                                                    <HoverImagePreview src={user.avatar_url} alt={user.full_name} className="w-full h-24 relative hover:cursor-none" previewSize={240}>
+                                                <div className="w-20 md:w-24 shrink-0 border-r border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-black/50 relative group/img">
+                                                    <HoverImagePreview src={user.avatar_url} alt={user.full_name} className="w-full h-20 md:h-24 relative hover:cursor-none" previewSize={240}>
                                                         <div className="w-full h-full relative overflow-hidden">
-                                                            {user.avatar_url ? <img src={user.avatar_url} alt={user.full_name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"/> : <div className="w-full h-full flex items-center justify-center bg-neutral-200 dark:bg-neutral-800"><User size={32} className="text-neutral-400 dark:text-neutral-600"/></div>}
+                                                            {user.avatar_url ? <img src={user.avatar_url} alt={user.full_name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"/> : <div className="w-full h-full flex items-center justify-center bg-neutral-200 dark:bg-neutral-800"><User size={24} className="md:w-[32px] md:h-[32px] text-neutral-400 dark:text-neutral-600"/></div>}
                                                             <ScanlineOverlay />
                                                         </div>
                                                     </HoverImagePreview>
                                                     <div className="p-1 text-center border-t border-neutral-300 dark:border-white/10">
-                                                        <span className="text-[9px] font-mono text-neutral-500 uppercase tracking-widest block">
-                                                            IMG_{String(index + 1).padStart(2, '0')} 
+                                                        <span className="text-[8px] md:text-[9px] font-mono text-neutral-500 uppercase tracking-widest block">
+                                                            ID_{String(index + 1).padStart(2, '0')} 
                                                         </span>
                                                     </div>
                                                 </div>
                                                 <div className="flex-1 flex flex-col min-w-0">
-                                                    <div className="flex items-center justify-between p-3 border-b border-neutral-300 dark:border-white/10 bg-neutral-50 dark:bg-white/5">
-                                                        <h3 className="font-bold font-mono text-sm text-neutral-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors tracking-tight">{user.full_name || user.username || "UNKNOWN_UNIT"}</h3>
-                                                        <Users size={14} className="text-neutral-400 group-hover:text-blue-500 transition-colors" />
+                                                    <div className="flex items-center justify-between p-2 md:p-3 border-b border-neutral-300 dark:border-white/10 bg-neutral-50 dark:bg-white/5">
+                                                        <h3 className="font-bold font-mono text-xs md:text-sm text-neutral-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors tracking-tight">{user.full_name || user.username || "UNKNOWN_UNIT"}</h3>
+                                                        <Users size={12} className="md:w-[14px] md:h-[14px] text-neutral-400 group-hover:text-blue-500 transition-colors" />
                                                     </div>
-                                                    <div className="p-3 flex-1">
-                                                        <p className="text-[10px] text-neutral-900 dark:text-neutral-400 font-mono mb-1 uppercase tracking-widest">:: BIO_DATA ::</p>
-                                                        {user.bio ? <p className="text-xs text-neutral-600 dark:text-neutral-300 font-mono line-clamp-2 leading-relaxed">{user.bio}</p> : <p className="text-[10px] text-neutral-500 italic font-mono">// NO DATA AVAILABLE</p>}
+                                                    <div className="p-2 md:p-3 flex-1">
+                                                        <p className="text-[9px] md:text-[10px] text-neutral-900 dark:text-neutral-400 font-mono mb-1 uppercase tracking-widest">:: BIO_DATA ::</p>
+                                                        {user.bio ? <p className="text-[10px] md:text-xs text-neutral-600 dark:text-neutral-300 font-mono line-clamp-2 leading-relaxed">{user.bio}</p> : <p className="text-[9px] md:text-[10px] text-neutral-500 italic font-mono">// NO DATA AVAILABLE</p>}
                                                     </div>
                                                     <div className="flex border-t border-neutral-300 dark:border-white/10">
                                                         <div className="flex-1 p-2 border-r border-neutral-300 dark:border-white/10">
                                                             <span className="block text-[8px] text-neutral-400 uppercase">ID_REF</span>
-                                                            <span className="block text-[10px] font-mono text-neutral-700 dark:text-neutral-300 truncate">{user.id.slice(0, 6)}</span>
+                                                            <span className="block text-[9px] md:text-[10px] font-mono text-neutral-700 dark:text-neutral-300 truncate">{user.id.slice(0, 6)}</span>
                                                         </div>
                                                         <div className="flex-1 p-2">
                                                             <span className="block text-[8px] text-neutral-400 uppercase">INIT_DATE</span>
-                                                            <span className="block text-[10px] font-mono text-neutral-700 dark:text-neutral-300 truncate">{new Date(user.created_at).toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit', year:'2-digit'})}</span>
+                                                            <span className="block text-[9px] md:text-[10px] font-mono text-neutral-700 dark:text-neutral-300 truncate">{new Date(user.created_at).toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit', year:'2-digit'})}</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -518,9 +524,9 @@ const SearchPage = async ({ searchParams }) => {
             {activeTab === 'playlists' && (
                 <>
                     {playlists.length > 0 && (
-                        <div className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="mb-6 md:mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div className="flex items-center justify-between mb-4 border-b border-neutral-300 dark:border-white/10 pb-2">
-                                <h2 className="text-sm font-bold font-mono text-neutral-900 dark:text-white tracking-[0.2em] flex items-center gap-2">
+                                <h2 className="text-xs md:text-sm font-bold font-mono text-neutral-900 dark:text-white tracking-[0.2em] flex items-center gap-2">
                                     <span className="w-2 h-2 bg-purple-500"></span>
                                     PLAYLISTS_MATCHED
                                 </h2>
@@ -545,15 +551,15 @@ const SearchPage = async ({ searchParams }) => {
                                                     </div>
                                                 </div>
                                                 <div className="flex flex-col gap-1">
-                                                    <h3 className="text-lg font-black text-neutral-900 dark:text-white font-mono group-hover:text-purple-600 dark:group-hover:text-purple-400 transition truncate">{playlist.name}</h3>
-                                                    <div className="flex items-center justify-between text-xs font-mono text-neutral-500 dark:text-neutral-400 border-t border-dashed border-neutral-300 dark:border-white/10 pt-2">
+                                                    <h3 className="text-base md:text-lg font-black text-neutral-900 dark:text-white font-mono group-hover:text-purple-600 dark:group-hover:text-purple-400 transition truncate">{playlist.name}</h3>
+                                                    <div className="flex items-center justify-between text-[10px] md:text-xs font-mono text-neutral-500 dark:text-neutral-400 border-t border-dashed border-neutral-300 dark:border-white/10 pt-2">
                                                         <div className="flex items-center gap-2">
-                                                            <HoverImagePreview src={playlist.creator.avatar} alt={playlist.creator.name} className="w-10 h-10 shrink-0 hover:cursor-none" previewSize={200}>
+                                                            <HoverImagePreview src={playlist.creator.avatar} alt={playlist.creator.name} className="w-8 h-8 md:w-10 md:h-10 shrink-0 hover:cursor-none" previewSize={200}>
                                                                 {playlist.creator.avatar ? <img src={playlist.creator.avatar} alt={playlist.creator.name} className="w-full h-full rounded-none object-cover border border-purple-500/50" /> : <div className="w-full h-full rounded-none bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center"><User size={14} className="text-neutral-500" /></div>}
                                                             </HoverImagePreview>
-                                                            <span className="opacity-90 font-bold">{playlist.creator.name}</span>
+                                                            <span className="opacity-90 font-bold truncate max-w-[80px]">{playlist.creator.name}</span>
                                                         </div>
-                                                        <span className="text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 px-1 py-0.5 border border-purple-500/50">{playlist.songCount} TRKS</span>
+                                                        <span className="text-[9px] md:text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 px-1 py-0.5 border border-purple-500/50 shrink-0">{playlist.songCount} TRKS</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -565,10 +571,13 @@ const SearchPage = async ({ searchParams }) => {
                         </div>
                     )}
                     {playlists.length === 0 && (
-                        <div className="flex flex-col items-center justify-center py-20 opacity-70 font-mono gap-4 animate-in fade-in zoom-in duration-500 text-neutral-500 dark:text-neutral-400 border border-dashed border-neutral-300 dark:border-white/10">
-                            <div className="relative"><Music size={60} className="text-purple-300 dark:text-purple-700 animate-pulse"/><Search size={24} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-neutral-800 dark:text-white"/></div>
-                            <p className="text-lg tracking-widest">[NO_PLAYLISTS_FOUND]</p>
-                            <p className="text-xs">Try different query parameters.</p>
+                        <div className="flex flex-col items-center justify-center py-10 md:py-20 opacity-70 font-mono gap-4 animate-in fade-in zoom-in duration-500 text-neutral-500 dark:text-neutral-400 border border-dashed border-neutral-300 dark:border-white/10">
+                            <div className="relative">
+                                <Music size={40} className="md:w-[60px] md:h-[60px] text-purple-300 dark:text-purple-700 animate-pulse"/>
+                                <Search size={18} className="md:w-[24px] md:h-[24px] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-neutral-800 dark:text-white"/>
+                            </div>
+                            <p className="text-base md:text-lg tracking-widest">[NO_PLAYLISTS_FOUND]</p>
+                            <p className="text-[10px] md:text-xs">Try different query parameters.</p>
                         </div>
                     )}
                 </>

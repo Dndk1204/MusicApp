@@ -15,7 +15,11 @@ import HoverImagePreview from "@/components/HoverImagePreview";
 
 const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
     const player = usePlayer();
-    const { isAuthenticated } = useAuth();
+    
+    // Xử lý an toàn khi useAuth() trả về undefined/null
+    const auth = useAuth(); 
+    const isAuthenticated = auth?.isAuthenticated || false; 
+
     const { openModal } = useModal();
     
     const [activeTab, setActiveTab] = useState('songs'); 
@@ -25,8 +29,9 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
     const [artistsData, setArtistsData] = useState(initialArtists || []);
     const [trendingSongs, setTrendingSongs] = useState(initialSongs || []);
 
-    // --- LOGIC FETCH DỮ LIỆU TỪ SUPABASE ---
+    // --- LOGIC FETCH DỮ LIỆU TỪ SUPABASE (REALTIME) ---
     useEffect(() => {
+        // Hàm fetch dữ liệu mới nhất
         const fetchFreshData = async () => {
             try {
                 // 1. LẤY TOP SONGS
@@ -103,11 +108,33 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
             }
         };
 
+        // Gọi lần đầu khi mount
         fetchFreshData();
-        const interval = setInterval(fetchFreshData, 30000); 
-        return () => clearInterval(interval);
 
-    }, []);
+        // [THÊM MỚI] Thiết lập Realtime Subscription
+        const channel = supabase
+            .channel('trending-hero-updates')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE', // Lắng nghe sự kiện UPDATE (khi play_count thay đổi)
+                    schema: 'public',
+                    table: 'songs',
+                },
+                () => {
+                    // Khi có thay đổi, gọi lại hàm fetch để cập nhật UI
+                    console.log("Realtime update detected in songs table!");
+                    fetchFreshData();
+                }
+            )
+            .subscribe();
+
+        // Cleanup function
+        return () => {
+            supabase.removeChannel(channel);
+        };
+
+    }, []); // Chỉ chạy 1 lần khi mount, nhưng subscription sẽ hoạt động liên tục
 
     const topArtists = artistsData;
     const activeSong = trendingSongs && trendingSongs.length > 0 ? trendingSongs[currentIndex] : null;
@@ -250,8 +277,9 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
                                 <GlitchText text={activeSong.title} />
                             </h1>
                             
+                            {/* [FIXED LINK] Artist Link with Source Param */}
                             <Link 
-                                href={`/artist/${encodeURIComponent(activeSong.author)}`}
+                                href={`/artist/${encodeURIComponent(activeSong.author)}?source=${activeSong.user_id === 'jamendo_api' ? 'jamendo' : 'local'}`}
                                 onClick={(e) => e.stopPropagation()} 
                                 className="hover:!text-emerald-500 hover:underline transition-colors flex text-xs md:text-base font-mono mb-4 md:mb-6 items-center gap-2 w-fit text-neutral-600 dark:text-neutral-300"
                             >
@@ -267,7 +295,10 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
                                 </HoloButton>
                                 <div className="flex flex-col justify-center px-4 border-l border-neutral-400 dark:border-white/20">
                                     <span className="text-[8px] md:text-[9px] font-mono text-neutral-500 uppercase">Total_Plays</span>
-                                    <span className="text-xs md:text-sm font-bold font-mono text-neutral-800 dark:text-white">{activeSong.play_count || 0}</span>
+                                    {/* Hiển thị số lượt nghe REALTIME */}
+                                    <span className="text-xs md:text-sm font-bold font-mono text-neutral-800 dark:text-white animate-pulse">
+                                        {activeSong.play_count || 0}
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -291,7 +322,8 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
                                 {/* Top 1 Card - Desktop Only */}
                                 {topArtists[0] && (
-                                    <Link href={`/artist/${encodeURIComponent(topArtists[0].name)}`} className="hidden md:block h-full group/card">
+                                    /* [FIXED LINK] Top Artist Link (Assume Local because it's from DB stats) */
+                                    <Link href={`/artist/${encodeURIComponent(topArtists[0].name)}?source=local`} className="hidden md:block h-full group/card">
                                             <div className="relative h-full border border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-neutral-800/50 overflow-hidden">
                                                 {/* Decor */}
                                                 <div className="absolute top-0 right-0 p-2 bg-yellow-500 text-black font-bold font-mono text-xs z-10">#01</div>
@@ -300,7 +332,7 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
                                                     src={topArtists[0].image_url} 
                                                     alt={topArtists[0].name}
                                                     className="w-full h-full relative"
-                                                    previewSize={240}
+                                                    previewSize={240} 
                                                 >
                                                      <div className="w-full h-full relative">
                                                         {topArtists[0].image_url ? (
@@ -339,7 +371,8 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
                                 {/* List Top 5 */}
                                 <div className="flex flex-col gap-1 h-full overflow-y-auto custom-scrollbar pr-1">
                                     {topArtists.map((artist, index) => (
-                                        <Link href={`/artist/${encodeURIComponent(artist.name)}`} key={index} className="group/row">
+                                        /* [FIXED LINK] List Artist Link (Assume Local) */
+                                        <Link href={`/artist/${encodeURIComponent(artist.name)}?source=local`} key={index} className="group/row">
                                             <div className={`
                                                 flex items-center justify-between p-2 border transition-all duration-300 cursor-pointer
                                                 ${index === 0 ? 'md:hidden bg-yellow-500/10 border-yellow-500/30' : 'bg-white/40 dark:bg-white/5 border-neutral-300 dark:border-white/5 hover:border-emerald-500 hover:bg-emerald-500/5'}
