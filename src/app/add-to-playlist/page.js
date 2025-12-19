@@ -39,9 +39,8 @@ export default function AddToPlaylistPage() {
   const [selected, setSelected] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
-  
-  // SỬA: Lấy hàm alert từ useUI
-  const { alert } = useUI(); 
+  const [message, setMessage] = useState(null);
+  const [disabledPlaylists, setDisabledPlaylists] = useState([]);
 
   /* -------------------------------------------------------
       LOAD IMAGE — Unified Logic
@@ -159,24 +158,39 @@ export default function AddToPlaylistPage() {
       const { data: sess } = await supabase.auth.getSession();
       const user = sess?.session?.user;
 
-      if (!user) {
+      if (!user || !song?.id) {
         setPlaylists([]);
+        setDisabledPlaylists([]);
         setLoading(false);
         return;
       }
 
-      const { data } = await supabase
+      // 1️⃣ Fetch playlists của user
+      const { data: pls } = await supabase
         .from("playlists")
         .select("id, name")
         .eq("user_id", user.id)
         .order("id", { ascending: false });
 
-      setPlaylists(data || []);
+      // 2️⃣ Fetch playlist đã có bài hát này
+      const { data: exists } = await supabase
+        .from("playlist_songs")
+        .select("playlist_id")
+        .eq("song_id", song.id)
+        .in(
+          "playlist_id",
+          (pls || []).map((p) => p.id)
+        );
+
+      const disabledIds = exists?.map((x) => x.playlist_id) || [];
+
+      setPlaylists(pls || []);
+      setDisabledPlaylists(disabledIds);
       setLoading(false);
     };
 
     loadPlaylists();
-  }, []);
+  }, [song?.id]);
 
   /* -------------------------------------------------------
       SELECT PLAYLIST
@@ -355,14 +369,21 @@ export default function AddToPlaylistPage() {
             <div className="flex flex-col gap-2">
               {playlists.map((pl) => {
                 const isSelected = selected.includes(pl.id);
+                const isDisabled = disabledPlaylists.includes(pl.id);
+
                 return (
                   <button
                     key={pl.id}
-                    onClick={() => toggleSelect(pl.id)}
+                    disabled={isDisabled}
+                    onClick={() => {
+                      if (!isDisabled) toggleSelect(pl.id);
+                    }}
                     className={`
                       group flex justify-between items-center p-3 border transition relative
                       ${
-                        isSelected
+                        isDisabled
+                          ? "opacity-40 cursor-not-allowed bg-neutral-200 dark:bg-neutral-800"
+                          : isSelected
                           ? "bg-emerald-500/10 border-emerald-500"
                           : "bg-white dark:bg-neutral-900 border-neutral-300 dark:border-white/10 hover:border-emerald-500/50"
                       }
@@ -372,13 +393,16 @@ export default function AddToPlaylistPage() {
                       className={`
                         text-sm font-mono
                         ${
-                          isSelected
+                          isDisabled
+                            ? "text-neutral-400 italic"
+                            : isSelected
                             ? "font-bold text-emerald-700 dark:text-emerald-400"
                             : "text-neutral-700 dark:text-neutral-300"
                         }
                       `}
                     >
                       {pl.name}
+                      {isDisabled && " (Already added)"}
                     </span>
 
                     <div
@@ -387,13 +411,11 @@ export default function AddToPlaylistPage() {
                         ${
                           isSelected
                             ? "bg-emerald-500 border-emerald-500"
-                            : "border-neutral-400 dark:border-neutral-600 bg-neutral-100 dark:bg-black group-hover:border-emerald-500"
+                            : "border-neutral-400 dark:border-neutral-600 bg-neutral-100 dark:bg-black"
                         }
                       `}
                     >
-                      {isSelected && (
-                        <Check size={12} className="text-white stroke-[3]" />
-                      )}
+                      {isSelected && <Check size={12} className="text-white stroke-[3]" />}
                     </div>
                   </button>
                 );

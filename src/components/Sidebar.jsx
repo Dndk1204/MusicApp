@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { 
   Library, Plus, ListMusic, Play, Trash2, UploadCloud, 
@@ -60,6 +60,31 @@ const Sidebar = ({ className = "" }) => {
   // --- STATE COLLAPSE ---
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  const [user, setUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    const initAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      setUser(data?.session?.user ?? null);
+      setAuthReady(true);
+    };
+
+    initAuth();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        fetchPlaylists(session.user.id);
+        setupRealtime(session.user.id);
+      } else {
+        setPlaylists([]);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
   // Helper
   const getFirstLetter = (name) => {
     if (!name) return "?";
@@ -69,49 +94,71 @@ const Sidebar = ({ className = "" }) => {
   // =========================
   //         Fetch data
   // =========================
-  const fetchPlaylists = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
+  const fetchPlaylists = async (uid) => {
+    setLoading(true);
 
-      const { data, error } = await supabase
-        .from("playlists")
-        .select(`
-          id, name, cover_url,
-          playlist_songs ( song_id )
-        `)
-        .eq("user_id", session.user.id)
-        .order("id", { ascending: true });
+    const { data, error } = await supabase
+      .from("playlists")
+      .select(`
+        id, name, cover_url,
+        playlist_songs ( song_id )
+      `)
+      .eq("user_id", uid)
+      .order("id", { ascending: true });
 
-      if (error) throw error;
-      setPlaylists(data || []);
-    } catch (err) {
-      console.error("Playlist Fetch Error:", err.message);
-    } finally {
-      setLoading(false);
-    }
+    if (!error) setPlaylists(data || []);
+    setLoading(false);
   };
 
   // =========================
   //      Realtime Setup
   // =========================
-  useEffect(() => {
-    let channel;
-    const init = async () => {
-      await fetchPlaylists();
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
-      if (!user) return;
+  const channelRef = useRef(null);
 
-      channel = supabase
-        .channel(`rt-playlists-${user.id}`)
-        .on("postgres_changes", { event: "*", schema: "public", table: "playlists", filter: `user_id=eq.${user.id}` }, () => fetchPlaylists())
-        .on("postgres_changes", { event: "*", schema: "public", table: "playlist_songs" }, () => fetchPlaylists())
-        .subscribe();
+  const setupRealtime = async (userId) => {
+    // remove channel cũ
+    if (channelRef.current) {
+      await supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+
+    channelRef.current = supabase
+      .channel(`rt-playlists-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "playlists",
+          filter: `user_id=eq.${userId}`,
+        },
+        fetchPlaylists
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "playlist_songs",
+        },
+        fetchPlaylists
+      )
+      .subscribe();
+  };
+
+  useEffect(() => {
+    if (!authReady || !user) return;
+
+    fetchPlaylists(user.id);
+    setupRealtime(user.id);
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-    init();
-    return () => { if (channel) supabase.removeChannel(channel); };
-  }, []);
+  }, [authReady, user?.id]);
 
   // =========================
   //      Handlers
