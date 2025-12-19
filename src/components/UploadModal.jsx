@@ -121,8 +121,15 @@ const UploadModal = () => {
       const { data: songData, error: songError } = await supabase.storage
         .from('songs')
         .upload(songPath, songFile, { cacheControl: '3600', upsert: false });
-      
-      if (songError) throw new Error("Audio upload failed: " + songError.message);
+
+      if (songError) {
+        // Handle case where Supabase returns HTML instead of JSON for storage errors
+        const errorMessage = songError.message;
+        if (errorMessage.includes('<html>') || errorMessage.includes('Unexpected token')) {
+          throw new Error("Audio upload failed: Storage bucket 'songs' may not exist or you don't have permission to upload. Please contact an administrator.");
+        }
+        throw new Error("Audio upload failed: " + errorMessage);
+      }
 
       // 2. Upload Image
       const imagePath = `image-${safeTitle}-${uniqueID}`;
@@ -130,7 +137,14 @@ const UploadModal = () => {
         .from('images')
         .upload(imagePath, imageFile, { cacheControl: '3600', upsert: false });
 
-      if (imageError) throw new Error("Image upload failed: " + imageError.message);
+      if (imageError) {
+        // Handle case where Supabase returns HTML instead of JSON for storage errors
+        const errorMessage = imageError.message;
+        if (errorMessage.includes('<html>') || errorMessage.includes('Unexpected token')) {
+          throw new Error("Image upload failed: Storage bucket 'images' may not exist or you don't have permission to upload. Please contact an administrator.");
+        }
+        throw new Error("Image upload failed: " + errorMessage);
+      }
 
       // 3. Upload Lyric
       let lyricUrl = null;
@@ -142,7 +156,14 @@ const UploadModal = () => {
           .from('songs')
           .upload(lyricPath, lyricFile, { cacheControl: '3600', upsert: false });
 
-        if (lyricError) throw new Error("Lyric upload failed: " + lyricError.message);
+        if (lyricError) {
+          // Handle case where Supabase returns HTML instead of JSON for storage errors
+          const errorMessage = lyricError.message;
+          if (errorMessage.includes('<html>') || errorMessage.includes('Unexpected token')) {
+            throw new Error("Lyric upload failed: Storage bucket 'songs' may not exist or you don't have permission to upload. Please contact an administrator.");
+          }
+          throw new Error("Lyric upload failed: " + errorMessage);
+        }
 
         const { data: lyricUrlData } = supabase.storage.from('songs').getPublicUrl(lyricData.path);
         lyricUrl = lyricUrlData.publicUrl;

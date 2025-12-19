@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { Lock, Globe, Music, Edit2, Trash2, Upload, X, Save, Image as ImageIcon, FileAudio, LayoutGrid, Disc, Play, Clock, Music2 } from "lucide-react";
+import { Lock, Globe, Music, Edit2, Trash2, Upload, X, Save, Image as ImageIcon, FileAudio, LayoutGrid, Disc, Play, Clock, Music2, FileText } from "lucide-react";
 import Image from "next/image";
 import useUI from "@/hooks/useUI";
 import useUploadModal from "@/hooks/useUploadModal";
@@ -15,6 +15,8 @@ import { useModal } from "@/context/ModalContext";
 // Import HOVER PREVIEW
 import HoverImagePreview from "@/components/HoverImagePreview";
 import BackButton from "@/components/BackButton";
+// Import LYRICS EDIT MODAL
+import LyricsEditModal from "@/components/LyricsEditModal";
 
 // Function to extract audio duration
 const extractAudioDuration = (file) => {
@@ -59,6 +61,10 @@ const MyUploadsPage = () => {
   // UI State
   const [activeTab, setActiveTab] = useState('uploads');
   const [filter, setFilter] = useState('all');
+
+  // Lyrics Modal State
+  const [lyricsModalOpen, setLyricsModalOpen] = useState(false);
+  const [selectedSongForLyrics, setSelectedSongForLyrics] = useState(null);
 
   // (tuned-tracks removed) always show uploads
 
@@ -144,6 +150,21 @@ const MyUploadsPage = () => {
     } catch (err) { alert(err.message, 'error'); }
   };
 
+  const openLyricsModal = (song) => {
+    setSelectedSongForLyrics(song);
+    setLyricsModalOpen(true);
+  };
+
+  const closeLyricsModal = () => {
+    setLyricsModalOpen(false);
+    setSelectedSongForLyrics(null);
+  };
+
+  const handleLyricsUpdate = () => {
+    // Refresh the songs list
+    getMyUploads();
+  };
+
   const currentSongs = songsUploads;
   const isLoading = loadingUploads;
   const isEditable = true;
@@ -201,6 +222,9 @@ const MyUploadsPage = () => {
              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-all duration-300 flex items-center justify-center gap-3 backdrop-blur-none z-30">
                   <button onClick={() => startEditing(song)} className="p-2 bg-blue-600/90 text-white hover:bg-blue-500 border border-blue-400 transition-transform hover:scale-110 shadow-lg">
                     <Edit2 size={18} />
+                  </button>
+                  <button onClick={() => openLyricsModal(song)} className="p-2 bg-purple-600/90 text-white hover:bg-purple-500 border border-purple-400 transition-transform hover:scale-110 shadow-lg">
+                    <FileText size={18} />
                   </button>
                   <button onClick={() => handleDeleteSong(song.id)} className="p-2 bg-red-600/90 text-white hover:bg-red-500 border border-red-400 transition-transform hover:scale-110 shadow-lg">
                     <Trash2 size={18} />
@@ -350,6 +374,14 @@ const MyUploadsPage = () => {
           )}
          </div>
       </div>
+
+      {/* LYRICS EDIT MODAL */}
+      <LyricsEditModal
+        isOpen={lyricsModalOpen}
+        onClose={closeLyricsModal}
+        song={selectedSongForLyrics}
+        onUpdate={handleLyricsUpdate}
+      />
     </div>
     );
 };
