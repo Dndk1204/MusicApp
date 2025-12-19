@@ -305,7 +305,11 @@ useEffect(() => {
             },
         });
 
+        // Sync handler for full state updates
         channel.on('presence', { event: 'sync' }, handlePresenceSync);
+        // Also react to incremental changes so UI updates immediately
+        channel.on('presence', { event: 'join' }, () => handlePresenceSync());
+        channel.on('presence', { event: 'leave' }, () => handlePresenceSync());
 
         await channel.subscribe(async (status) => {
             if (status === 'SUBSCRIBED') {
@@ -315,7 +319,7 @@ useEffect(() => {
                     console.warn('Presence track failed', err);
                 }
                 // Update local state immediately after subscribe
-                handlePresenceSync();
+                try { handlePresenceSync(); } catch (e) { /* ignore */ }
             }
         });
     };
