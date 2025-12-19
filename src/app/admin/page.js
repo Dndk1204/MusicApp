@@ -296,10 +296,12 @@ useEffect(() => {
             try { supabase.removeChannel(channel); } catch (e) { /* ignore */ }
         }
 
+        // Use a client-unique presence key so multiple browsers/clients
+        // for the same user don't collide and presence entries are distinct.
+        const clientKey = `${user.id}_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
         channel = supabase.channel('online-users', {
             config: {
-                // Use the unique user id as presence key so entries don't collide
-                presence: { key: user.id },
+                presence: { key: clientKey },
             },
         });
 
