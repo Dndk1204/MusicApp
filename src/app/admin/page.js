@@ -483,7 +483,10 @@ const AdminDashboard = () => {
                         </thead>
                         <tbody className="divide-y divide-neutral-200 dark:divide-white/5">
                             {usersList.map((user) => {
-                                const isOnline = onlineUsers.has(user.id);
+                                // 1. Chuyển tất cả về string và trim để so sánh chính xác
+                                const isOnline = Array.from(onlineUsers).some(id => String(id) === String(user.id));
+                                // 2. Log thử để xem Admin có trong danh sách online không (chỉ log 1 lần)
+                                if (user.role === 'admin') console.log("Admin ID:", user.id, "Online List:", onlineUsers);
                                 return (
                                     <tr key={user.id} className="hover:bg-neutral-50 dark:hover:bg-white/5 transition">
                                         <td className="px-6 py-3 flex items-center gap-3 align-middle">
@@ -526,7 +529,7 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* VIEW: SONG TABLES */}
+      {/* SONG TABLES */}
       {isSongTableView && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">

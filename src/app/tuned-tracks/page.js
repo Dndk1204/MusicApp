@@ -11,6 +11,7 @@ import { CyberCard, HoloButton, ScanlineOverlay, HorizontalGlitchText } from "@/
 import { useAuth } from "@/components/AuthWrapper";
 import { useModal } from "@/context/ModalContext";
 import HoverImagePreview from "@/components/HoverImagePreview";
+import BackButton from "@/components/BackButton";
 
 // --- SKELETON LOADER COMPONENT ---
 const TunedTracksSkeleton = () => (

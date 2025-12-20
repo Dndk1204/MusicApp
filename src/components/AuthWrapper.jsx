@@ -12,46 +12,18 @@ const AuthWrapper = ({ children }) => {
   const [session, setSession] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    let channel = null;
-
-    // Create a presence channel for the given user (client-unique key)
-    const createPresenceFor = async (u) => {
-      if (!u) return;
-      try {
-        const clientKey = `${u.id}_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
-        // remove old channel if exists
-        if (channel) {
-          try { await supabase.removeChannel(channel); } catch (e) { }
-          channel = null;
-        }
-
-        channel = supabase.channel('online-users', {
-          config: { presence: { key: clientKey } },
-        });
-
-        await channel.subscribe(async (status) => {
-          if (status === 'SUBSCRIBED') {
-            try {
-              await channel.track({ user_id: u.id, online_at: new Date().toISOString() });
-            } catch (err) {
-              console.warn('Presence track failed', err);
-            }
-          }
-        });
-      } catch (err) {
-        console.warn('Failed to create presence channel', err);
-      }
-    };
-
     // 1. Lấy session ban đầu khi load trang
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-      if (session?.user) {
-        createPresenceFor(session.user);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        setUser(session?.user ?? null);
+      } catch (error) {
+        console.error("Auth Error:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -63,28 +35,37 @@ const AuthWrapper = ({ children }) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
-
-        if (event === 'SIGNED_IN' && session?.user) {
-          createPresenceFor(session.user);
-        }
-
-        if (event === 'SIGNED_OUT') {
-          if (channel) {
-            try { await supabase.removeChannel(channel); } catch (e) { }
-            channel = null;
-          }
-        }
+        
+        // ĐÃ XÓA LOGIC PRESENCE TẠI ĐÂY ĐỂ TRÁNH XUNG ĐỘT VỚI ADMIN DASHBOARD
       }
     );
 
+    // Cleanup function
     return () => {
       subscription.unsubscribe();
-      if (channel) {
-        try { supabase.removeChannel(channel); } catch (e) { }
-        channel = null;
-      }
     };
   }, []);
+  
+  useEffect(() => {
+  if (!user) return;
+
+  const channel = supabase.channel('online-users', {
+    config: { 
+      presence: { key: user.id } // Đảm bảo key chính là ID bạn thấy ở console
+    },
+  });
+
+  channel.subscribe(async (status) => {
+    if (status === 'SUBSCRIBED') {
+      await channel.track({
+        user_id: user.id, // Gửi kèm user_id vào metadata
+        online_at: new Date().toISOString(),
+      });
+    }
+  });
+
+  return () => { supabase.removeChannel(channel); };
+}, [user]);
 
   return (
     <AuthContext.Provider value={{ session, user, loading, isAuthenticated: !!session }}>

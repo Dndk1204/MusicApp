@@ -11,8 +11,7 @@ if (!supabaseUrl || !supabaseKey) {
 // 2. Khởi tạo Supabase Client (Sử dụng sessionStorage như Code 2)
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
-    // Dùng sessionStorage để tự động logout khi đóng tab/trình duyệt
-    storage: typeof window !== 'undefined' ? window.sessionStorage : null, 
+    storage: typeof window !== 'undefined' ? window.localStorage : null, // Đổi từ sessionStorage sang localStorage
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,

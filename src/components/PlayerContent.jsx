@@ -14,7 +14,7 @@ import Image from "next/image";
 import usePlayer from "@/hooks/usePlayer";
 import useTrackStats from "@/hooks/useTrackStats";
 import useAudioFilters from "@/hooks/useAudioFilters";
-import { useIsTunedTracksPage } from "@/hooks/useIsTunedTracksPage";
+import { useIsTunedTracksPage } from "@/hooks/useIsTunedTracksPage"; 
 import useUI from "@/hooks/useUI";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -31,6 +31,7 @@ const PlayerContent = ({ song, songUrl }) => {
 
   const { initAudioNodes, setBass, setMid, setTreble } = useAudioFilters();
   const isTunedTracksPage = useIsTunedTracksPage();
+  
   useTrackStats(song);
 
   // --- LOCAL STATE ---
@@ -82,6 +83,7 @@ const PlayerContent = ({ song, songUrl }) => {
       if (isTunedTracksPage) {
         const { data: { session } } = await supabase.auth.getSession();
         const sessionSaved = sessionStorage.getItem(`audioSettings_${songId}`);
+        
         if (sessionSaved) {
             const s = JSON.parse(sessionSaved);
             setBass(s.bass || 0); setMid(s.mid || 0); setTreble(s.treble || 0);
