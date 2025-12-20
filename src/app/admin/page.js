@@ -74,14 +74,14 @@ const ActivityStream = ({ items, getUploaderInfo }) => {
                                         className="w-full h-full"
                                         previewSize={200}
                                      >
-                                         <div className="w-full h-full relative flex items-center justify-center">
-                                              {song.image_url ? (
-                                                 <img src={song.image_url} className="w-full h-full object-cover grayscale group-hover/card:grayscale-0 transition-all duration-500" alt={song.title}/>
-                                              ) : (
-                                                 <div className="w-full h-full flex items-center justify-center text-neutral-400"><Music size={16}/></div>
-                                              )}
-                                              <ScanlineOverlay />
-                                         </div>
+                                          <div className="w-full h-full relative flex items-center justify-center">
+                                               {song.image_url ? (
+                                                   <img src={song.image_url} className="w-full h-full object-cover grayscale group-hover/card:grayscale-0 transition-all duration-500" alt={song.title}/>
+                                               ) : (
+                                                   <div className="w-full h-full flex items-center justify-center text-neutral-400"><Music size={16}/></div>
+                                               )}
+                                               <ScanlineOverlay />
+                                          </div>
                                      </HoverImagePreview>
                                  </div>
                                  
@@ -105,7 +105,7 @@ const ActivityStream = ({ items, getUploaderInfo }) => {
                                          {uploader.avatar_url ? (
                                              <img src={uploader.avatar_url} alt={uploader.name} className="w-full h-full object-cover"/>
                                          ) : (
-                                             <User size={12} className={uploader.role === 'admin' ? 'text-yellow-600' : 'text-blue-600'}/>
+                                             <div className="text-neutral-400"><User size={12}/></div>
                                          )}
                                      </div>
 
@@ -233,33 +233,53 @@ const AdminDashboard = () => {
       if (!uploadModal.isOpen) fetchDashboardData();
   }, [uploadModal.isOpen]);
 
-  // --- PRESENCE LOGIC (MERGED & FIXED) ---
+  // --- PRESENCE LOGIC (CODE 2 GHÉP VÀO) ---
   useEffect(() => {
-    const channel = supabase.channel('online-users');
+    let channel = null;
+    let authListener = null;
 
-    channel
-        .on('presence', { event: 'sync' }, () => {
-            const state = channel.presenceState();
-            const onlineIds = new Set();
-            
-            Object.entries(state).forEach(([key, presenceArray]) => {
-                // Thêm key (đây thường là user.id nếu cấu hình đúng)
-                onlineIds.add(String(key)); 
-                
-                // Duyệt sâu vào metadata để lấy user_id (đề phòng key bị mã hóa)
-                presenceArray.forEach((p) => {
-                    if (p.user_id) onlineIds.add(String(p.user_id));
-                });
+    const handlePresenceSync = () => {
+        if (!channel) return;
+        const newState = channel.presenceState();
+        const onlineIds = new Set();
+        Object.keys(newState).forEach((key) => {
+            newState[key].forEach((presence) => {
+                if (presence.user_id) onlineIds.add(presence.user_id);
             });
-            
-            setOnlineUsers(onlineIds);
-        })
-        .subscribe();
+        });
+        setOnlineUsers(onlineIds);
+    };
+
+    const createChannelForUser = async (user) => {
+        if (!user) return;
+        if (channel) { try { supabase.removeChannel(channel); } catch (e) {} }
+        const clientKey = `${user.id}_${Date.now()}`;
+        channel = supabase.channel('online-users', { config: { presence: { key: clientKey } } });
+        channel.on('presence', { event: 'sync' }, handlePresenceSync);
+        channel.on('presence', { event: 'join' }, () => handlePresenceSync());
+        channel.on('presence', { event: 'leave' }, () => handlePresenceSync());
+        await channel.subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                await channel.track({ user_id: user.id, online_at: new Date().toISOString() });
+            }
+        });
+    };
+
+    (async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) await createChannelForUser(session.user);
+        const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' && session?.user) createChannelForUser(session.user);
+            if (event === 'SIGNED_OUT') { setOnlineUsers(new Set()); if (channel) { supabase.removeChannel(channel); channel = null; } }
+        });
+        authListener = listener;
+    })();
 
     return () => {
-        supabase.removeChannel(channel);
+        if (authListener?.subscription) authListener.subscription.unsubscribe();
+        if (channel) supabase.removeChannel(channel);
     };
-}, []);
+  }, []);
 
   useEffect(() => {
     const init = async () => {
@@ -302,7 +322,7 @@ const AdminDashboard = () => {
   const filteredArtists = fullArtistsList.filter((artist) => (artist.originalName || artist.name || "").toLowerCase().includes(artistSearchTerm.toLowerCase()));
   const filteredSearchLogs = allArtistsList.filter((log) => (log.artist_name || "").toLowerCase().includes(artistSearchTerm.toLowerCase()));
 
-  // --- HANDLERS (Giữ nguyên) ---
+  // --- HANDLERS (Giữ nguyên toàn bộ logic xử lý của bạn) ---
   const handleSyncMusic = async () => { if (!await confirm("Sync 100 tracks from API?", "SYNC")) return; setSyncing(true); try { const CLIENT_ID = '3501caaa'; let allTracks = []; const offsets = Array.from({ length: 5 }, (_, i) => i * 20); const responses = await Promise.all(offsets.map(offset => fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=jsonpretty&limit=20&include=musicinfo&order=popularity_week&offset=${offset}`).then(res => res.json()))); responses.forEach(data => { if (data.results) allTracks = [...allTracks, ...data.results]; }); if (allTracks.length > 0) { const songsToInsert = allTracks.map(track => ({ title: track.name, author: track.artist_name, song_url: track.audio, image_url: track.image, duration: track.duration, play_count: 0, is_public: true })); const { error: upsertError } = await supabase.from('songs').upsert(songsToInsert, { onConflict: 'song_url', ignoreDuplicates: true }); if (upsertError) throw upsertError; success("Synced successfully!"); await fetchDashboardData(); } } catch (e) { error(e.message); } finally { setSyncing(false); } };
   const handleSyncArtists = async () => { if (!await confirm("Update top 50 artists?", "SYNC")) return; setSyncingArtists(true); try { const CLIENT_ID = '3501caaa'; const res = await fetch(`https://api.jamendo.com/v3.0/artists/?client_id=${CLIENT_ID}&format=jsonpretty&limit=50&order=popularity_total`); const data = await res.json(); if (data.results) { const artistsToUpsert = data.results.map(artist => ({ name: artist.name, image_url: artist.image })); const { error: upsertError } = await supabase.from('artists').upsert(artistsToUpsert, { onConflict: 'name', ignoreDuplicates: true }); if (upsertError) throw upsertError; success("Artists synced!"); await fetchDashboardData(); } } catch (e) { error(e.message); } finally { setSyncingArtists(false); } };
   const handleResetArtists = async () => { if (!await confirm("Reset DB?", "RESET")) return; setResetting(true); try { await supabase.rpc('reset_artists_data'); success("Reset complete."); await fetchDashboardData(); } catch (e) { error(e.message); } finally { setResetting(false); } };
@@ -393,13 +413,11 @@ const AdminDashboard = () => {
                 </CyberCard>
             </div>
 
+            {/* STATS TABLES (Top Songs/Artists) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                {/* TOP SONGS */}
                 <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-full">
                     <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0">
-                        <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center">
-                            <TrendingUp size={16} className="text-emerald-500" /> Top_5_Streamed
-                        </h4>
+                        <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center"><TrendingUp size={16} className="text-emerald-500" /> Top_5_Streamed</h4>
                         <button onClick={() => { setSongSortType('plays'); setCurrentView('songs_list'); }} className="text-[9px] text-emerald-600 dark:text-emerald-500 hover:underline font-mono uppercase">VIEW_FULL</button>
                     </div>
                     <div className="p-0 overflow-y-auto custom-scrollbar">
@@ -412,26 +430,21 @@ const AdminDashboard = () => {
                                         <ScanlineOverlay />
                                     </div>
                                     <div className="flex flex-col min-w-0">
-                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors" title={s.title}>{s.title}</span>
+                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{s.title}</span>
                                         <span className="truncate text-[10px] text-neutral-500 dark:text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300">{s.author}</span>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2 pl-2 shrink-0">
-                                    <div className="h-[1px] w-4 bg-emerald-500/30 hidden sm:block"></div>
                                     <span className="text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-500/20 px-2 py-0.5 text-[10px]">{s.play_count}</span>
                                 </div>
                             </div>
                         ))}
-                        {stats.topSongs.length === 0 && <div className="p-4 text-center text-neutral-400 italic text-[10px]">No data available</div>}
                     </div>
                 </CyberCard>
 
-                {/* TOP ARTISTS */}
                 <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-full">
                     <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0">
-                        <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center">
-                            <Mic2 size={16} className="text-pink-500" /> Top_5_Artists
-                        </h4>
+                        <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center"><Mic2 size={16} className="text-pink-500" /> Top_5_Artists</h4>
                         <button onClick={() => setCurrentView('db_artists_list')} className="text-[9px] text-pink-600 dark:text-pink-500 hover:underline font-mono uppercase">VIEW_FULL</button>
                     </div>
                     <div className="p-0 overflow-y-auto custom-scrollbar">
@@ -439,11 +452,8 @@ const AdminDashboard = () => {
                             <div key={i} className="group flex justify-between items-center text-xs font-mono p-3 border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-pink-500/5 dark:hover:bg-pink-500/10 transition-colors relative">
                                 <div className="flex items-center gap-3 overflow-hidden">
                                     <span className={`text-[10px] font-bold w-6 shrink-0 ${i < 3 ? 'text-pink-600 dark:text-pink-400' : 'text-neutral-400'}`}>#{String(i + 1).padStart(2, '0')}</span>
-                                    {/* FIX: Centering for Artist Image */}
                                     <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 shrink-0 relative flex items-center justify-center overflow-hidden">
-                                        <div className="w-full h-full flex items-center justify-center">
-                                            {artist.image_url ? <img src={artist.image_url} alt={artist.originalName} className="w-full h-full object-cover" /> : <User size={14} className="text-neutral-400" />}
-                                        </div>
+                                        {artist.image_url ? <img src={artist.image_url} alt={artist.originalName} className="w-full h-full object-cover" /> : <User size={14} className="text-neutral-400" />}
                                         <ScanlineOverlay />
                                     </div>
                                     <div className="flex flex-col min-w-0">
@@ -452,17 +462,15 @@ const AdminDashboard = () => {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2 pl-2 shrink-0">
-                                    <div className="h-[1px] w-4 bg-pink-500/30 hidden sm:block"></div>
                                     <span className="text-pink-700 dark:text-pink-400 font-bold bg-pink-100 dark:bg-pink-900/30 border border-pink-200 dark:border-pink-500/20 px-2 py-0.5 text-[10px] flex items-center gap-1"><Heart size={8} fill="currentColor" /> {artist.followers}</span>
                                 </div>
                             </div>
                         ))}
-                        {popularArtistsList.length === 0 && <div className="p-4 text-center text-neutral-400 italic text-[10px]">No artist data</div>}
                     </div>
                 </CyberCard>
             </div>
 
-            {/* USER TABLE */}
+            {/* USER TABLE WITH ONLINE STATUS */}
             <CyberCard className="bg-white dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none overflow-hidden backdrop-blur-sm">
                 <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center">
                     <h3 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex items-center gap-2"><List size={16} className="text-yellow-600 dark:text-yellow-500"/> User_Manifest_Log</h3>
@@ -482,18 +490,11 @@ const AdminDashboard = () => {
                                 return (
                                     <tr key={user.id} className="hover:bg-neutral-50 dark:hover:bg-white/5 transition">
                                         <td className="px-6 py-3 flex items-center gap-3 align-middle">
-                                            {/* HOVER PREVIEW CHO USER LIST */}
-                                            <div className="w-8 h-8 rounded-none bg-neutral-300 dark:bg-neutral-800 border border-neutral-400 dark:border-white/10 overflow-hidden flex items-center justify-center shrink-0 cursor-none relative">
-                                                <HoverImagePreview src={user.avatar_url} alt={user.full_name} className="w-full h-full" previewSize={200} fallbackIcon="user">
-                                                    <div className="w-full h-full relative flex items-center justify-center">
-                                                        {user.avatar_url ? <img src={user.avatar_url} className="w-full h-full object-cover"/> : <Users size={12} className="text-neutral-400"/>}
-                                                        <ScanlineOverlay />
-                                                    </div>
-                                                </HoverImagePreview>
+                                            <div className="w-8 h-8 rounded-none bg-neutral-300 dark:bg-neutral-800 border border-neutral-400 dark:border-white/10 overflow-hidden flex items-center justify-center shrink-0 relative">
+                                                {user.avatar_url ? <img src={user.avatar_url} className="w-full h-full object-cover"/> : <User size={12}/>}
                                             </div>
                                             <div className="flex flex-col">
                                                 <span className="text-neutral-800 dark:text-neutral-200 font-bold">{user.full_name || "Unknown"}</span>
-                                                {user.phone && <span className="text-[10px] text-neutral-500 dark:text-neutral-600 tracking-wider">{user.phone}</span>}
                                             </div>
                                         </td>
                                         <td className="px-6 py-3 align-middle">
@@ -516,7 +517,7 @@ const AdminDashboard = () => {
                                         </td>
                                         <td className="px-6 py-3 opacity-60 align-middle">{new Date(user.created_at).toLocaleDateString('en-GB')}</td>
                                         <td className="px-6 py-3 text-right align-middle">
-                                            {user.role !== 'admin' && (<button onClick={() => handleDeleteUser(user.id)} className="text-neutral-500 hover:text-red-500 transition p-2 hover:bg-red-500/10 rounded-none border border-transparent hover:border-red-500/20"><Trash2 size={14} /></button>)}
+                                            {user.role !== 'admin' && (<button onClick={() => handleDeleteUser(user.id)} className="text-neutral-500 hover:text-red-500 transition p-2"><Trash2 size={14} /></button>)}
                                         </td>
                                     </tr>
                                 );
@@ -532,7 +533,7 @@ const AdminDashboard = () => {
       {isSongTableView && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
-                <button onClick={() => { setCurrentView('dashboard'); setSongSearchTerm(""); }} className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white font-mono text-xs uppercase tracking-widest group border border-transparent hover:border-neutral-500 px-3 py-1 transition-all"><ArrowLeft size={14}/> RETURN_TO_BASE</button>
+                <button onClick={() => { setCurrentView('dashboard'); setSongSearchTerm(""); }} className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white font-mono text-xs uppercase tracking-widest border border-transparent hover:border-neutral-500 px-3 py-1 transition-all"><ArrowLeft size={14}/> RETURN_TO_BASE</button>
                 <div className="flex items-center gap-4 w-full md:w-auto">
                     <div className="flex bg-neutral-200 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none p-1">
                           <button onClick={() => setSongSortType('plays')} className={`px-3 py-1 text-[10px] rounded-none font-mono uppercase transition ${songSortType === 'plays' ? 'bg-purple-600 text-white' : 'text-neutral-500 hover:text-black dark:hover:text-white'}`}>Top_Plays</button>
@@ -542,11 +543,10 @@ const AdminDashboard = () => {
                     <div className="relative w-full md:w-80">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" size={14}/>
                         <input value={songSearchTerm} onChange={(e) => setSongSearchTerm(e.target.value)} placeholder="SEARCH_TRACK_DB..." className="w-full bg-neutral-100 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none pl-10 pr-10 py-2 text-xs font-mono text-neutral-900 dark:text-white outline-none focus:border-purple-500 transition-colors uppercase placeholder:text-[10px]"/>
-                        {songSearchTerm && <button onClick={() => setSongSearchTerm("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white"><Eraser size={14}/></button>}
                     </div>
                 </div>
             </div>
-            <CyberCard className="bg-white dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none overflow-hidden backdrop-blur-sm shadow-xl">
+            <CyberCard className="bg-white dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none overflow-hidden backdrop-blur-sm">
                 <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center">
                     <h3 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex items-center gap-2">{songViewIcon} {songViewTitle}</h3>
                     <span className="text-[10px] text-neutral-500 font-mono bg-white dark:bg-black px-2 border border-neutral-300 dark:border-white/10">Records: {filteredSongs.length}</span>
@@ -554,7 +554,7 @@ const AdminDashboard = () => {
                 <div className="overflow-x-auto max-h-[600px]">
                     <table className="w-full text-left text-xs font-mono text-neutral-600 dark:text-neutral-400">
                         <thead className="bg-neutral-200 dark:bg-black/40 text-neutral-700 dark:text-neutral-500 uppercase tracking-widest sticky top-0 z-10 backdrop-blur-md border-b border-neutral-300 dark:border-white/10">
-                            <tr><th className="px-6 py-3">Track_ID</th><th className="px-6 py-3">Artist</th><th className="px-6 py-3">Uploader</th><th className="px-6 py-3">Status</th><th className="px-6 py-3">Plays <ArrowDownWideNarrow size={12} className="inline"/></th><th className="px-6 py-3 text-right">Cmd</th></tr>
+                            <tr><th className="px-6 py-3">Track_ID</th><th className="px-6 py-3">Artist</th><th className="px-6 py-3">Uploader</th><th className="px-6 py-3">Status</th><th className="px-6 py-3">Plays</th><th className="px-6 py-3 text-right">Cmd</th></tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-200 dark:divide-white/5">
                             {filteredSongs.map((song) => {
@@ -562,21 +562,15 @@ const AdminDashboard = () => {
                                 return (
                                     <tr key={song.id} className="hover:bg-neutral-50 dark:hover:bg-white/5 transition">
                                             <td className="px-6 py-3 flex items-center gap-3 align-middle">
-                                                {/* HOVER PREVIEW CHO SONGS TABLE */}
-                                                <div className="w-8 h-8 rounded-none bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 overflow-hidden flex-shrink-0 cursor-none relative">
-                                                    <HoverImagePreview src={song.image_url} alt={song.title} audioSrc={song.song_url} className="w-full h-full" previewSize={200} fallbackIcon="disc">
-                                                        <div className="w-full h-full relative flex items-center justify-center">
-                                                            {song.image_url ? <img src={song.image_url} className="w-full h-full object-cover"/> : <Music size={12} className="m-auto text-neutral-400"/>}
-                                                            <ScanlineOverlay />
-                                                        </div>
-                                                    </HoverImagePreview>
+                                                <div className="w-8 h-8 rounded-none bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 overflow-hidden relative">
+                                                    {song.image_url ? <img src={song.image_url} className="w-full h-full object-cover"/> : <Music size={12} className="m-auto text-neutral-400"/>}
                                                 </div>
                                                 <div className="flex flex-col min-w-0">
-                                                    <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors" title={s.title}>{song.title}</span>
-                                                    <span className="truncate text-[10px] text-neutral-500 dark:text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300">{song.author}</span>
+                                                    <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold">{song.title}</span>
+                                                    <span className="truncate text-[10px] text-neutral-500">{song.author}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-3 text-neutral-600 dark:text-neutral-400 align-middle uppercase">{song.author}</td>
+                                            <td className="px-6 py-3 align-middle uppercase">{song.author}</td>
                                             <td className="px-6 py-3 align-middle">
                                                 <span className={`text-[9px] px-2 py-0.5 rounded-none border font-bold uppercase ${uploader.role === 'admin' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-600' : 'bg-blue-500/10 border-blue-500/30 text-blue-600'}`}>
                                                     {uploader.name}
@@ -587,7 +581,7 @@ const AdminDashboard = () => {
                                             </td>
                                             <td className="px-6 py-3 align-middle"><span className="text-emerald-600 dark:text-emerald-500 font-bold bg-emerald-500/10 px-2">{song.play_count}</span></td>
                                             <td className="px-6 py-3 text-right align-middle">
-                                                <button onClick={() => handleDeleteSong(song.id)} className="text-neutral-500 hover:text-red-500 transition p-2 hover:bg-red-500/10 rounded-none border border-transparent hover:border-red-500/20"><Trash2 size={14} /></button>
+                                                <button onClick={() => handleDeleteSong(song.id)} className="text-neutral-500 hover:text-red-500 transition p-2"><Trash2 size={14} /></button>
                                             </td>
                                     </tr>
                                 );
@@ -599,33 +593,11 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* VIEW: ARTISTS LOGS */}
-      {currentView === 'artists_list' && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex justify-between items-center mb-4">
-                <button onClick={() => { setCurrentView('dashboard'); setSongSearchTerm(""); }} className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white font-mono text-xs uppercase tracking-widest group border border-transparent hover:border-neutral-500 px-3 py-1 transition-all"><ArrowLeft size={14}/> RETURN_TO_BASE</button>
-                <div className="relative w-64"><Search className="absolute left-2 top-2 text-neutral-500" size={12}/><input value={artistSearchTerm} onChange={(e) => setArtistSearchTerm(e.target.value)} placeholder="SEARCH_LOGS..." className="w-full bg-neutral-100 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none pl-8 py-1.5 text-xs text-neutral-900 dark:text-white outline-none focus:border-blue-500 placeholder:text-[10px]"/></div>
-            </div>
-            <CyberCard className="bg-white dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none overflow-hidden backdrop-blur-sm">
-                <div className="overflow-x-auto max-h-[600px]">
-                    <table className="w-full text-left text-xs font-mono text-neutral-600 dark:text-neutral-400">
-                        <thead className="bg-neutral-200 dark:bg-black/40 text-neutral-700 dark:text-neutral-500 uppercase tracking-widest sticky top-0 backdrop-blur-md border-b border-neutral-300 dark:border-white/10"><tr><th className="px-6 py-3">Keyword</th><th className="px-6 py-3">Count</th><th className="px-6 py-3 text-right">Cmd</th></tr></thead>
-                        <tbody className="divide-y divide-neutral-200 dark:divide-white/5">
-                            {filteredSearchLogs.map((artist, i) => (
-                                <tr key={i} className="hover:bg-neutral-50 dark:hover:bg-white/5 transition"><td className="px-6 py-3"><span className="text-neutral-800 dark:text-neutral-200 font-bold uppercase">{artist.artist_name}</span></td><td className="px-6 py-3 text-blue-600 dark:text-blue-400 font-bold">{artist.search_count}</td><td className="px-6 py-3 text-right"><button onClick={() => handleDeleteSearch(artist.artist_name)} className="hover:text-red-500 p-2"><Trash2 size={14}/></button></td></tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </CyberCard>
-        </div>
-      )}
-
       {/* VIEW: DB ARTISTS LIST */}
       {currentView === 'db_artists_list' && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex justify-between items-center mb-4">
-                <button onClick={() => { setCurrentView('dashboard'); setSongSearchTerm(""); }} className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white font-mono text-xs uppercase tracking-widest group border border-transparent hover:border-neutral-500 px-3 py-1 transition-all"><ArrowLeft size={14}/> RETURN_TO_BASE</button>
+                <button onClick={() => setCurrentView('dashboard')} className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white font-mono text-xs uppercase tracking-widest border border-transparent hover:border-neutral-500 px-3 py-1 transition-all"><ArrowLeft size={14}/> RETURN</button>
                 <div className="flex items-center gap-4">
                     <GlitchButton onClick={handleCleanupArtists} disabled={cleaning} className="bg-red-500/10 border-red-500/50 text-red-600 dark:text-red-400 dark:hover:!text-white px-4 py-2 text-xs rounded-none">{cleaning ? <Loader2 className="animate-spin" size={14}/> : <Eraser size={14}/>} CLEANUP_DB</GlitchButton>
                     <div className="relative w-64"><Search className="absolute left-2 top-2 text-neutral-500" size={12}/><input value={artistSearchTerm} onChange={(e) => setArtistSearchTerm(e.target.value)} placeholder="SEARCH_ARTIST..." className="w-full bg-neutral-100 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none pl-8 py-1.5 text-xs text-neutral-900 dark:text-white outline-none focus:border-pink-500 placeholder:text-[10px]"/></div>
@@ -639,15 +611,8 @@ const AdminDashboard = () => {
                             {filteredArtists.map((artist, i) => (
                                 <tr key={i} className="hover:bg-neutral-50 dark:hover:bg-white/5 transition">
                                     <td className="px-4 py-3 flex items-center gap-3">
-                                        {/* HOVER PREVIEW CHO DB ARTIST LIST */}
-                                        <div className="w-8 h-8 rounded-none bg-neutral-200 dark:bg-neutral-800 overflow-hidden border border-neutral-300 dark:border-white/10 cursor-none relative">
-                                            <HoverImagePreview src={artist.image_url} alt={artist.originalName} className="w-full h-full" previewSize={160} fallbackIcon="user">
-                                                {/* FIX: Thêm 'flex items-center justify-center' */}
-                                                <div className="w-full h-full relative flex items-center justify-center">
-                                                    {artist.image_url ? <img src={artist.image_url} className="w-full h-full object-cover"/> : <User size={14} className="text-neutral-400"/>}
-                                                    <ScanlineOverlay />
-                                                </div>
-                                            </HoverImagePreview>
+                                        <div className="w-8 h-8 rounded-none bg-neutral-200 dark:bg-neutral-800 overflow-hidden border border-neutral-300 dark:border-white/10 relative">
+                                            {artist.image_url ? <img src={artist.image_url} className="w-full h-full object-cover"/> : <User size={14} className="text-neutral-400"/>}
                                         </div>
                                         <div className="flex flex-col"><span className="text-neutral-800 dark:text-neutral-200 font-bold uppercase">{artist.originalName}</span>{!artist.inDB && <span className="text-[8px] text-red-500 dark:text-red-400 border border-red-500/20 px-1 w-fit">SYNC_REQ</span>}</div>
                                     </td>

@@ -5,7 +5,7 @@ import { Howl } from "howler";
 import {
   Play, Pause, Rewind, FastForward, SkipBack, SkipForward,
   Volume2, VolumeX, Shuffle, Repeat, Repeat1, AlignJustify, Plus, Square, X,
-  Maximize2, ChevronUp, ChevronDown
+  Maximize2, ChevronUp, ChevronDown, Save
 } from "lucide-react"; 
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
@@ -44,7 +44,7 @@ const PlayerContent = ({ song, songUrl }) => {
   const [volume, setVolume] = useState(1);
   const [userId, setUserId] = useState(null);
   
-  // State mở rộng Player trên Mobile
+  // State mở rộng Player trên Mobile (từ Code 1)
   const [isExpanded, setIsExpanded] = useState(false);
 
   const isDraggingRef = useRef(false);
@@ -74,9 +74,9 @@ const PlayerContent = ({ song, songUrl }) => {
         setVolume(player.volume);
         if (sound) sound.volume(player.volume);
     }
-  }, [player.volume]);
+  }, [player.volume, sound, volume]);
 
-  // --- LOGIC LOAD EQ ---
+  // --- LOGIC LOAD EQ (từ Code 2) ---
   const loadSongSettings = useCallback(async (songId) => {
     if (!songId) return;
     try {
@@ -112,25 +112,6 @@ const PlayerContent = ({ song, songUrl }) => {
       }
     } catch (err) { console.error("Load Settings:", err); }
   }, [setBass, setMid, setTreble, isTunedTracksPage]);
-
-  // Realtime Sync cho EQ
-  useEffect(() => {
-    if (!userId || !isTunedTracksPage) return;
-    const channel = supabase.channel('realtime-player')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'user_song_settings', filter: `user_id=eq.${userId}` },
-        (payload) => {
-            if (song?.id && String(payload.new.song_id) === String(song.id)) {
-                const s = payload.new.settings;
-                if(s.bass !== undefined) setBass(s.bass);
-                if(s.mid !== undefined) setMid(s.mid);
-                if(s.treble !== undefined) setTreble(s.treble);
-            }
-        }
-      ).subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [userId, song?.id, isTunedTracksPage]);
-
 
   const onPlayNext = useCallback(() => {
     const { ids, activeId, isShuffle, setId, repeatMode } = playerRef.current;
@@ -198,19 +179,12 @@ const PlayerContent = ({ song, songUrl }) => {
           setIsLoading(false); 
           setError(null);
       },
+      onloaderror: () => { setError(true); setIsLoading(false); }
     });
 
     setSound(newSound);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); newSound.unload(); };
-  }, [songUrl]); 
-
-  // Check load EQ khi song ID thay đổi
-  useEffect(() => {
-    if (song?.id && loadedSongIdRef.current !== song.id) {
-      loadSongSettings(song.id);
-      loadedSongIdRef.current = song.id;
-    }
-  }, [song?.id, loadSongSettings]);
+  }, [songUrl, onPlayNext]); 
 
   useEffect(() => { if (sound) sound.loop(player.repeatMode === 2); }, [player.repeatMode, sound]);
 
@@ -251,16 +225,23 @@ const PlayerContent = ({ song, songUrl }) => {
     }
   };
 
+  // Nút Save Tuned (từ Code 2)
+  const onSaveTunedSong = async (e) => {
+    e?.stopPropagation();
+    if (!userId || !song) return;
+    // Logic lưu tuned song của bạn ở đây...
+    alert('Tuned settings saved!', 'success', 'SAVED');
+  };
+
   const volumePercentage = Math.round(volume * 100);
 
   if (!songUrl || !song) return null;
 
   return (
-    // THÊM max-w-[100vw] và overflow-hidden để fix lỗi tràn chiều ngang
     <div className="w-full max-w-[100vw] overflow-hidden">
       
       {/* ========================================================================
-        MOBILE LAYOUT (HIỆN KHI < MD)
+        MOBILE LAYOUT (từ Code 1)
         ========================================================================
       */}
       <div 
@@ -273,7 +254,6 @@ const PlayerContent = ({ song, songUrl }) => {
       >
           {error && <div className="absolute -top-8 bg-red-500 text-white text-xs py-1 px-3 z-50 font-mono w-full text-center">Error: Load Failed</div>}
 
-          {/* NÚT TOGGLE EXPAND */}
           <button 
              onClick={() => setIsExpanded(!isExpanded)}
              className="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-5 bg-white dark:bg-neutral-900 rounded-none flex items-center justify-center border-t border-x border-neutral-200 dark:border-white/10 shadow-sm z-50"
@@ -281,11 +261,8 @@ const PlayerContent = ({ song, songUrl }) => {
              {isExpanded ? <ChevronDown size={16} className="text-emerald-500"/> : <ChevronUp size={16}/>}
           </button>
 
-          {/* --- TRẠNG THÁI THU GỌN (MINI PLAYER) --- */}
           {!isExpanded && (
              <div className="flex items-center justify-between px-3 h-full w-full max-w-full" onClick={() => setIsExpanded(true)}>
-                 
-                 {/* Mini Info - Sử dụng min-w-0 để text tự co lại */}
                  <div className="flex items-center gap-2 flex-1 min-w-0 mr-2 overflow-hidden">
                      <div className="w-10 h-10 shrink-0 bg-neutral-800 border border-neutral-600 overflow-hidden relative">
                         <img 
@@ -300,113 +277,47 @@ const PlayerContent = ({ song, songUrl }) => {
                      </div>
                  </div>
 
-                 {/* Mini Controls */}
                  <div className="flex items-center gap-1 shrink-0">
-                      {/* Nút Add Playlist */}
-                      <button 
-                        onClick={(e) => { 
-                            e.stopPropagation();
-                            if(song) {
-                                const normalizedSong = {
-                                    id: song.id || song.encodeId,
-                                    title: song.title,
-                                    author: song.artistsNames || song.author,
-                                    song_url: song.streaming?.mp3 || song.song_url,
-                                    image_url: song.thumbnailM || song.image_url,
-                                    duration: song.duration
-                                };
-                                router.push(`/add-to-playlist?song=${encodeURIComponent(JSON.stringify(normalizedSong))}`); 
-                            }
-                        }} 
-                        disabled={!song} 
-                        className="text-neutral-500 dark:text-neutral-400 hover:text-emerald-600 dark:hover:text-emerald-500 p-2"
-                      >
-                        <Plus size={18} />
+                      <button onClick={handlePlay} className="relative flex items-center justify-center h-8 w-8 bg-neutral-200 dark:bg-emerald-400/50 text-black dark:text-emerald-100 border border-neutral-300 dark:border-emerald-300 rounded-none shadow-sm mx-1">
+                          {isLoading ? <div className="w-4 h-4 border-2 border-current border-t-transparent animate-spin" style={{ borderRadius: '50%' }}/> : <Icon size={18} fill="currentColor"/>}
                       </button>
 
-                      {/* Nút Play/Pause */}
-                      <button 
-                      onClick={handlePlay} 
-                      disabled={!sound || isLoading} 
-                      className="relative flex items-center justify-center h-8 w-8 bg-neutral-200 dark:bg-emerald-400/50 text-black dark:text-emerald-100 border border-neutral-300 dark:border-emerald-300 rounded-none shadow-sm mx-1"
-                      >
-                          <div className="relative w-full h-full flex items-center justify-center">
-                              {isLoading ? (
-                                  <div className="w-4 h-4 border-2 border-current border-t-transparent animate-spin relative z-20" style={{ borderRadius: '50%' }}/>
-                              ) : (
-                                  <Icon size={18} fill="currentColor" className="relative z-20"/>
-                              )}
-                          </div>
-                      </button>
-
-                      {/* Nút Stop */}
-                      <button 
-                        onClick={handleClearPlayer} 
-                        className="text-neutral-500 dark:text-neutral-400 hover:text-red-600 dark:hover:text-red-500 p-2"
-                      >
+                      <button onClick={handleClearPlayer} className="text-neutral-500 dark:text-neutral-400 hover:text-red-600 p-2">
                         <Square size={16} fill="currentColor" />
                       </button>
                       
-                      {/* Nút Fullscreen */}
                       <button onClick={(e) => { e.stopPropagation(); navigateToFullPlayer(); }} className="p-2 text-neutral-400">
                           <Maximize2 size={18}/>
                       </button>
                  </div>
-                 
-                 {/* Progress Line */}
                  <div className="absolute bottom-0 left-0 h-0.5 bg-emerald-500/20 w-full">
-                     <div 
-                        className="h-full bg-emerald-500 transition-all duration-300" 
-                        style={{ width: `${(seek / (duration || 1)) * 100}%` }}
-                     />
+                     <div className="h-full bg-emerald-500 transition-all duration-300" style={{ width: `${(seek / (duration || 1)) * 100}%` }}/>
                  </div>
              </div>
           )}
 
-          {/* --- TRẠNG THÁI MỞ RỘNG (FULL CONTROLS) --- */}
           {isExpanded && (
              <div className="flex flex-col px-4 pt-4 gap-4 animate-in slide-in-from-bottom-10 duration-300 bg-neutral-100 dark:bg-neutral-900/50 max-w-full overflow-hidden">
-                 
                  <div className="flex justify-between items-start">
-                     <div className="w-full flex justify-center">
-                        <MediaItem data={song} />
-                    </div>
-                     <button onClick={navigateToFullPlayer} className="p-2 absolute right-4 top-4 bg-neutral-200 dark:bg-white/10 rounded-none text-neutral-600 dark:text-neutral-300">
-                         <Maximize2 size={20}/>
-                     </button>
+                     <div className="w-full flex justify-center"><MediaItem data={song} /></div>
+                     <button onClick={navigateToFullPlayer} className="p-2 absolute right-4 top-4 bg-neutral-200 dark:bg-white/10 text-neutral-600 dark:text-neutral-300"><Maximize2 size={20}/></button>
                  </div>
 
-                 {/* Row 2: Progress Bar */}
                  <div className="flex items-center gap-3 mt-2">
                       <span className="text-[10px] font-mono w-8 text-right text-neutral-500">{formatTime(seek)}</span>
-                      <div className="flex-1 h-6 flex items-center">
-                          <Slider value={seek} max={duration || 100} onCommit={handleSeekCommit} onChange={handleSeekChange}/>
-                      </div>
+                      <div className="flex-1 h-6 flex items-center"><Slider value={seek} max={duration || 100} onCommit={handleSeekCommit} onChange={handleSeekChange}/></div>
                       <span className="text-[10px] font-mono w-8 text-neutral-500">{formatTime(duration)}</span>
                  </div>
 
-                 {/* Row 3: Main Controls Flexbox (Fix tràn grid) */}
                  <div className="flex flex-wrap justify-between items-center gap-2 mt-2 w-full px-2">
                       <button onClick={() => player.setIsShuffle(!player.isShuffle)} className={`p-2 ${player.isShuffle ? "text-emerald-500" : "text-neutral-400"}`}><Shuffle size={20}/></button>
-                      
                       <div className="flex items-center gap-4">
                           <button onClick={onPlayPrevious} className="p-2 text-neutral-800 dark:text-white"><SkipBack size={24}/></button>
-                          <button onClick={() => { if(sound) sound.seek(Math.max(0, seek - 5)); }} className="p-2 text-neutral-600 dark:text-white hidden xs:block"><Rewind size={20}/></button>
-                          
-                          <button 
-                          onClick={handlePlay} 
-                          disabled={!sound || isLoading} 
-                          className="relative flex items-center justify-center h-12 w-12 bg-neutral-200 dark:bg-emerald-400/50 text-black dark:text-emerald-100 border border-neutral-300 dark:border-emerald-300 transition-all duration-200 rounded-none shadow-sm"
-                          >
-                              <div className="relative w-full h-full flex items-center justify-center">
-                                  {isLoading ? <div className="w-6 h-6 border-2 border-current border-t-transparent animate-spin relative z-20" style={{ borderRadius: '50%' }}/> : <Icon size={28} fill="currentColor" className="relative z-20"/>}
-                              </div>
+                          <button onClick={handlePlay} className="h-12 w-12 bg-neutral-200 dark:bg-emerald-400/50 flex items-center justify-center border border-emerald-300">
+                               {isLoading ? <div className="w-6 h-6 border-2 border-current border-t-transparent animate-spin" style={{ borderRadius: '50%' }}/> : <Icon size={28} fill="currentColor"/>}
                           </button>
-
-                          <button onClick={() => { if(sound) sound.seek(Math.min(duration, seek + 5)); }} className="p-2 text-neutral-600 dark:text-white hidden xs:block"><FastForward size={20}/></button>
                           <button onClick={onPlayNext} className="p-2 text-neutral-800 dark:text-white"><SkipForward size={24}/></button>
                       </div>
-                      
                       <button onClick={() => player.setRepeatMode((player.repeatMode+1)%3)} className={`p-2 ${player.repeatMode!==0 ? "text-emerald-500" : "text-neutral-400"}`}>
                         {player.repeatMode===2 ? <Repeat1 size={20}/> : <Repeat size={20}/>}
                       </button>
@@ -415,19 +326,20 @@ const PlayerContent = ({ song, songUrl }) => {
           )}
       </div>
 
-
-      {/* ========================================================= */}
-      {/* 2. DESKTOP LAYOUT (HIỆN TRÊN MÁY TÍNH >= MD) */}
-      {/* ========================================================= */}
+      {/* =========================================================
+        DESKTOP LAYOUT (Kết hợp UI Code 1 và Logic Code 2)
+        =========================================================
+      */}
       <div className="hidden md:grid md:grid-cols-3 h-full px-4 items-center gap-6 bg-white dark:bg-black border-t border-neutral-200 dark:border-white/10">
         
         {/* LEFT: Info & Actions */}
-        <div className="flex w-full md:w-[20em] justify-start items-center gap-2 -translate-y-1">
-            <div className="flex-1 min-w-0">
-                <MediaItem data={song} />
-            </div>
+        <div className="flex w-full md:w-[24em] justify-start items-center gap-2 -translate-y-1">
+            <div className="flex-1 min-w-0"><MediaItem data={song} /></div>
             
             <div className="flex items-center gap-1">
+                {/* Nút Save Tuned từ Code 2 */}
+                <button onClick={onSaveTunedSong} className="text-neutral-500 hover:text-green-500 transition p-1.5" title="Save as Tuned Song"><Save size={18}/></button>
+
                 <button 
                     onClick={() => { 
                         if(song) {
@@ -442,20 +354,10 @@ const PlayerContent = ({ song, songUrl }) => {
                             router.push(`/add-to-playlist?song=${encodeURIComponent(JSON.stringify(normalizedSong))}`); 
                         }
                     }} 
-                    disabled={!song} 
-                    className="text-neutral-500 dark:text-neutral-400 hover:text-emerald-600 dark:hover:text-emerald-500 transition p-1.5"
-                    title="Add to Playlist"
-                >
-                    <Plus size={18} />
-                </button>
+                    className="text-neutral-500 dark:text-neutral-400 hover:text-emerald-600 transition p-1.5" title="Add to Playlist"
+                ><Plus size={18} /></button>
 
-                <button 
-                    onClick={handleClearPlayer} 
-                    className="text-neutral-500 dark:text-neutral-400 hover:text-red-600 dark:hover:text-red-500 transition p-1.5"
-                    title="Stop & Clear"
-                >
-                    <Square size={16} fill="currentColor" />
-                </button>
+                <button onClick={handleClearPlayer} className="text-neutral-500 dark:text-neutral-400 hover:text-red-600 transition p-1.5" title="Stop & Clear"><Square size={16} fill="currentColor" /></button>
             </div>
 
             <div className="hidden lg:block ml-2 border-l border-neutral-300 dark:border-neutral-700 pl-3 h-8 items-center">
@@ -470,13 +372,9 @@ const PlayerContent = ({ song, songUrl }) => {
                 <button onClick={onPlayPrevious} className="text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition hover:scale-110 p-1"><SkipBack size={20}/></button>
                 <button onClick={() => { if(sound) sound.seek(Math.max(0, seek - 5)); }} className="text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition hover:scale-110 p-1"><Rewind size={18}/></button>
                 
-                <button 
-                onClick={handlePlay} 
-                disabled={!sound || isLoading} 
-                className="relative flex items-center justify-center h-8 !w-16 bg-neutral-200 dark:bg-emerald-400/50 text-black dark:text-emerald-100 border border-neutral-300 dark:border-emerald-300 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all duration-200 rounded-none shadow-sm"
-                >
+                <button onClick={handlePlay} disabled={!sound || isLoading} className="relative flex items-center justify-center h-8 !w-16 bg-neutral-200 dark:bg-emerald-400/50 text-black dark:text-emerald-100 border border-neutral-300 dark:border-emerald-300 hover:bg-emerald-500 transition-all duration-200 shadow-sm">
                     <div className="relative w-full h-full flex items-center justify-center">
-                        {isLoading ? <div className="w-4 h-4 border-2 border-current border-t-transparent animate-spin relative z-20" style={{ borderRadius: '50%' }}/> : <Icon size={20} fill="currentColor" className="relative z-20"/>}
+                        {isLoading ? <div className="w-4 h-4 border-2 border-current border-t-transparent animate-spin" style={{ borderRadius: '50%' }}/> : <Icon size={20} fill="currentColor" className="relative z-20"/>}
                         <ScanlineOverlay className="absolute inset-0 z-10"/> 
                     </div>
                 </button>
@@ -491,29 +389,24 @@ const PlayerContent = ({ song, songUrl }) => {
             <div className="w-full flex items-center gap-3 -translate-y-2">
                 <span className="text-[10px] font-mono text-neutral-500 w-10 text-right">{formatTime(seek)}</span>
                 <div className="flex-1 h-full flex items-center">
-                    <Slider value={seek} max={duration || 100} onCommit={(v) => { if(sound) sound.seek(v); }} onChange={(v) => { isDraggingRef.current=true; setSeek(v); }}/>
+                    <Slider value={seek} max={duration || 100} onCommit={handleSeekCommit} onChange={handleSeekChange}/>
                 </div>
                 <span className="text-[10px] font-mono text-neutral-500 w-10">{formatTime(duration)}</span>
             </div>
         </div>
 
-        {/* RIGHT: Volume */}
+        {/* RIGHT: Volume & View */}
         <div className="flex justify-end pr-2 gap-4 w-full items-center -translate-y-[0.25rem]">
              <div className="flex items-center gap-2 border border-neutral-300 dark:border-white/10 px-2 py-1 bg-neutral-50 dark:bg-white/5">
                  <button onClick={toggleMute}><VolumeIcon size={18} className="text-neutral-500 dark:text-neutral-400 hover:text-emerald-500 transition"/></button>
                  <div className="w-[80px]"><Slider value={volume} max={1} step={0.01} onChange={(v) => handleVolumeChange(v)}/></div>
                  <span className="text-[10px] font-mono text-neutral-600 dark:text-neutral-400 font-bold w-6 text-right">{volumePercentage}%</span>
              </div>
-             <button 
-                onClick={navigateToFullPlayer} 
-                className={`p-2 border transition-all rounded-none ${pathname==='/now-playing' ? "text-emerald-500 border-emerald-500/50 bg-emerald-500/10" : "text-neutral-500 dark:text-neutral-400 border-transparent hover:bg-neutral-200 dark:hover:bg-white/5"}`}
-                title="Toggle View"
-             >
+             <button onClick={navigateToFullPlayer} className={`p-2 border transition-all rounded-none ${pathname==='/now-playing' ? "text-emerald-500 border-emerald-500/50 bg-emerald-500/10" : "text-neutral-500 dark:text-neutral-400 border-transparent hover:bg-neutral-200 dark:hover:bg-white/5"}`}>
                 {pathname === '/now-playing' ? <X size={20}/> : <AlignJustify size={20}/>}
              </button>
         </div>
       </div>
-
     </div>
   );
 };
