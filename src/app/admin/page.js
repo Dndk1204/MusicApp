@@ -235,40 +235,31 @@ const AdminDashboard = () => {
 
   // --- PRESENCE LOGIC (MERGED & FIXED) ---
   useEffect(() => {
-    // 1. Tạo kênh
-    const channel = supabase.channel('online-users', {
-        config: { presence: { key: 'admin-dashboard' } },
-    });
+    const channel = supabase.channel('online-users');
 
-    // 2. Lắng nghe trạng thái
     channel
         .on('presence', { event: 'sync' }, () => {
-            const newState = channel.presenceState();
+            const state = channel.presenceState();
             const onlineIds = new Set();
             
-            // Duyệt qua tất cả presence để lấy user_id
-            for (const id in newState) {
-                const users = newState[id];
-                users.forEach(u => {
-                    if (u.user_id) onlineIds.add(u.user_id);
+            Object.entries(state).forEach(([key, presenceArray]) => {
+                // Thêm key (đây thường là user.id nếu cấu hình đúng)
+                onlineIds.add(String(key)); 
+                
+                // Duyệt sâu vào metadata để lấy user_id (đề phòng key bị mã hóa)
+                presenceArray.forEach((p) => {
+                    if (p.user_id) onlineIds.add(String(p.user_id));
                 });
-            }
+            });
+            
             setOnlineUsers(onlineIds);
         })
-        .subscribe(async (status) => {
-            if (status === 'SUBSCRIBED') {
-                // 3. Track chính Admin (để user khác biết Admin đang online)
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                    await channel.track({ user_id: user.id, online_at: new Date().toISOString(), role: 'admin' });
-                }
-            }
-        });
+        .subscribe();
 
     return () => {
         supabase.removeChannel(channel);
     };
-  }, []);
+}, []);
 
   useEffect(() => {
     const init = async () => {
@@ -484,7 +475,10 @@ const AdminDashboard = () => {
                         </thead>
                         <tbody className="divide-y divide-neutral-200 dark:divide-white/5">
                             {usersList.map((user) => {
-                                const isOnline = onlineUsers.has(user.id);
+                                // 1. Chuyển tất cả về string và trim để so sánh chính xác
+                                const isOnline = Array.from(onlineUsers).some(id => String(id) === String(user.id));
+                                // 2. Log thử để xem Admin có trong danh sách online không (chỉ log 1 lần)
+                                if (user.role === 'admin') console.log("Admin ID:", user.id, "Online List:", onlineUsers);
                                 return (
                                     <tr key={user.id} className="hover:bg-neutral-50 dark:hover:bg-white/5 transition">
                                         <td className="px-6 py-3 flex items-center gap-3 align-middle">
@@ -515,7 +509,7 @@ const AdminDashboard = () => {
                                                 </div>
                                             ) : (
                                                 <div className="flex items-center gap-1.5 text-neutral-400">
-                                                    <div className="w-2 h-2 bg-neutral-400 dark:bg-neutral-700 rounded-full"></div>
+                                                    <div className="w-2 h-2 bg-neutral-400 rounded-full"></div>
                                                     <span className="text-[9px] font-bold tracking-wider">OFFLINE</span>
                                                 </div>
                                             )}

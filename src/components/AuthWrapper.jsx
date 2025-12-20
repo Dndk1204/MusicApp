@@ -45,6 +45,27 @@ const AuthWrapper = ({ children }) => {
       subscription.unsubscribe();
     };
   }, []);
+  
+  useEffect(() => {
+  if (!user) return;
+
+  const channel = supabase.channel('online-users', {
+    config: { 
+      presence: { key: user.id } // Đảm bảo key chính là ID bạn thấy ở console
+    },
+  });
+
+  channel.subscribe(async (status) => {
+    if (status === 'SUBSCRIBED') {
+      await channel.track({
+        user_id: user.id, // Gửi kèm user_id vào metadata
+        online_at: new Date().toISOString(),
+      });
+    }
+  });
+
+  return () => { supabase.removeChannel(channel); };
+}, [user]);
 
   return (
     <AuthContext.Provider value={{ session, user, loading, isAuthenticated: !!session }}>
