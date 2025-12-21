@@ -121,9 +121,10 @@ const TrackDetailModal = ({ song, isOpen, onClose, onUpdate, getUploaderInfo }) 
                         </div>
                     </div>
 
-                    {/* Cột 2: Edit Metadata (3/12) */}
-                    <div className="lg:col-span-3 p-5 border-r border-white/5 flex flex-col gap-6 overflow-y-auto custom-scrollbar bg-black/20">
+                    {/* Cột 2: Edit Metadata */}
+                    <div className="lg:col-span-3 p-5 border-r border-white/5 flex flex-col gap-6 overflow-y-auto bg-black/20">
                         <div className="space-y-4">
+                            <h3 className="text-xs font-mono text-blue-400 border-b border-blue-500/30 pb-2">METADATA_INTEGRITY</h3>
                             <div className="bg-white/5 p-4 border border-white/5 space-y-4">
                                 <div>
                                     <label className="text-[9px] text-emerald-500 font-mono mb-1 block uppercase">Track_Title</label>
@@ -135,14 +136,50 @@ const TrackDetailModal = ({ song, isOpen, onClose, onUpdate, getUploaderInfo }) 
                                 </div>
                             </div>
                         </div>
-                        <div className="mt-auto bg-neutral-900 border border-neutral-800 p-4 space-y-3 shrink-0 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
-                            <HoloButton onClick={handleSave} disabled={isSaving} className="w-full py-3 text-[10px] !bg-blue-600/20 !border-blue-500/50 !text-blue-400">
-                                {isSaving ? <Loader2 className="animate-spin" size={12}/> : <Save size={12}/>} UPDATE_ALL_SYSTEMS
+
+                        {/* PHẦN QUAN TRỌNG: NÚT PHÊ DUYỆT */}
+                        <div className="mt-auto bg-neutral-900 border border-neutral-800 p-4 space-y-3 shrink-0 shadow-2xl">
+                            <p className="text-[8px] font-mono text-neutral-500 uppercase tracking-widest text-center mb-2">Decision_Matrix</p>
+                            
+                            <HoloButton 
+                                onClick={handleSave} 
+                                disabled={isSaving} 
+                                className="w-full py-3 text-[10px] !bg-blue-600/20 !border-blue-500/50 !text-blue-400"
+                            >
+                                {isSaving ? <Loader2 className="animate-spin" size={12}/> : <Save size={12}/>} SAVE_CHANGES
                             </HoloButton>
+
                             <div className="flex gap-2">
-                                <CyberButton onClick={() => onUpdate(song.id, { is_public: true, is_denied: false })} className="flex-1 py-2 text-[10px] hover:!text-white">APPROVE</CyberButton>
-                                <GlitchButton onClick={() => onUpdate(song.id, { is_public: false, is_denied: true })} className="flex-1 py-2 text-[10px] hover:!text-white">DENY</GlitchButton>
+                                {/* Nếu bài chưa public, hiện nút Approve */}
+                                {!song.is_public && (
+                                    <CyberButton 
+                                        onClick={() => onUpdate(song.id, { is_public: true, is_denied: false, title: editData.title, author: editData.author })} 
+                                        className="flex-1 py-2 text-[10px] bg-emerald-500/20 border-emerald-500 text-emerald-500 hover:!bg-emerald-500 hover:!text-black"
+                                    >
+                                        <ShieldCheck size={12} className="mr-1"/> APPROVE
+                                    </CyberButton>
+                                )}
+
+                                {/* Nếu bài chưa bị từ chối, hiện nút Deny */}
+                                {!song.is_denied && (
+                                    <GlitchButton 
+                                        onClick={() => onUpdate(song.id, { is_public: false, is_denied: true, title: editData.title, author: editData.author })} 
+                                        className="flex-1 py-2 text-[10px] bg-red-500/20 border-red-500 text-red-500 hover:!bg-red-500 hover:!text-white"
+                                    >
+                                        <ShieldX size={12} className="mr-1"/> DENY
+                                    </GlitchButton>
+                                )}
                             </div>
+                            
+                            {/* Nút Restore nếu bài đang ở trạng thái Denied */}
+                            {song.is_denied && (
+                                <button 
+                                    onClick={() => onUpdate(song.id, { is_public: false, is_denied: false })}
+                                    className="w-full py-1 text-[9px] font-mono text-neutral-500 hover:text-white transition-colors"
+                                >
+                                    :: RESET_TO_PENDING ::
+                                </button>
+                            )}
                         </div>
                     </div>
 

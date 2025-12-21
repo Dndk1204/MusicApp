@@ -170,8 +170,10 @@ const MyUploadsPage = () => {
   const isEditable = true;
 
   const filteredSongs = useMemo(() => {
+    // Luôn ưu tiên hiển thị bài Pending và Denied trong 'all'
     if (filter === 'public') return songsUploads.filter(s => s.is_public);
-    if (filter === 'private') return songsUploads.filter(s => !s.is_public);
+    if (filter === 'private') return songsUploads.filter(s => !s.is_public && !s.is_denied);
+    // Bạn có thể thêm filter 'pending' nếu muốn
     return songsUploads;
   }, [songsUploads, filter]);
 
@@ -208,13 +210,30 @@ const MyUploadsPage = () => {
 
           {/* STATUS LABEL */}
           {isEditable && !isEditing && (
-             <div className="absolute top-2 left-2 z-20">
-                {song.is_public ? (
-                  <span className="bg-emerald-500 text-black text-[9px] font-bold font-mono px-1.5 py-0.5 border border-emerald-400">PUB</span>
-                ) : (
-                  <span className="bg-red-500 text-black text-[9px] font-bold font-mono px-1.5 py-0.5 border border-red-400">PVT</span>
-                )}
-             </div>
+          <div className="absolute top-2 left-2 z-20 flex flex-col gap-1">
+        {/* Trường hợp 1: Bài bị từ chối */}
+        {song.is_denied ? (
+            <span className="bg-red-600 text-white text-[9px] font-bold font-mono px-1.5 py-0.5 border border-red-400 shadow-[0_0_10px_rgba(220,38,38,0.5)]">
+                TERMINATED
+            </span>
+        ) : 
+        /* Trường hợp 2: Bài đang chờ duyệt (Không public và cũng không bị deny) */
+        (!song.is_public && !song.is_denied) ? (
+            <span className="bg-amber-500 text-black text-[9px] font-bold font-mono px-1.5 py-0.5 border border-amber-400 animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.5)]">
+                PENDING_REVIEW
+            </span>
+        ) : 
+        /* Trường hợp 3: Đã được duyệt, hiển thị Public/Private theo user chọn */
+        (
+            <span className={`text-black text-[9px] font-bold font-mono px-1.5 py-0.5 border ${
+                song.is_public 
+                ? 'bg-emerald-500 border-emerald-400' 
+                : 'bg-neutral-500 border-neutral-400'
+            }`}>
+                {song.is_public ? 'AUTHORIZED_PUB' : 'AUTHORIZED_PVT'}
+            </span>
+        )}
+          </div>
           )}
 
           {/* HOVER ACTIONS (Chỉ hiện khi hover vào ảnh - group-hover/img) */}
