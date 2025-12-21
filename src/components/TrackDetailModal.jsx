@@ -150,10 +150,10 @@ const TrackDetailModal = ({ song, isOpen, onClose, onUpdate, getUploaderInfo }) 
                             </HoloButton>
 
                             <div className="flex gap-2">
-                                {/* Nếu bài chưa public, hiện nút Approve */}
-                                {!song.is_public && (
+                                {/* Hiện nút Approve khi bài đang chờ duyệt (is_verified = false và is_denied = false) */}
+                                {song.is_verified === false && song.is_denied === false && (
                                     <CyberButton 
-                                        onClick={() => onUpdate(song.id, { is_public: true, is_denied: false, title: editData.title, author: editData.author })} 
+                                        onClick={() => onUpdate(song.id, { is_verified: true, title: editData.title, author: editData.author })} 
                                         className="flex-1 py-2 text-[10px] bg-emerald-500/20 border-emerald-500 text-emerald-500 hover:!bg-emerald-500 hover:!text-black"
                                     >
                                         <ShieldCheck size={12} className="mr-1"/> APPROVE
