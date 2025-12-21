@@ -81,20 +81,29 @@ const [selectedSongIds, setSelectedSongIds] = useState([]);
 const [approvalFilter, setApprovalFilter] = useState('pending');
 
   // --- HELPER LOGIC ---
-  const getUploaderInfo = (userId) => {
-      if (!userId) return { name: 'System', role: 'admin', avatar_url: null }; 
-      const user = usersList.find(u => u.id === userId);
-      if (user) {
-          return { name: user.full_name || 'Unknown', role: user.role || 'user', avatar_url: user.avatar_url };
-      }
-      return { name: 'Deleted User', role: 'unknown', avatar_url: null };
-  };
+    const getUploaderInfo = (userId) => {
+        if (!userId) return { name: 'System', role: 'admin', avatar_url: null }; 
+        const user = usersList.find(u => u.id === userId);
+        if (user) {
+            return { name: user.full_name || 'Unknown', role: user.role || 'user', avatar_url: user.avatar_url };
+        }
+        return { name: 'Deleted User', role: 'unknown', avatar_url: null };
+    };
 
-  const isAdminTrack = (song) => {
-      if (!song.user_id) return true; 
-      const info = getUploaderInfo(song.user_id);
-      return info.role === 'admin';
-  };
+    const isAdminTrack = (song) => {
+        if (!song.user_id) return true; 
+        const info = getUploaderInfo(song.user_id);
+        return info.role === 'admin';
+    };
+
+    const getActionLabel = (action) => {
+            switch (action) {
+                case 'upload': return { label: 'NEW_UPLOAD', color: 'bg-blue-500/20 text-blue-400' };
+                case 'set_public': return { label: 'REQ_PUBLIC', color: 'bg-emerald-500/20 text-emerald-400' };
+                case 'set_private': return { label: 'REQ_PRIVATE', color: 'bg-amber-500/20 text-amber-400' };
+                default: return { label: 'SYSTEM_MOD', color: 'bg-neutral-500/20 text-neutral-400' };
+            }
+    };
 
   // --- DATA FETCHING ---
   const fetchDashboardData = async () => {
@@ -105,7 +114,8 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
         
         const { data: allUsers } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
         const { data: allSongs } = await supabase.from('songs').select('*').order('created_at', { ascending: false }).range(0, 1999); 
-        const pendingCount = (allSongs || []).filter(s => !s.is_public && !s.is_denied).length;
+
+        const pendingCount = (allSongs || []).filter(s => !s.is_verified && !s.is_denied).length;
         const { data: allSearchLogs } = await supabase.from('artist_search_counts').select('*').order('search_count', { ascending: false });
         
         const { data: dbArtists } = await supabase.from('artists').select('*');
@@ -248,83 +258,89 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
 
 const handleUpdateSong = async (songId, updates) => {
     try {
-        let lyricUrl = updates.lyric_url;
+        const song = allSongsList.find(s => s.id === songId);
+        if (!song) throw new Error("TRACK_NOT_FOUND");
 
-        // 1. Xử lý Upload Lyrics nếu có nội dung mới từ editor
+        let finalUpdates = { ...updates };
+
+        // 1. Xử lý Upload Lyrics nếu Admin có sửa nội dung trong Modal
         if (updates.new_lyrics_content) {
             const fileName = `lyric-mod-${songId}-${Date.now()}.srt`;
             const blob = new Blob([updates.new_lyrics_content], { type: 'text/plain' });
-            const { error: uploadError } = await supabase.storage.from('songs').upload(fileName, blob);
-            if (uploadError) throw uploadError;
             
-            const { data: urlData } = supabase.storage.from('songs').getPublicUrl(fileName);
-            lyricUrl = urlData.publicUrl;
+            const { error: uploadError } = await supabase.storage
+                .from('songs')
+                .upload(fileName, blob);
+                
+            if (uploadError) throw uploadError;
+
+            const { data: urlData } = supabase.storage
+                .from('songs')
+                .getPublicUrl(fileName);
+                
+            finalUpdates.lyric_url = urlData.publicUrl;
         }
 
-        // 2. Chuẩn bị object data để update vào DB
-        // Chúng ta spread 'updates' để lấy title, author, is_public, is_denied
-        const updatePayload = {
-            ...updates,
-            lyric_url: lyricUrl,
-            updated_at: new Date().toISOString(),
-        };
+        // 2. Logic Phê duyệt (Approve)
+        // Admin nhấn Approve từ Modal thường gửi updates.is_public = true
+        if (updates.is_public === true || updates.is_verified === true) {
+            finalUpdates.is_verified = true;
+            finalUpdates.is_denied = false;
 
-        // Xóa field tạm không có trong DB trước khi gửi lên Supabase
-        delete updatePayload.new_lyrics_content; 
+            // Thực thi dựa trên tín hiệu yêu cầu (pending_action) của User
+            if (song.pending_action === 'set_private') {
+                finalUpdates.is_public = false; 
+            } else {
+                // Mặc định cho 'upload' hoặc 'set_public'
+                finalUpdates.is_public = true; 
+            }
+            
+            // Hoàn tất quy trình duyệt, xóa nhãn yêu cầu
+            finalUpdates.pending_action = null; 
+        }
 
+        // 3. QUAN TRỌNG: Sửa lỗi "new_lyrics_content column not found"
+        // Xóa tất cả các field "tạm" không tồn tại trong bảng 'songs' của Database
+        delete finalUpdates.new_lyrics_content;
+
+        // 4. Thực thi cập nhật Database
         const { error: dbError } = await supabase
             .from('songs')
-            .update(updatePayload)
+            .update(finalUpdates)
             .eq('id', songId);
 
         if (dbError) throw dbError;
 
-        // 3. Thông báo dựa trên hành động
-        if (updates.is_public === true) {
-            success("SIGNAL_AUTHORIZED: Bài hát đã được đưa lên hệ thống công khai.");
-        } else if (updates.is_denied === true) {
-            error("SIGNAL_TERMINATED: Đã từ chối và khóa bản ghi này.");
-        } else {
-            success("SYSTEM_UPDATED: Thông tin đã được lưu.");
-        }
-
-        await fetchDashboardData(); // Refresh dữ liệu hiển thị các con số thống kê
-        setIsTrackModalOpen(false); // Đóng modal nếu đang mở từ danh sách
+        success("PROTOCOL_EXECUTED: Hệ thống đã thực thi yêu cầu.");
+        await fetchDashboardData();
+        setIsTrackModalOpen(false);
     } catch (err) {
-        console.error(err);
-        error("PROTOCOL_ERROR: " + err.message);
+        console.error("Moderation Error:", err);
+        error(err.message || "Unknown error occurred during moderation.");
     }
 };
 
 const handleBulkAction = async (action) => {
-    if (selectedSongIds.length === 0) return;
-    
-    const isApprove = action === 'approve';
-    const confirmMsg = `${isApprove ? 'APPROVE' : 'DENY'} ${selectedSongIds.length} signals?`;
-    
-    if (!await confirm(confirmMsg, "BULK_PROTOCOL")) return;
+        if (selectedSongIds.length === 0) return;
+        const isApprove = action === 'approve';
+        if (!await confirm(`Execute ${action} for ${selectedSongIds.length} signals?`, "BULK_PROTOCOL")) return;
 
-    setLoading(true);
-    try {
-        const { error: dbError } = await supabase
-            .from('songs')
-            .update({
-                is_public: isApprove,
-                is_denied: !isApprove,
-                updated_at: new Date().toISOString()
-            })
-            .in('id', selectedSongIds);
+        setLoading(true);
+        try {
+            for (const id of selectedSongIds) {
+                const song = allSongsList.find(s => s.id === id);
+                let updateBody = { is_verified: isApprove, is_denied: !isApprove, pending_action: null };
+                
+                if (isApprove) {
+                    updateBody.is_public = song.pending_action !== 'set_private';
+                }
 
-        if (dbError) throw dbError;
-
-        success(`BATCH_COMPLETE: ${selectedSongIds.length} records processed.`);
-        setSelectedSongIds([]); // Reset danh sách chọn
-        await fetchDashboardData();
-    } catch (err) {
-        error(err.message);
-    } finally {
-        setLoading(false);
-    }
+                await supabase.from('songs').update(updateBody).eq('id', id);
+            }
+            success("BATCH_COMPLETE.");
+            setSelectedSongIds([]);
+            await fetchDashboardData();
+        } catch (err) { error(err.message); } finally { setLoading(false); }
 };
 
 const handleSelectAll = (filteredSongs) => {
@@ -698,14 +714,25 @@ const handleSelectAll = (filteredSongs) => {
     {currentView === 'approval_module' && (() => {
         // Tiền xử lý danh sách bài hát dựa trên Tab và Tìm kiếm
         const currentFilteredSongs = allSongsList.filter(song => {
+            // 1. Logic tìm kiếm (giữ nguyên)
             const matchesSearch = 
                 (song.title || "").toLowerCase().includes((songSearchTerm || "").toLowerCase()) || 
                 (song.author || "").toLowerCase().includes((songSearchTerm || "").toLowerCase());
             if (!matchesSearch) return false;
 
-            if (approvalFilter === 'pending') return !song.is_public && !song.is_denied;
-            if (approvalFilter === 'approved') return song.is_public;
-            if (approvalFilter === 'denied') return song.is_denied;
+            // 2. Logic Filter theo Tab (QUAN TRỌNG NHẤT)
+            if (approvalFilter === 'pending') {
+                // Hiện những bài chưa được duyệt (is_verified = false) và chưa bị từ chối
+                return song.is_verified === false && song.is_denied === false;
+            }
+            if (approvalFilter === 'approved') {
+                // Hiện những bài đã duyệt (is_verified = true)
+                return song.is_verified === true;
+            }
+            if (approvalFilter === 'denied') {
+                // Hiện những bài đã bị từ chối
+                return song.is_denied === true;
+            }
             return true;
         });
 
@@ -781,6 +808,10 @@ const handleSelectAll = (filteredSongs) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {currentFilteredSongs.map((song) => {
                         const isSelected = selectedSongIds.includes(song.id);
+                        
+                        // Lấy thông tin nhãn yêu cầu (Action Label)
+                        const actionInfo = getActionLabel(song.pending_action);
+
                         return (
                             <div 
                                 key={song.id} 
@@ -790,7 +821,18 @@ const handleSelectAll = (filteredSongs) => {
                                     : 'border-neutral-300 dark:border-white/10 hover:border-neutral-400 dark:hover:border-white/30'
                                 }`}
                             >
-                                {/* Checkbox Layer */}
+                                {/* 1. Bảng thông báo yêu cầu (Góc trên bên phải) */}
+                                <div className="absolute top-2 right-2 z-20 flex flex-col items-end gap-1">
+                                    <span className={`text-[8px] font-mono px-2 py-0.5 border font-bold tracking-tighter ${actionInfo.color} shadow-sm`}>
+                                        {actionInfo.label}
+                                    </span>
+                                    {/* Badge trạng thái phụ để Admin biết hiện tại bài đang là gì */}
+                                    <span className="text-[7px] font-mono text-neutral-500 bg-neutral-100 dark:bg-white/5 px-1 uppercase border border-neutral-300 dark:border-white/10">
+                                        Current: {song.is_public ? 'Public' : 'Private'}
+                                    </span>
+                                </div>
+
+                                {/* Checkbox Layer (Click vào phần trống của Card để chọn) */}
                                 <div 
                                     className="absolute top-0 left-0 w-full h-full z-10 cursor-pointer" 
                                     onClick={() => {
@@ -801,7 +843,7 @@ const handleSelectAll = (filteredSongs) => {
                                 />
 
                                 <div className="flex gap-4 relative z-0">
-                                    {/* Custom Checkbox UI */}
+                                    {/* 2. Custom Checkbox UI */}
                                     <div className={`absolute -top-2 -left-2 w-5 h-5 border flex items-center justify-center z-20 transition-colors ${
                                         isSelected ? 'bg-emerald-500 border-emerald-500 text-black' : 'bg-white dark:bg-black border-neutral-400 dark:border-white/20'
                                     }`}>
@@ -812,11 +854,13 @@ const handleSelectAll = (filteredSongs) => {
                                         <img src={song.image_url} className={`w-full h-full object-cover transition-all duration-500 ${isSelected ? 'grayscale-0 scale-110' : 'grayscale group-hover:grayscale-0'}`} />
                                         <ScanlineOverlay />
                                     </div>
-                                    <div className="min-w-0 flex-1 flex flex-col justify-center">
+
+                                    <div className="min-w-0 flex-1 flex flex-col justify-center pr-16"> {/* pr-16 để tránh đè lên nhãn yêu cầu */}
                                         <h4 className={`font-bold font-mono text-sm truncate uppercase tracking-tighter transition-colors ${isSelected ? 'text-emerald-500' : 'text-neutral-900 dark:text-white'}`}>
                                             {song.title}
                                         </h4>
                                         <p className="text-neutral-500 text-[10px] font-mono truncate">{song.author}</p>
+                                        
                                         <div className="mt-2 flex items-center gap-2">
                                             <span className="text-[8px] text-neutral-400 font-mono bg-neutral-100 dark:bg-white/5 px-1 border border-neutral-200 dark:border-white/10">
                                                 ID: {String(song.id).slice(0, 8)}
@@ -825,21 +869,21 @@ const handleSelectAll = (filteredSongs) => {
                                     </div>
                                 </div>
 
-                                {/* Nút Inspect - Cần z-20 và stopPropagation để không bị dính click chọn card */}
+                                {/* 3. Nút Inspect - Nổi lên trên cùng (z-20) */}
                                 <button 
                                     onClick={(e) => { 
                                         e.stopPropagation(); 
                                         setSelectedSong(song); 
                                         setIsTrackModalOpen(true); 
                                     }}
-                                    className="relative z-20 w-full mt-4 bg-neutral-100 dark:bg-white/5 border border-neutral-300 dark:border-white/10 hover:bg-emerald-500/20 text-neutral-600 dark:text-neutral-400 hover:text-emerald-600 dark:hover:text-emerald-400 text-[10px] font-mono py-2 uppercase flex items-center justify-center gap-2 transition-all"
+                                    className="relative z-20 w-full mt-4 bg-neutral-100 dark:bg-white/5 border border-neutral-300 dark:border-white/10 hover:bg-emerald-500/20 text-neutral-600 dark:text-neutral-400 hover:text-emerald-600 dark:hover:text-emerald-400 text-[10px] font-mono py-2 uppercase flex items-center justify-center gap-2 transition-all shadow-sm"
                                 >
-                                    <Eye size={12}/> Inspect_Signal
+                                    <Eye size={12}/> Inspect_Protocol
                                 </button>
                                 
-                                {/* Thanh trạng thái nhỏ ở cạnh trái */}
+                                {/* 4. Thanh trạng thái dọc ở cạnh trái (Màu sắc theo is_verified/is_denied) */}
                                 <div className={`absolute top-0 left-0 w-[2px] h-full ${
-                                    song.is_denied ? 'bg-red-500' : song.is_public ? 'bg-emerald-500' : 'bg-amber-500'
+                                    song.is_denied ? 'bg-red-500' : song.is_verified ? 'bg-emerald-500' : 'bg-amber-500'
                                 }`} />
                             </div>
                         );

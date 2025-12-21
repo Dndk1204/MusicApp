@@ -122,14 +122,7 @@ const UploadModal = () => {
         .from('songs')
         .upload(songPath, songFile, { cacheControl: '3600', upsert: false });
 
-      if (songError) {
-        // Handle case where Supabase returns HTML instead of JSON for storage errors
-        const errorMessage = songError.message;
-        if (errorMessage.includes('<html>') || errorMessage.includes('Unexpected token')) {
-          throw new Error("Audio upload failed: Storage bucket 'songs' may not exist or you don't have permission to upload. Please contact an administrator.");
-        }
-        throw new Error("Audio upload failed: " + errorMessage);
-      }
+      if (songError) throw new Error("Audio upload failed");
 
       // 2. Upload Image
       const imagePath = `image-${safeTitle}-${uniqueID}`;
@@ -137,34 +130,18 @@ const UploadModal = () => {
         .from('images')
         .upload(imagePath, imageFile, { cacheControl: '3600', upsert: false });
 
-      if (imageError) {
-        // Handle case where Supabase returns HTML instead of JSON for storage errors
-        const errorMessage = imageError.message;
-        if (errorMessage.includes('<html>') || errorMessage.includes('Unexpected token')) {
-          throw new Error("Image upload failed: Storage bucket 'images' may not exist or you don't have permission to upload. Please contact an administrator.");
-        }
-        throw new Error("Image upload failed: " + errorMessage);
-      }
+      if (imageError) throw new Error("Image upload failed");
 
       // 3. Upload Lyric
       let lyricUrl = null;
       if (lyricFile) {
         const fileExt = lyricFile.name.split('.').pop() || 'txt';
         const lyricPath = `lyric-${safeTitle}-${uniqueID}.${fileExt}`;
-        
         const { data: lyricData, error: lyricError } = await supabase.storage
           .from('songs')
           .upload(lyricPath, lyricFile, { cacheControl: '3600', upsert: false });
 
-        if (lyricError) {
-          // Handle case where Supabase returns HTML instead of JSON for storage errors
-          const errorMessage = lyricError.message;
-          if (errorMessage.includes('<html>') || errorMessage.includes('Unexpected token')) {
-            throw new Error("Lyric upload failed: Storage bucket 'songs' may not exist or you don't have permission to upload. Please contact an administrator.");
-          }
-          throw new Error("Lyric upload failed: " + errorMessage);
-        }
-
+        if (lyricError) throw new Error("Lyric upload failed");
         const { data: lyricUrlData } = supabase.storage.from('songs').getPublicUrl(lyricData.path);
         lyricUrl = lyricUrlData.publicUrl;
       }
@@ -172,7 +149,7 @@ const UploadModal = () => {
       const { data: songUrlData } = supabase.storage.from('songs').getPublicUrl(songData.path);
       const { data: imageUrlData } = supabase.storage.from('images').getPublicUrl(imageData.path);
 
-      // 4. Insert DB
+      // 4. Insert DB với cơ chế LOGIC MỚI
       const { error: dbError } = await supabase.from('songs').insert({
         user_id: user.id,
         title: title,
@@ -180,14 +157,16 @@ const UploadModal = () => {
         image_url: imageUrlData.publicUrl,
         song_url: songUrlData.publicUrl,
         lyric_url: lyricUrl, 
-        // QUAN TRỌNG: 
-        // Nếu là Admin thì duyệt luôn (true). 
-        // Nếu là User thì ép buộc là false (để vào Pending Queues) 
-        // bất kể họ chọn radio button nào ở giao diện.
-        is_public: isAdmin ? true : false,
         
-        // Bạn có thể thêm is_denied: false để tường minh (mặc dù DB đã có default)
-        is_denied: false, 
+        // --- LOGIC YÊU CẦU DUYỆT ---
+        // Nếu là Admin thì duyệt ngay lập tức
+        is_public: isAdmin ? (isPublic === 'true') : false,
+        is_verified: isAdmin ? true : false,
+        is_denied: false,
+        
+        // Gắn tín hiệu: Nếu bài mới tải lên bởi user thì action là 'upload'
+        // Trường hợp bài private (isPublic === 'false') vẫn cần duyệt nội dung lần đầu
+        pending_action: isAdmin ? null : 'upload', 
         
         play_count: 0,
         duration: songDuration
@@ -196,7 +175,7 @@ const UploadModal = () => {
       if (dbError) throw dbError;
 
       router.refresh();
-      success("Upload completed successfully!"); 
+      success(isAdmin ? "Data deployed to Core." : "Signal sent to moderation queue."); 
       
       setTimeout(() => {
           onClose();
@@ -214,30 +193,10 @@ const UploadModal = () => {
 
   return (
     <div className="fixed inset-0 z-[9999] flex justify-center items-center p-0 md:p-4 font-sans animate-in fade-in duration-300">
-      
-      {/* BACKDROP */}
       <div className="absolute inset-0 bg-neutral-900/90 backdrop-blur-sm" onClick={onClose} />
-
-      {/* CARD CONTAINER */}
-      <div className="
-          w-full h-full md:h-auto md:max-w-lg overflow-hidden relative
-          bg-white dark:bg-black 
-          md:border-2 md:border-neutral-400 md:dark:border-white/20 
-          shadow-[0_0_50px_rgba(0,0,0,0.5)] dark:shadow-[0_0_50px_rgba(16,185,129,0.15)]
-          rounded-none
-          flex flex-col
-          max-h-full md:max-h-[90vh]
-      ">
-        {/* Decoration Corners (Hidden on Mobile for cleaner look) */}
-        <div className="hidden md:block absolute top-0 left-0 w-3 h-3 border-t-4 border-l-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
-        <div className="hidden md:block absolute top-0 right-0 w-3 h-3 border-t-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
-        <div className="hidden md:block absolute bottom-0 left-0 w-3 h-3 border-b-4 border-l-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
-        <div className="hidden md:block absolute bottom-0 right-0 w-3 h-3 border-b-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
-
-        {/* Header */}
+      <div className="w-full h-full md:h-auto md:max-w-lg overflow-hidden relative bg-white dark:bg-black md:border-2 md:border-neutral-400 md:dark:border-white/20 shadow-[0_0_50px_rgba(0,0,0,0.5)] dark:shadow-[0_0_50px_rgba(16,185,129,0.15)] rounded-none flex flex-col max-h-full md:max-h-[90vh]">
         <div className="p-4 md:p-5 flex justify-between items-center border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-neutral-900 shrink-0 sticky top-0 z-40">
             <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-transparent via-emerald-500 to-transparent"></div>
-            
             <div>
                 <h2 className="text-lg md:text-xl font-bold font-mono flex items-center gap-2 uppercase tracking-widest text-neutral-900 dark:text-white">
                     <GlitchText text={isAdmin ? "ADMIN_UPLOAD" : "UPLOAD_MODULE"} />
@@ -246,172 +205,69 @@ const UploadModal = () => {
                     {isAdmin ? ":: SYSTEM_OVERRIDE_ENABLED ::" : ":: USER_CONTRIBUTION ::"}
                 </p>
             </div>
-
             <button onClick={onClose} className="p-2 text-neutral-500 hover:text-red-600 dark:text-neutral-400 dark:hover:text-red-500 transition hover:rotate-90 duration-300">
                 <X size={24}/>
             </button>
         </div>
 
-        {/* Body (Scrollable) */}
         <div className="p-4 md:p-6 lg:p-8 bg-neutral-50 dark:bg-black/80 overflow-y-auto custom-scrollbar flex-1">
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-                
-                {/* 1. Track Info Inputs */}
                 <div className="space-y-4">
                     <div className="group relative">
                         <label className="text-[10px] font-mono uppercase mb-1 block group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-500 text-neutral-600 dark:text-neutral-500 font-bold transition-colors">
                             <Music size={12} className="inline mr-1"/> Track_Title
                         </label>
-                        <input 
-                            disabled={isLoading} 
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            placeholder="ENTER_TITLE..." 
-                            className="
-                                w-full p-3 text-sm font-mono transition-all outline-none rounded-none
-                                bg-white border-2 border-neutral-300 text-neutral-900 placeholder-neutral-400
-                                focus:border-emerald-500 focus:shadow-[0_0_15px_rgba(16,185,129,0.2)]
-                                
-                                dark:bg-black/40 dark:border-white/20 dark:text-white dark:placeholder-neutral-600
-                                dark:focus:border-emerald-500 dark:focus:bg-emerald-500/5
-                            "
-                            required
-                        />
+                        <input disabled={isLoading} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="ENTER_TITLE..." className="w-full p-3 text-sm font-mono transition-all outline-none rounded-none bg-white border-2 border-neutral-300 text-neutral-900 placeholder-neutral-400 focus:border-emerald-500 dark:bg-black/40 dark:border-white/20 dark:text-white dark:placeholder-neutral-600 dark:focus:border-emerald-500" required />
                     </div>
                     <div className="group relative">
                         <label className="text-[10px] font-mono uppercase mb-1 block group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-500 text-neutral-600 dark:text-neutral-500 font-bold transition-colors">
                             <Music size={12} className="inline mr-1"/> Artist_Identity
                         </label>
-                        <input 
-                            disabled={isLoading} 
-                            value={author}
-                            onChange={(e) => setAuthor(e.target.value)}
-                            placeholder="ENTER_ARTIST..." 
-                            className="
-                                w-full p-3 text-sm font-mono transition-all outline-none rounded-none
-                                bg-white border-2 border-neutral-300 text-neutral-900 placeholder-neutral-400
-                                focus:border-emerald-500 focus:shadow-[0_0_15px_rgba(16,185,129,0.2)]
-                                
-                                dark:bg-black/40 dark:border-white/20 dark:text-white dark:placeholder-neutral-600
-                                dark:focus:border-emerald-500 dark:focus:bg-emerald-500/5
-                            "
-                            required
-                        />
+                        <input disabled={isLoading} value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="ENTER_ARTIST..." className="w-full p-3 text-sm font-mono transition-all outline-none rounded-none bg-white border-2 border-neutral-300 text-neutral-900 placeholder-neutral-400 focus:border-emerald-500 dark:bg-black/40 dark:border-white/20 dark:text-white dark:placeholder-neutral-600 dark:focus:border-emerald-500" required />
                     </div>
                 </div>
 
-                {/* 2. File Uploads Grid (Responsive: 1 cột mobile, 3 cột desktop) */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {/* Audio Upload */}
-                    <div className={`
-                        relative p-3 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-row md:flex-col items-center justify-start md:justify-center gap-3 md:gap-1 h-16 md:h-auto
-                        ${songFile
-                            ? 'border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/5'
-                            : 'border-neutral-300 bg-white hover:bg-neutral-50 hover:border-emerald-500/50 dark:border-white/20 dark:bg-black/30 dark:hover:bg-white/5'}
-                    `}>
-                        <div className={`p-2 rounded-none border shrink-0 ${songFile ? 'border-emerald-500 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'border-neutral-300 bg-neutral-100 text-neutral-500 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400 group-hover:text-emerald-500 group-hover:border-emerald-500'}`}>
-                            <FileAudio size={20} />
-                        </div>
-                        <span className={`text-[10px] font-mono text-left md:text-center truncate w-full px-1 uppercase ${songFile ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-neutral-600 dark:text-neutral-400'}`}>
-                            {songFile ? songFile.name : "AUDIO FILE"}
-                        </span>
-                        <input
-                            type="file"
-                            accept=".mp3,audio/*"
-                            disabled={isLoading}
-                            onChange={handleSongFileChange}
-                            className="absolute inset-0 opacity-0 cursor-pointer"
-                            required
-                        />
+                    <div className={`relative p-3 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-row md:flex-col items-center justify-start md:justify-center gap-3 md:gap-1 h-16 md:h-auto ${songFile ? 'border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/5' : 'border-neutral-300 bg-white dark:border-white/20 dark:bg-black/30'}`}>
+                        <div className={`p-2 rounded-none border shrink-0 ${songFile ? 'border-emerald-500 bg-emerald-500/20 text-emerald-600' : 'text-neutral-500'}`}><FileAudio size={20} /></div>
+                        <span className="text-[10px] font-mono truncate w-full px-1 uppercase">{songFile ? songFile.name : "AUDIO FILE"}</span>
+                        <input type="file" accept=".mp3,audio/*" disabled={isLoading} onChange={handleSongFileChange} className="absolute inset-0 opacity-0 cursor-pointer" required />
                     </div>
 
-                    {/* Image Upload */}
-                    <div className={`
-                        relative p-3 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-row md:flex-col items-center justify-start md:justify-center gap-3 md:gap-1 h-16 md:h-auto
-                        ${imageFile
-                            ? 'border-pink-500 bg-pink-500/10 dark:bg-pink-500/5'
-                            : 'border-neutral-300 bg-white hover:bg-neutral-50 hover:border-pink-500/50 dark:border-white/20 dark:bg-black/30 dark:hover:bg-white/5'}
-                    `}>
-                        <div className={`p-2 rounded-none border shrink-0 ${imageFile ? 'border-pink-500 bg-pink-500/20 text-pink-600 dark:text-pink-400' : 'border-neutral-300 bg-neutral-100 text-neutral-500 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400 group-hover:text-pink-500 group-hover:border-pink-500'}`}>
-                            <ImageIcon size={20} />
-                        </div>
-                        <span className={`text-[10px] font-mono text-left md:text-center truncate w-full px-1 uppercase ${imageFile ? 'text-pink-700 dark:text-pink-400 font-bold' : 'text-neutral-600 dark:text-neutral-400'}`}>
-                            {imageFile ? imageFile.name : "COVER IMAGE"}
-                        </span>
-                        <input
-                            type="file"
-                            accept="image/*"
-                            disabled={isLoading}
-                            onChange={(e) => setImageFile(e.target.files[0])}
-                            className="absolute inset-0 opacity-0 cursor-pointer"
-                            required
-                        />
+                    <div className={`relative p-3 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-row md:flex-col items-center justify-start md:justify-center gap-3 md:gap-1 h-16 md:h-auto ${imageFile ? 'border-pink-500 bg-pink-500/10' : 'border-neutral-300 bg-white dark:border-white/20 dark:bg-black/30'}`}>
+                        <div className={`p-2 rounded-none border shrink-0 ${imageFile ? 'border-pink-500 bg-pink-500/20 text-pink-600' : 'text-neutral-500'}`}><ImageIcon size={20} /></div>
+                        <span className="text-[10px] font-mono truncate w-full px-1 uppercase">{imageFile ? imageFile.name : "COVER IMAGE"}</span>
+                        <input type="file" accept="image/*" disabled={isLoading} onChange={(e) => setImageFile(e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" required />
                     </div>
 
-                    {/* Lyrics Upload */}
-                    <div className={`
-                        relative p-3 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-row md:flex-col items-center justify-start md:justify-center gap-3 md:gap-1 h-16 md:h-auto
-                        ${lyricFile
-                            ? 'border-purple-500 bg-purple-500/10 dark:bg-purple-500/5'
-                            : 'border-neutral-300 bg-white hover:bg-neutral-50 hover:border-purple-500/50 dark:border-white/20 dark:bg-black/30 dark:hover:bg-white/5'}
-                    `}>
-                        <div className={`p-2 rounded-none border shrink-0 ${lyricFile ? 'border-purple-500 bg-purple-500/20 text-purple-600 dark:text-purple-400' : 'border-neutral-300 bg-neutral-100 text-neutral-500 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400 group-hover:text-purple-500 group-hover:border-purple-500'}`}>
-                            <FileText size={20} />
-                        </div>
-                        <span className={`text-[9px] font-mono text-left md:text-center truncate w-full px-1 uppercase ${lyricFile ? 'text-purple-700 dark:text-purple-400 font-bold' : 'text-neutral-600 dark:text-neutral-400'}`}>
-                            {lyricFile ? lyricFile.name : "LYRICS (.srt)"}
-                        </span>
-                        <input
-                            type="file"
-                            accept=".srt,.txt"
-                            disabled={isLoading}
-                            onChange={(e) => setLyricFile(e.target.files[0])}
-                            className="absolute inset-0 opacity-0 cursor-pointer"
-                        />
+                    <div className={`relative p-3 rounded-none border-2 border-dashed transition-all duration-300 group cursor-pointer flex flex-row md:flex-col items-center justify-start md:justify-center gap-3 md:gap-1 h-16 md:h-auto ${lyricFile ? 'border-purple-500 bg-purple-500/10' : 'border-neutral-300 bg-white dark:border-white/20 dark:bg-black/30'}`}>
+                        <div className={`p-2 rounded-none border shrink-0 ${lyricFile ? 'border-purple-500 bg-purple-500/20 text-purple-600' : 'text-neutral-500'}`}><FileText size={20} /></div>
+                        <span className="text-[9px] font-mono truncate w-full px-1 uppercase">{lyricFile ? lyricFile.name : "LYRICS (.srt)"}</span>
+                        <input type="file" accept=".srt,.txt" disabled={isLoading} onChange={(e) => setLyricFile(e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
                     </div>
                 </div>
 
-                {/* 3. Visibility Toggle */}
+                {/* Visibility Toggle */}
                 {!isAdmin && (
                     <div className="flex p-1 rounded-none border border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-black/40">
-                        <label className={`
-                            flex-1 flex items-center justify-center gap-2 p-3 md:p-2 rounded-none cursor-pointer transition-all border border-transparent
-                            ${isPublic === "true" 
-                                ? 'bg-white dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold border-emerald-500 shadow-sm' 
-                                : 'text-neutral-500 hover:text-black dark:hover:text-white'}
-                        `}>
+                        <label className={`flex-1 flex items-center justify-center gap-2 p-3 md:p-2 rounded-none cursor-pointer transition-all border border-transparent ${isPublic === "true" ? 'bg-white dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold border-emerald-500 shadow-sm' : 'text-neutral-500'}`}>
                             <input type="radio" value="true" checked={isPublic === "true"} onChange={(e) => setIsPublic(e.target.value)} className="hidden" />
                             <Globe size={14}/> <span className="text-[10px] font-mono uppercase">Public</span>
                         </label>
-                        <label className={`
-                            flex-1 flex items-center justify-center gap-2 p-3 md:p-2 rounded-none cursor-pointer transition-all border border-transparent
-                            ${isPublic === "false" 
-                                ? 'bg-white dark:bg-red-500/20 text-red-700 dark:text-red-400 font-bold border-red-500 shadow-sm' 
-                                : 'text-neutral-500 hover:text-black dark:hover:text-white'}
-                        `}>
+                        <label className={`flex-1 flex items-center justify-center gap-2 p-3 md:p-2 rounded-none cursor-pointer transition-all border border-transparent ${isPublic === "false" ? 'bg-white dark:bg-red-500/20 text-red-700 dark:text-red-400 font-bold border-red-500 shadow-sm' : 'text-neutral-500'}`}>
                             <input type="radio" value="false" checked={isPublic === "false"} onChange={(e) => setIsPublic(e.target.value)} className="hidden" />
                             <Lock size={14}/> <span className="text-[10px] font-mono uppercase">Private</span>
                         </label>
                     </div>
                 )}
 
-                {/* 4. Submit Button */}
-                <CyberButton 
-                    type="submit" 
-                    disabled={isLoading} 
-                    className="
-                        w-full py-4 text-xs tracking-widest disabled:opacity-50 disabled:cursor-not-allowed rounded-none
-                        border-emerald-500 bg-emerald-600 hover:bg-emerald-500 text-white hover:!text-white
-                        mb-4 md:mb-0
-                    "
-                >
+                <CyberButton type="submit" disabled={isLoading} className="w-full py-4 text-xs tracking-widest disabled:opacity-50 border-emerald-500 bg-emerald-600 hover:bg-emerald-500 text-white mb-4 md:mb-0">
                     {isLoading ? (
                         <span className="flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={16}/> PROCESSING_DATA...</span>
                     ) : (
                         <span className="flex items-center justify-center gap-2"><UploadCloud size={16}/> INITIATE_UPLOAD</span>
                     )}
                 </CyberButton>
-
             </form>
         </div>
       </div>
