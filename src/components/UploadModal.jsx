@@ -180,7 +180,15 @@ const UploadModal = () => {
         image_url: imageUrlData.publicUrl,
         song_url: songUrlData.publicUrl,
         lyric_url: lyricUrl, 
-        is_public: isAdmin ? true : (isPublic === 'true'),
+        // QUAN TRỌNG: 
+        // Nếu là Admin thì duyệt luôn (true). 
+        // Nếu là User thì ép buộc là false (để vào Pending Queues) 
+        // bất kể họ chọn radio button nào ở giao diện.
+        is_public: isAdmin ? true : false,
+        
+        // Bạn có thể thêm is_denied: false để tường minh (mặc dù DB đã có default)
+        is_denied: false, 
+        
         play_count: 0,
         duration: songDuration
       });
