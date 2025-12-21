@@ -7,15 +7,19 @@ import Link from "next/link";
 import { 
   ShieldAlert, UploadCloud, Users, Trash2, TrendingUp, 
   Search, Loader2, RefreshCw, Music, ArrowLeft, Eraser, Mic2, Heart,
-  Globe, Lock, Star, ArrowDownWideNarrow, ArchiveRestore, Skull, Activity, List, User, Wifi, WifiOff
+  Globe, Lock, Star, ArchiveRestore, Skull, Activity, List, User,
+  CheckCircle2, XCircle, Clock, Eye, ShieldCheck, Filter
 } from "lucide-react";
 import useUI from "@/hooks/useUI";
 import useUploadModal from "@/hooks/useUploadModal"; 
 import UploadModal from "@/components/UploadModal"; 
-// Import Cyber Components
+
+// Import các Cyber Components
 import { GlitchButton, CyberButton, GlitchText, CyberCard, NeonButton, ScanlineOverlay } from "@/components/CyberComponents";
-// Import Hover Preview
-import HoverImagePreview from "@/components/HoverImagePreview"; 
+
+// Import Component đã tách ra
+import ActivityStream from "@/components/ActivityStream";
+import TrackDetailModal from "@/components/TrackDetailModal";
 
 // --- COMPONENT SKELETON (CYBER STYLE) ---
 const AdminSkeleton = () => (
@@ -41,102 +45,6 @@ const AdminSkeleton = () => (
     </div>
 );
 
-// --- COMPONENT: ACTIVITY STREAM ---
-const ActivityStream = ({ items, getUploaderInfo }) => {
-    const recentItems = items.slice(0, 20);
-    const streamItems = recentItems.length < 10 
-        ? [...recentItems, ...recentItems, ...recentItems, ...recentItems] 
-        : [...recentItems, ...recentItems];
-
-    if (items.length === 0) return null;
-
-    return (
-        <div className="w-full mb-10 relative group overflow-hidden py-6 border-y border-dashed border-neutral-300 dark:border-white/10 bg-neutral-50/50 dark:bg-white/5">
-            <div className="absolute top-3 left-2 z-20 text-[9px] font-mono text-emerald-600 dark:text-emerald-500 uppercase tracking-widest bg-white dark:bg-black px-2 border border-emerald-500/20 -translate-y-1/2 pointer-events-none">
-                :: Live_Upload_Stream ::
-            </div>
-
-            <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-neutral-100 dark:from-black to-transparent z-10 pointer-events-none"/>
-            <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-neutral-100 dark:from-black to-transparent z-10 pointer-events-none"/>
-            
-            <div className="flex gap-4 animate-flow-right w-max px-4 stream-track">
-                {streamItems.map((song, idx) => {
-                    const uploader = getUploaderInfo(song.user_id);
-                    return (
-                          <div key={`${song.id}-${idx}`} className="flex flex-col gap-2 p-3 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-white/10 rounded-none w-[280px] shadow-sm hover:border-emerald-500 transition-colors group/card relative">
-                             
-                             <div className="flex items-start gap-3">
-                                 <div className="w-12 h-12 bg-neutral-200 dark:bg-neutral-800 overflow-hidden relative shrink-0 border border-neutral-300 dark:border-white/10 group-hover/card:border-emerald-500 transition-colors cursor-none">
-                                     <HoverImagePreview 
-                                        src={song.image_url} 
-                                        alt={song.title}
-                                        audioSrc={song.song_url} 
-                                        className="w-full h-full"
-                                        previewSize={200}
-                                     >
-                                          <div className="w-full h-full relative flex items-center justify-center">
-                                               {song.image_url ? (
-                                                   <img src={song.image_url} className="w-full h-full object-cover grayscale group-hover/card:grayscale-0 transition-all duration-500" alt={song.title}/>
-                                               ) : (
-                                                   <div className="w-full h-full flex items-center justify-center text-neutral-400"><Music size={16}/></div>
-                                               )}
-                                               <ScanlineOverlay />
-                                          </div>
-                                     </HoverImagePreview>
-                                 </div>
-                                 
-                                 <div className="flex flex-col min-w-0 flex-1 justify-center">
-                                     <span className="text-xs font-bold font-mono truncate text-neutral-900 dark:text-white uppercase group-hover/card:text-emerald-600 dark:group-hover/card:text-emerald-500 transition-colors" title={song.title}>
-                                         {song.title}
-                                     </span>
-                                     <Link 
-                                        href={`/artist/${encodeURIComponent(song.author)}`}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="text-[10px] text-neutral-500 truncate font-mono hover:underline hover:text-emerald-500"
-                                     >
-                                         {song.author}
-                                     </Link>
-                                 </div>
-                             </div>
-
-                             <div className="flex justify-between items-center pt-2 border-t border-dashed border-neutral-200 dark:border-white/10 mt-1">
-                                 <div className="flex items-center gap-2">
-                                     <div className={`w-5 h-5 rounded-none overflow-hidden border flex items-center justify-center ${uploader.role === 'admin' ? 'border-yellow-500 bg-yellow-500/10' : 'border-blue-500 bg-blue-500/10'}`}>
-                                         {uploader.avatar_url ? (
-                                             <img src={uploader.avatar_url} alt={uploader.name} className="w-full h-full object-cover"/>
-                                         ) : (
-                                             <div className="text-neutral-400"><User size={12}/></div>
-                                         )}
-                                     </div>
-
-                                     <div className="flex flex-col">
-                                         <span className={`text-[9px] font-bold uppercase leading-none ${uploader.role === 'admin' ? 'text-yellow-700 dark:text-yellow-500' : 'text-blue-700 dark:text-blue-400'}`}>
-                                             {uploader.name.split(' ')[0]}
-                                         </span>
-                                         <span className="text-[8px] text-neutral-400 leading-none scale-90 origin-top-left">
-                                             ID:{song.user_id ? song.user_id.slice(0,4) : 'SYS'}
-                                         </span>
-                                     </div>
-                                 </div>
-
-                                 <span className="text-[9px] text-neutral-400 font-mono bg-neutral-100 dark:bg-white/5 px-1">
-                                     {new Date(song.created_at).toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute:'2-digit', day: '2-digit', month: '2-digit'})}
-                                 </span>
-                             </div>
-                          </div>
-                    )
-                })}
-            </div>
-
-            <style jsx>{`
-                @keyframes flowRight { 0% { transform: translateX(-50%); } 100% { transform: translateX(0); } }
-                .animate-flow-right { animation: flowRight 120s linear infinite; }
-                .group:hover .stream-track { animation-play-state: paused !important; }
-            `}</style>
-        </div>
-    )
-}
-
 const AdminDashboard = () => {
   const router = useRouter();
   const { alert, confirm } = useUI();
@@ -153,22 +61,26 @@ const AdminDashboard = () => {
   const [restoring, setRestoring] = useState(false); 
   
   const [currentView, setCurrentView] = useState('dashboard');
-  const [stats, setStats] = useState({ totalUsers: 0, totalSongs: 0, totalArtists: 0, topSongs: [], topSearchedArtists: [] });
+  const [stats, setStats] = useState({ totalUsers: 0, totalSongs: 0, totalArtists: 0, topSongs: [], topSearchedArtists: [], pendingCount: 0 });
   
   const [usersList, setUsersList] = useState([]);
   const [allSongsList, setAllSongsList] = useState([]); 
-  const [allArtistsList, setAllArtistsList] = useState([]); 
   const [fullArtistsList, setFullArtistsList] = useState([]); 
   const [popularArtistsList, setPopularArtistsList] = useState([]); 
+  const [allArtistsList, setAllArtistsList] = useState([]);
 
   const [songSearchTerm, setSongSearchTerm] = useState("");
   const [artistSearchTerm, setArtistSearchTerm] = useState("");
   const [songSortType, setSongSortType] = useState('date'); 
 
-  // --- ONLINE STATUS STATE ---
   const [onlineUsers, setOnlineUsers] = useState(new Set());
+  const [selectedSong, setSelectedSong] = useState(null);
+  const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
 
-  // --- HELPER ---
+// Quản lý tab phê duyệt (mặc định hiện các bài đang chờ)
+const [approvalFilter, setApprovalFilter] = useState('pending');
+
+  // --- HELPER LOGIC ---
   const getUploaderInfo = (userId) => {
       if (!userId) return { name: 'System', role: 'admin', avatar_url: null }; 
       const user = usersList.find(u => u.id === userId);
@@ -184,6 +96,7 @@ const AdminDashboard = () => {
       return info.role === 'admin';
   };
 
+  // --- DATA FETCHING ---
   const fetchDashboardData = async () => {
     try {
         const { count: userCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
@@ -192,6 +105,7 @@ const AdminDashboard = () => {
         
         const { data: allUsers } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
         const { data: allSongs } = await supabase.from('songs').select('*').order('created_at', { ascending: false }).range(0, 1999); 
+        const pendingCount = (allSongs || []).filter(s => !s.is_public && !s.is_denied).length;
         const { data: allSearchLogs } = await supabase.from('artist_search_counts').select('*').order('search_count', { ascending: false });
         
         const { data: dbArtists } = await supabase.from('artists').select('*');
@@ -215,7 +129,7 @@ const AdminDashboard = () => {
 
         const mergedArtists = Object.values(artistMap).sort((a, b) => b.followers - a.followers);
 
-        setStats({ totalUsers: userCount || 0, totalSongs: songCount || 0, totalArtists: mergedArtists.length, topSongs: topSongs || [], topSearchedArtists: [] });
+        setStats({ totalUsers: userCount || 0, totalSongs: songCount || 0, totalArtists: mergedArtists.length, topSongs: topSongs || [], topSearchedArtists: [], pendingCount: pendingCount });
         
         setUsersList(allUsers || []);
         setAllSongsList(allSongs || []);
@@ -233,7 +147,7 @@ const AdminDashboard = () => {
       if (!uploadModal.isOpen) fetchDashboardData();
   }, [uploadModal.isOpen]);
 
-  // --- PRESENCE LOGIC (CODE 2 GHÉP VÀO) ---
+  // --- PRESENCE LOGIC ---
   useEffect(() => {
     let channel = null;
     let authListener = null;
@@ -320,9 +234,8 @@ const AdminDashboard = () => {
     });
 
   const filteredArtists = fullArtistsList.filter((artist) => (artist.originalName || artist.name || "").toLowerCase().includes(artistSearchTerm.toLowerCase()));
-  const filteredSearchLogs = allArtistsList.filter((log) => (log.artist_name || "").toLowerCase().includes(artistSearchTerm.toLowerCase()));
 
-  // --- HANDLERS (Giữ nguyên toàn bộ logic xử lý của bạn) ---
+  // --- HANDLERS ---
   const handleSyncMusic = async () => { if (!await confirm("Sync 100 tracks from API?", "SYNC")) return; setSyncing(true); try { const CLIENT_ID = '3501caaa'; let allTracks = []; const offsets = Array.from({ length: 5 }, (_, i) => i * 20); const responses = await Promise.all(offsets.map(offset => fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=jsonpretty&limit=20&include=musicinfo&order=popularity_week&offset=${offset}`).then(res => res.json()))); responses.forEach(data => { if (data.results) allTracks = [...allTracks, ...data.results]; }); if (allTracks.length > 0) { const songsToInsert = allTracks.map(track => ({ title: track.name, author: track.artist_name, song_url: track.audio, image_url: track.image, duration: track.duration, play_count: 0, is_public: true })); const { error: upsertError } = await supabase.from('songs').upsert(songsToInsert, { onConflict: 'song_url', ignoreDuplicates: true }); if (upsertError) throw upsertError; success("Synced successfully!"); await fetchDashboardData(); } } catch (e) { error(e.message); } finally { setSyncing(false); } };
   const handleSyncArtists = async () => { if (!await confirm("Update top 50 artists?", "SYNC")) return; setSyncingArtists(true); try { const CLIENT_ID = '3501caaa'; const res = await fetch(`https://api.jamendo.com/v3.0/artists/?client_id=${CLIENT_ID}&format=jsonpretty&limit=50&order=popularity_total`); const data = await res.json(); if (data.results) { const artistsToUpsert = data.results.map(artist => ({ name: artist.name, image_url: artist.image })); const { error: upsertError } = await supabase.from('artists').upsert(artistsToUpsert, { onConflict: 'name', ignoreDuplicates: true }); if (upsertError) throw upsertError; success("Artists synced!"); await fetchDashboardData(); } } catch (e) { error(e.message); } finally { setSyncingArtists(false); } };
   const handleResetArtists = async () => { if (!await confirm("Reset DB?", "RESET")) return; setResetting(true); try { await supabase.rpc('reset_artists_data'); success("Reset complete."); await fetchDashboardData(); } catch (e) { error(e.message); } finally { setResetting(false); } };
@@ -331,8 +244,41 @@ const AdminDashboard = () => {
   const handleCleanupArtists = async () => { if (!await confirm("Remove duplicates?", "CLEANUP")) return; setCleaning(true); try { await supabase.rpc('cleanup_duplicate_artists'); success("Artists cleaned."); await fetchDashboardData(); } catch (err) { error(err.message); } finally { setCleaning(false); } };
   const handleDeleteUser = async (id) => { if(await confirm("Delete user?", "DELETE")) { await supabase.from('profiles').delete().eq('id', id); success("Deleted."); fetchDashboardData(); } };
   const handleDeleteSong = async (id) => { if(await confirm("Delete song?", "DELETE")) { await supabase.from('songs').delete().eq('id', id); success("Deleted."); fetchDashboardData(); } };
-  const handleDeleteSearch = async (name) => { if(await confirm(`Clear history?`, "DELETE")) { await supabase.from('artist_search_counts').delete().eq('artist_name', name); success("Cleared."); fetchDashboardData(); } };
   const handleDeleteDbArtist = async (id) => { if (!id) return; if(await confirm("Delete artist?", "DELETE")) { await supabase.from('artists').delete().eq('id', id); success("Deleted."); fetchDashboardData(); } };
+
+  const handleUpdateSong = async (songId, updates) => {
+        try {
+            let lyricUrl = updates.lyric_url;
+
+            // Nếu admin sửa lyrics trong modal, upload bản mới
+            if (updates.new_lyrics_content) {
+                const fileName = `lyric-mod-${songId}-${Date.now()}.srt`;
+                const blob = new Blob([updates.new_lyrics_content], { type: 'text/plain' });
+                await supabase.storage.from('songs').upload(fileName, blob);
+                const { data: urlData } = supabase.storage.from('songs').getPublicUrl(fileName);
+                lyricUrl = urlData.publicUrl;
+            }
+
+            const { error: updateError } = await supabase
+                .from('songs')
+                .update({
+                    title: updates.title,
+                    author: updates.author,
+                    lyric_url: lyricUrl,
+                    is_public: updates.is_public,
+                    is_denied: updates.is_denied
+                })
+                .eq('id', songId);
+
+            if (updateError) throw updateError;
+            
+            success("Hệ thống đã được cập nhật.");
+            fetchDashboardData(); // Load lại data
+            setIsTrackModalOpen(false); // Đóng modal
+        } catch (err) {
+            error(err.message);
+        }
+    };
 
   if (loading) return <AdminSkeleton />;
   const isSongTableView = ['songs_list', 'admin_uploads', 'user_uploads'].includes(currentView);
@@ -371,12 +317,20 @@ const AdminDashboard = () => {
         )}
       </div>
 
-      {currentView === 'dashboard' && <ActivityStream items={allSongsList} getUploaderInfo={getUploaderInfo} />}
+      {/* ACTIVITY STREAM COMPONENT */}
+      {currentView === 'dashboard' && (
+            <ActivityStream 
+                items={allSongsList} 
+                getUploaderInfo={getUploaderInfo} 
+                onUpdateSong={handleUpdateSong} // Thêm dòng này
+            />
+        )}
 
       {/* DASHBOARD VIEW */}
       {currentView === 'dashboard' && (
         <div className="animate-in fade-in zoom-in duration-500">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                {/* BLOCK 1: SYSTEM STATUS */}
                 <CyberCard className="p-6 rounded-none border border-neutral-300 dark:border-white/10 bg-white dark:bg-white/5 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-2 opacity-50"><Activity size={40} className="text-emerald-500/20"/></div>
                     <h3 className="text-neutral-900 dark:text-white font-mono text-lg mb-2 flex items-center gap-2 uppercase tracking-wide">
@@ -385,6 +339,7 @@ const AdminDashboard = () => {
                     <p className="text-emerald-600 dark:text-emerald-400 text-xs font-mono font-bold">[ OK ] Active & Running</p>
                 </CyberCard>
 
+                {/* BLOCK 2: TOTAL USERS */}
                 <CyberCard className="p-6 rounded-none border border-neutral-300 dark:border-white/10 bg-white dark:bg-white/5 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-2 opacity-50"><Users size={40} className="text-blue-500/20"/></div>
                     <h3 className="text-neutral-900 dark:text-white font-mono text-lg mb-2 flex items-center gap-2 uppercase tracking-wide">
@@ -395,25 +350,60 @@ const AdminDashboard = () => {
                     </p>
                 </CyberCard>
 
+                {/* BLOCK 3: PENDING QUEUES (Approval Module) */}
+                <div 
+                    className="cursor-pointer group" 
+                    onClick={() => { 
+                        setCurrentView('approval_module'); 
+                        setApprovalFilter('pending'); 
+                    }}
+                >
+                    <CyberCard className="h-full p-6 rounded-none border border-amber-500/30 bg-amber-500/5 group-hover:border-amber-500 transition-all relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                            <Clock size={48} className="text-amber-500"/>
+                        </div>
+
+                        <h3 className="text-neutral-900 dark:text-white font-mono text-lg mb-2 uppercase tracking-wide flex items-center gap-2">
+                            <Activity size={18} className="text-amber-500"/> PENDING_QUEUES
+                        </h3>
+                        
+                        <div className="flex items-end gap-2">
+                            <p className="text-amber-600 dark:text-amber-400 font-mono font-bold text-3xl">
+                                {stats.pendingCount || 0}
+                            </p>
+                            <p className="text-[10px] text-neutral-500 font-mono mb-1 uppercase tracking-widest">
+                                Signals_Awaiting_Review
+                            </p>
+                        </div>
+
+                        <div className="mt-4 flex items-center gap-2 text-[9px] text-amber-600/60 font-mono uppercase group-hover:text-amber-500 transition-colors">
+                            <span>Click to inspect protocol</span>
+                            <div className="h-[1px] flex-1 bg-amber-500/20"></div>
+                            <span>→</span>
+                        </div>
+                    </CyberCard>
+                </div>
+
+                {/* BLOCK 4: DB METRICS */}
                 <CyberCard className="p-6 rounded-none border border-neutral-300 dark:border-white/10 bg-white dark:bg-white/5 group hover:border-purple-500/50 transition-colors">
                     <h3 className="text-neutral-900 dark:text-white font-mono text-lg mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 uppercase tracking-wide">DB_METRICS</h3>
                     <p className="text-neutral-500 dark:text-neutral-400 text-xs font-mono mb-4 border-b border-dashed border-neutral-300 dark:border-white/10 pb-2">
                         Songs: <span className="font-bold text-neutral-800 dark:text-white">{stats.totalSongs}</span> | Artists: <span className="font-bold text-neutral-800 dark:text-white">{stats.totalArtists}</span>
                     </p>
                     <div className="flex flex-col gap-2">
-                          <div className="flex gap-2">
-                            <button onClick={() => setCurrentView('songs_list')} className="flex-1 text-[9px] uppercase tracking-wider bg-purple-500/10 hover:bg-purple-500 text-purple-600 dark:text-purple-300 hover:text-white px-2 py-1.5 rounded-none transition font-mono text-center border border-purple-500/20">ALL_SONGS</button>
-                            <button onClick={() => setCurrentView('db_artists_list')} className="flex-1 text-[9px] uppercase tracking-wider bg-pink-500/10 hover:bg-pink-500 text-pink-600 dark:text-pink-300 hover:text-white px-2 py-1.5 rounded-none transition font-mono text-center border border-pink-500/20">ALL_ARTISTS</button>
-                          </div>
-                          <div className="flex gap-2">
-                            <button onClick={() => setCurrentView('admin_uploads')} className="flex-1 text-[9px] uppercase tracking-wider bg-yellow-500/10 hover:bg-yellow-500 text-yellow-600 dark:text-yellow-300 hover:text-black px-2 py-1.5 rounded-none transition font-mono text-center flex items-center justify-center gap-1 border border-yellow-500/20"><Star size={10}/> ADMIN_UPLOADS</button>
-                            <button onClick={() => setCurrentView('user_uploads')} className="flex-1 text-[9px] uppercase tracking-wider bg-blue-500/10 hover:bg-blue-500 text-blue-600 dark:text-blue-300 hover:text-white px-2 py-1.5 rounded-none transition font-mono text-center flex items-center justify-center gap-1 border border-blue-500/20"><Globe size={10}/> USER_UPLOADS</button>
-                          </div>
+                        <div className="flex gap-2">
+                            <button onClick={() => setCurrentView('songs_list')} className="flex-1 text-[9px] uppercase tracking-wider bg-purple-500/10 hover:bg-purple-500 text-purple-600 dark:text-purple-300 hover:!text-white px-2 py-1.5 rounded-none transition font-mono text-center border border-purple-500/20">ALL_SONGS</button>
+                            <button onClick={() => setCurrentView('db_artists_list')} className="flex-1 text-[9px] uppercase tracking-wider bg-pink-500/10 hover:bg-pink-500 text-pink-600 dark:text-pink-300 hover:!text-white px-2 py-1.5 rounded-none transition font-mono text-center border border-pink-500/20">ALL_ARTISTS</button>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={() => setCurrentView('admin_uploads')} className="flex-1 text-[9px] uppercase tracking-wider bg-yellow-500/10 hover:bg-yellow-500 text-yellow-600 dark:text-yellow-300 hover:!text-white px-2 py-1.5 rounded-none transition font-mono text-center flex items-center justify-center gap-1 border border-yellow-500/20">ADMIN_UPLOADS</button>
+                            <button onClick={() => setCurrentView('user_uploads')} className="flex-1 text-[9px] uppercase tracking-wider bg-blue-500/10 hover:bg-blue-500 text-blue-600 dark:text-blue-300 hover:!text-white px-2 py-1.5 rounded-none transition font-mono text-center flex items-center justify-center gap-1 border border-blue-500/20">USER_UPLOADS</button>
+                        </div>
                     </div>
                 </CyberCard>
             </div>
 
-            {/* STATS TABLES (Top Songs/Artists) */}
+            {/* STATS TABLES */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-full">
                     <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0">
@@ -470,7 +460,7 @@ const AdminDashboard = () => {
                 </CyberCard>
             </div>
 
-            {/* USER TABLE WITH ONLINE STATUS */}
+            {/* USER TABLE */}
             <CyberCard className="bg-white dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none overflow-hidden backdrop-blur-sm">
                 <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center">
                     <h3 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex items-center gap-2"><List size={16} className="text-yellow-600 dark:text-yellow-500"/> User_Manifest_Log</h3>
@@ -483,10 +473,7 @@ const AdminDashboard = () => {
                         </thead>
                         <tbody className="divide-y divide-neutral-200 dark:divide-white/5">
                             {usersList.map((user) => {
-                                // 1. Chuyển tất cả về string và trim để so sánh chính xác
                                 const isOnline = Array.from(onlineUsers).some(id => String(id) === String(user.id));
-                                // 2. Log thử để xem Admin có trong danh sách online không (chỉ log 1 lần)
-                                if (user.role === 'admin') console.log("Admin ID:", user.id, "Online List:", onlineUsers);
                                 return (
                                     <tr key={user.id} className="hover:bg-neutral-50 dark:hover:bg-white/5 transition">
                                         <td className="px-6 py-3 flex items-center gap-3 align-middle">
@@ -531,67 +518,234 @@ const AdminDashboard = () => {
 
       {/* SONG TABLES */}
       {isSongTableView && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
-                <button onClick={() => { setCurrentView('dashboard'); setSongSearchTerm(""); }} className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white font-mono text-xs uppercase tracking-widest border border-transparent hover:border-neutral-500 px-3 py-1 transition-all"><ArrowLeft size={14}/> RETURN_TO_BASE</button>
-                <div className="flex items-center gap-4 w-full md:w-auto">
-                    <div className="flex bg-neutral-200 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none p-1">
-                          <button onClick={() => setSongSortType('plays')} className={`px-3 py-1 text-[10px] rounded-none font-mono uppercase transition ${songSortType === 'plays' ? 'bg-purple-600 text-white' : 'text-neutral-500 hover:text-black dark:hover:text-white'}`}>Top_Plays</button>
-                          <button onClick={() => setSongSortType('date')} className={`px-3 py-1 text-[10px] rounded-none font-mono uppercase transition ${songSortType === 'date' ? 'bg-purple-600 text-white' : 'text-neutral-500 hover:text-black dark:hover:text-white'}`}>Newest_Uploads</button>
-                    </div>
-                    {currentView === 'songs_list' && <GlitchButton onClick={handleCleanupSongs} disabled={cleaning} className="bg-red-500/10 border-red-500/50 text-red-600 dark:text-red-400 dark:hover:!text-white px-4 py-2 text-xs rounded-none">{cleaning ? <Loader2 className="animate-spin" size={14}/> : <Eraser size={14}/>} CLEANUP</GlitchButton>}
-                    <div className="relative w-full md:w-80">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" size={14}/>
-                        <input value={songSearchTerm} onChange={(e) => setSongSearchTerm(e.target.value)} placeholder="SEARCH_TRACK_DB..." className="w-full bg-neutral-100 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none pl-10 pr-10 py-2 text-xs font-mono text-neutral-900 dark:text-white outline-none focus:border-purple-500 transition-colors uppercase placeholder:text-[10px]"/>
+            /* Thêm w-full và overflow-hidden ở div bao ngoài cùng */
+            <div className="w-full overflow-hidden animate-in fade-in slide-in-from-bottom-4 p-2 duration-500">
+                <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
+                    <button 
+                        onClick={() => { setCurrentView('dashboard'); setSongSearchTerm(""); }} 
+                        className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white font-mono text-xs uppercase tracking-widest border border-transparent hover:border-neutral-500 px-3 py-1 transition-all"
+                    >
+                        <ArrowLeft size={14}/> RETURN_TO_BASE
+                    </button>
+
+                    <div className="flex items-center gap-4 w-full md:w-auto">
+                        <div className="flex bg-neutral-200 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none p-1 shrink-0">
+                            <button onClick={() => setSongSortType('plays')} className={`px-3 py-1 text-[10px] rounded-none font-mono uppercase transition ${songSortType === 'plays' ? 'bg-purple-600 text-white' : 'text-neutral-500 hover:text-black dark:hover:text-white'}`}>Top_Plays</button>
+                            <button onClick={() => setSongSortType('date')} className={`px-3 py-1 text-[10px] rounded-none font-mono uppercase transition ${songSortType === 'date' ? 'bg-purple-600 text-white' : 'text-neutral-500 hover:text-black dark:hover:text-white'}`}>Newest_Uploads</button>
+                        </div>
+                        {currentView === 'songs_list' && <GlitchButton onClick={handleCleanupSongs} disabled={cleaning} className="bg-red-500/10 border-red-500/50 text-red-600 dark:text-red-400 dark:hover:!text-white px-4 py-2 text-xs rounded-none shrink-0">{cleaning ? <Loader2 className="animate-spin" size={14}/> : <Eraser size={14}/>} CLEANUP</GlitchButton>}
+                        <div className="relative w-full md:w-80">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" size={14}/>
+                            <input 
+                                value={songSearchTerm} 
+                                onChange={(e) => setSongSearchTerm(e.target.value)} 
+                                placeholder="SEARCH_TRACK_DB..." 
+                                className="w-full bg-neutral-100 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none pl-10 pr-4 py-2 text-xs font-mono text-neutral-900 dark:text-white outline-none focus:border-purple-500 transition-colors uppercase"
+                            />
+                        </div>
                     </div>
                 </div>
-            </div>
-            <CyberCard className="bg-white dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none overflow-hidden backdrop-blur-sm">
-                <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center">
-                    <h3 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex items-center gap-2">{songViewIcon} {songViewTitle}</h3>
-                    <span className="text-[10px] text-neutral-500 font-mono bg-white dark:bg-black px-2 border border-neutral-300 dark:border-white/10">Records: {filteredSongs.length}</span>
-                </div>
-                <div className="overflow-x-auto max-h-[600px]">
-                    <table className="w-full text-left text-xs font-mono text-neutral-600 dark:text-neutral-400">
-                        <thead className="bg-neutral-200 dark:bg-black/40 text-neutral-700 dark:text-neutral-500 uppercase tracking-widest sticky top-0 z-10 backdrop-blur-md border-b border-neutral-300 dark:border-white/10">
-                            <tr><th className="px-6 py-3">Track_ID</th><th className="px-6 py-3">Artist</th><th className="px-6 py-3">Uploader</th><th className="px-6 py-3">Status</th><th className="px-6 py-3">Plays</th><th className="px-6 py-3 text-right">Cmd</th></tr>
-                        </thead>
-                        <tbody className="divide-y divide-neutral-200 dark:divide-white/5">
-                            {filteredSongs.map((song) => {
-                                const uploader = getUploaderInfo(song.user_id);
-                                return (
-                                    <tr key={song.id} className="hover:bg-neutral-50 dark:hover:bg-white/5 transition">
-                                            <td className="px-6 py-3 flex items-center gap-3 align-middle">
-                                                <div className="w-8 h-8 rounded-none bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 overflow-hidden relative">
-                                                    {song.image_url ? <img src={song.image_url} className="w-full h-full object-cover"/> : <Music size={12} className="m-auto text-neutral-400"/>}
-                                                </div>
-                                                <div className="flex flex-col min-w-0">
-                                                    <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold">{song.title}</span>
-                                                    <span className="truncate text-[10px] text-neutral-500">{song.author}</span>
+
+                <CyberCard className="bg-white dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none overflow-hidden backdrop-blur-sm">
+                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center">
+                        <h3 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex items-center gap-2">{songViewIcon} {songViewTitle}</h3>
+                        <span className="text-[10px] text-neutral-500 font-mono bg-white dark:bg-black px-2 border border-neutral-300 dark:border-white/10 shrink-0">Records: {filteredSongs.length}</span>
+                    </div>
+
+                    {/* Container cuộn ngang: Ép w-full và overflow-x-auto */}
+                    <div className="w-full overflow-x-auto custom-scrollbar max-h-[600px]">
+                        {/* min-w-[800px] đảm bảo bảng không bị bóp quá hẹp trên mobile, gây tràn text */}
+                        <table className="w-full min-w-[800px] text-left text-xs font-mono text-neutral-600 dark:text-neutral-400 table-fixed">
+                            <thead className="bg-neutral-200 dark:bg-black/40 text-neutral-700 dark:text-neutral-500 uppercase tracking-widest sticky top-0 z-10 backdrop-blur-md border-b border-neutral-300 dark:border-white/10">
+                                <tr>
+                                    <th className="px-6 py-3 w-[30%]">Track_ID</th>
+                                    <th className="px-6 py-3 w-[20%]">Artist</th>
+                                    <th className="px-6 py-3 w-[15%]">Uploader</th>
+                                    <th className="px-6 py-3 w-[15%]">Status</th>
+                                    <th className="px-6 py-3 w-[10%]">Plays</th>
+                                    <th className="px-6 py-3 w-[10%] text-right">Cmd</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-neutral-200 dark:divide-white/5">
+                                {filteredSongs.map((song) => {
+                                    const uploader = getUploaderInfo(song.user_id);
+                                    return (
+                                        <tr key={song.id} className="hover:bg-neutral-50 dark:hover:bg-white/5 transition group">
+                                            <td className="px-6 py-3 align-middle">
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <div className="w-8 h-8 rounded-none bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 overflow-hidden shrink-0 relative">
+                                                        {song.image_url ? (
+                                                            <img src={song.image_url} className="w-full h-full object-cover" alt=""/>
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-neutral-400"><Music size={12}/></div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex flex-col min-w-0 overflow-hidden">
+                                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold block" title={song.title}>
+                                                            {song.title}
+                                                        </span>
+                                                        <span className="text-[10px] text-neutral-500 truncate opacity-60">
+                                                            ID: {String(song.id).slice(0, 8)}...
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-3 align-middle uppercase">{song.author}</td>
+                                            <td className="px-6 py-3 align-middle uppercase truncate max-w-[150px]" title={song.author}>
+                                                {song.author}
+                                            </td>
                                             <td className="px-6 py-3 align-middle">
-                                                <span className={`text-[9px] px-2 py-0.5 rounded-none border font-bold uppercase ${uploader.role === 'admin' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-600' : 'bg-blue-500/10 border-blue-500/30 text-blue-600'}`}>
-                                                    {uploader.name}
+                                                <div className="max-w-[120px] truncate">
+                                                    <span className={`text-[9px] px-2 py-0.5 rounded-none border font-bold uppercase ${uploader.role === 'admin' ? 'border-yellow-500/30 text-yellow-600 bg-yellow-500/5' : 'border-blue-500/30 text-blue-600 bg-blue-500/5'}`}>
+                                                        {uploader.name}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-3 align-middle font-bold text-[10px] uppercase whitespace-nowrap">
+                                                {song.is_denied ? (
+                                                    <span className="text-red-500 flex items-center gap-1"><Lock size={12}/> DENIED</span>
+                                                ) : song.is_public ? (
+                                                    <span className="text-emerald-500 flex items-center gap-1"><Globe size={12}/> PUB</span>
+                                                ) : (
+                                                    <span className="text-amber-500 flex items-center gap-1"><Clock size={12}/> PEND</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-3 align-middle whitespace-nowrap">
+                                                <span className="text-emerald-600 dark:text-emerald-500 font-bold bg-emerald-500/10 px-2">
+                                                    {song.play_count}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-3 align-middle font-bold text-[10px] uppercase">
-                                                {song.is_public ? <span className="text-blue-500 flex items-center gap-1"><Globe size={12}/> PUB</span> : <span className="text-red-500 flex items-center gap-1"><Lock size={12}/> PVT</span>}
+                                            <td className="px-6 py-3 text-right align-middle shrink-0">
+                                                <div className="flex justify-end items-center gap-1">
+                                                    <button 
+                                                        onClick={() => { setSelectedSong(song); setIsTrackModalOpen(true); }} 
+                                                        className="p-2 text-neutral-400 hover:text-emerald-500 transition-colors"
+                                                    >
+                                                        <Eye size={14} />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleDeleteSong(song.id)} 
+                                                        className="p-2 text-neutral-400 hover:text-red-500 transition-colors"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
                                             </td>
-                                            <td className="px-6 py-3 align-middle"><span className="text-emerald-600 dark:text-emerald-500 font-bold bg-emerald-500/10 px-2">{song.play_count}</span></td>
-                                            <td className="px-6 py-3 text-right align-middle">
-                                                <button onClick={() => handleDeleteSong(song.id)} className="text-neutral-500 hover:text-red-500 transition p-2"><Trash2 size={14} /></button>
-                                            </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </CyberCard>
+            </div>
+        )}
+
+      {currentView === 'approval_module' && (
+            <div className="animate-in slide-in-from-bottom-4 duration-500 space-y-6">
+                
+                {/* TOP BAR: Back Button & Search */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <button 
+                        onClick={() => { setCurrentView('dashboard'); setSongSearchTerm(""); }} 
+                        className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white font-mono text-xs uppercase tracking-widest border border-transparent hover:border-neutral-500 px-3 py-1 transition-all"
+                    >
+                        <ArrowLeft size={14}/> RETURN_TO_BASE
+                    </button>
+
+                    <div className="relative w-full md:w-80">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" size={14}/>
+                        <input 
+                            value={songSearchTerm} 
+                            onChange={(e) => setSongSearchTerm(e.target.value)} 
+                            placeholder="SEARCH_IN_PENDING..." 
+                            className="w-full bg-neutral-100 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none pl-10 pr-4 py-2 text-xs font-mono text-neutral-900 dark:text-white outline-none focus:border-emerald-500 transition-colors uppercase placeholder:text-[10px]"
+                        />
+                    </div>
                 </div>
-            </CyberCard>
-        </div>
-      )}
+
+                {/* Thanh Filter (Tabs) */}
+                <div className="flex bg-neutral-200 dark:bg-black/40 border border-neutral-300 dark:border-white/10 p-1 w-fit">
+                    {['pending', 'approved', 'denied'].map((tab) => (
+                        <button 
+                            key={tab}
+                            onClick={() => setApprovalFilter(tab)}
+                            className={`px-6 py-2 text-[10px] font-mono uppercase transition-all ${
+                                approvalFilter === tab 
+                                ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]' 
+                                : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-white'
+                            }`}
+                        >
+                            {tab}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Danh sách Card bài hát */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {allSongsList
+                        .filter(song => {
+                            // Logic tìm kiếm
+                            // Logic tìm kiếm an toàn (Safe Search Logic)
+                            const matchesSearch = 
+                                (song.title || "").toLowerCase().includes((songSearchTerm || "").toLowerCase()) || 
+                                (song.author || "").toLowerCase().includes((songSearchTerm || "").toLowerCase());
+
+                            if (!matchesSearch) return false;
+
+                            // Logic filter theo tab
+                            if (approvalFilter === 'pending') return !song.is_public && !song.is_denied;
+                            if (approvalFilter === 'approved') return song.is_public;
+                            if (approvalFilter === 'denied') return song.is_denied;
+                            return true;
+                        })
+                        .map((song) => (
+                            <div key={song.id} className="relative bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-white/10 p-4 group hover:border-emerald-500 transition-colors">
+                                <div className="flex gap-4">
+                                    <div className="w-16 h-16 bg-neutral-200 dark:bg-black border border-neutral-300 dark:border-white/10 overflow-hidden relative shrink-0">
+                                        <img src={song.image_url} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
+                                        <ScanlineOverlay />
+                                    </div>
+                                    <div className="min-w-0 flex-1 flex flex-col justify-center">
+                                        <h4 className="text-neutral-900 dark:text-white font-bold font-mono text-sm truncate uppercase tracking-tighter">
+                                            {song.title}
+                                        </h4>
+                                        <p className="text-neutral-500 text-[10px] font-mono truncate">{song.author}</p>
+                                        <div className="mt-2 flex items-center gap-2">
+                                            <span className="text-[8px] text-neutral-400 font-mono bg-neutral-100 dark:bg-white/5 px-1 border border-neutral-200 dark:border-white/10">
+                                                ID: {String(song.id).slice(0, 8)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={() => { setSelectedSong(song); setIsTrackModalOpen(true); }}
+                                    className="w-full mt-4 bg-neutral-100 dark:bg-white/5 border border-neutral-300 dark:border-white/10 hover:bg-emerald-500/20 text-neutral-600 dark:text-neutral-400 hover:text-emerald-600 dark:hover:text-emerald-400 text-[10px] font-mono py-2 uppercase flex items-center justify-center gap-2 transition-all"
+                                >
+                                    <Eye size={12}/> Inspect_Signal
+                                </button>
+                                
+                                {/* Thanh trạng thái nhỏ ở cạnh trái để dễ phân biệt nhanh */}
+                                <div className={`absolute top-0 left-0 w-[2px] h-full ${
+                                    song.is_denied ? 'bg-red-500' : song.is_public ? 'bg-emerald-500' : 'bg-amber-500'
+                                }`} />
+                            </div>
+                        ))
+                    }
+                </div>
+
+                {/* Empty State */}
+                {allSongsList.filter(song => {
+                    if (approvalFilter === 'pending') return !song.is_public && !song.is_denied;
+                    if (approvalFilter === 'approved') return song.is_public;
+                    if (approvalFilter === 'denied') return song.is_denied;
+                    return true;
+                }).length === 0 && (
+                    <div className="py-20 text-center border border-dashed border-neutral-300 dark:border-white/10">
+                        <p className="font-mono text-neutral-500 uppercase text-xs tracking-widest">No_Signals_In_This_Sector</p>
+                    </div>
+                )}
+            </div>
+        )}
 
       {/* VIEW: DB ARTISTS LIST */}
       {currentView === 'db_artists_list' && (
@@ -631,6 +785,14 @@ const AdminDashboard = () => {
          <ShieldAlert className="text-yellow-600 dark:text-yellow-500" size={20} />
          <p className="text-xs text-yellow-700 dark:text-yellow-500/80 font-mono tracking-widest">WARNING: RESTRICTED AREA. UNAUTHORIZED ACTIONS ARE LOGGED.</p>
       </div>
+
+      <TrackDetailModal 
+            song={selectedSong}
+            isOpen={isTrackModalOpen}
+            onClose={() => setIsTrackModalOpen(false)}
+            onUpdate={handleUpdateSong}
+            getUploaderInfo={getUploaderInfo}
+        />
     </div>
   );
 }
