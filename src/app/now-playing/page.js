@@ -243,26 +243,40 @@ const NowPlayingPage = () => {
     }
   }, [player.activeId]);
 
-  // --- LOGIC SCROLL TO ACTIVE SONG IN QUEUE ---
-  // Sử dụng useEffect để theo dõi song.id và activeTab
+  // --- FIX TRIỆT ĐỂ: AUTO SCROLL QUEUE KHÔNG ĐẨY NAVBAR ---
   useEffect(() => {
-    if (!song?.id || queueSongs.length === 0) return;
+    if (loading || !song?.id || queueSongs.length === 0 || !queueContainerRef.current) return;
 
-    // Dùng setTimeout để đảm bảo DOM đã render xong danh sách
-    const timer = setTimeout(() => {
-        const activeElement = document.getElementById(`queue-item-${song.id}`);
-        
-        // Kiểm tra xem element có tồn tại và đang hiển thị không
-        if (activeElement) {
-            activeElement.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'center' // Căn bài hát vào giữa danh sách
-            });
-        }
-    }, 1000); // Delay 500ms để chắc chắn UI đã ổn định
+    const performScroll = () => {
+      const container = queueContainerRef.current;
+      const activeItem = document.getElementById(`queue-item-${song.id}`);
+      
+      if (activeItem && container) {
+        // TÍNH TOÁN VỊ TRÍ CUỘN NỘI BỘ (Chỉ tác động bên trong Div Queue)
+        const scrollTarget = activeItem.offsetTop - (container.offsetHeight / 2) + (activeItem.offsetHeight / 2);
 
-    return () => clearTimeout(timer);
-  }, [song?.id, activeTab, queueSongs.length]);
+        // Dùng scrollTo thay vì scrollIntoView để cô lập phạm vi cuộn
+        container.scrollTo({
+          top: scrollTarget,
+          behavior: 'smooth'
+        });
+      }
+    };
+
+    performScroll();
+    
+    // ResizeObserver để cuộn lại nếu tab được mở ra sau khi load
+    const ro = new ResizeObserver(() => {
+      if (queueContainerRef.current?.offsetHeight > 0) performScroll();
+    });
+    ro.observe(queueContainerRef.current);
+
+    const timers = [setTimeout(performScroll, 100), setTimeout(performScroll, 800)];
+    return () => {
+      ro.disconnect();
+      timers.forEach(t => clearTimeout(t));
+    };
+  }, [loading, song?.id, queueSongs.length, activeTab]);
 
   useEffect(() => { if (song) { setRawLyrics(null); setParsedLyrics([]); setActiveLineIndex(-1); setLoadingLyrics(false); } }, [song?.id]);
 
@@ -486,15 +500,65 @@ const NowPlayingPage = () => {
       </div>
 
       {/* --- MOBILE TABS NAVIGATION (FLOATING, SQUARE, Z-INDEX 99999) --- */}
-      <div className="lg:hidden flex fixed bottom-2 left-1/2 -translate-x-1/2 w-[100%] max-w-md justify-center z-[99999]">
-          <div className="flex w-full bg-neutral-900/95 dark:bg-black/95 backdrop-blur-xl border border-neutral-500/50 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
-              <button onClick={() => setActiveTab('visual')} className={`flex-1 py-3 flex justify-center items-center border-r border-white/10 rounded-none transition-colors ${activeTab==='visual' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><Activity size={20}/></button>
-              <button onClick={() => setActiveTab('queue')} className={`flex-1 py-3 flex justify-center items-center border-r border-white/10 rounded-none transition-colors ${activeTab==='queue' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><ListMusic size={20}/></button>
-              <button onClick={() => setActiveTab('lyrics')} className={`flex-1 py-3 flex justify-center items-center border-r border-white/10 rounded-none transition-colors ${activeTab==='lyrics' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><Mic2 size={20}/></button>
-              <button onClick={() => setActiveTab('equalizer')} className={`flex-1 py-3 flex justify-center items-center border-r border-white/10 rounded-none transition-colors ${activeTab==='equalizer' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><Sliders size={20}/></button>
-              <button onClick={() => setActiveTab('info')} className={`flex-1 py-3 flex justify-center items-center rounded-none transition-colors ${activeTab==='info' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><Info size={20}/></button>
-          </div>
-      </div>
+        <div className="lg:hidden flex fixed bottom-24 left-1/2 -translate-x-1/2 w-[95%] max-w-md justify-center z-[99999]">
+            <div className="flex w-full bg-white/80 dark:bg-neutral-900/95 backdrop-blur-xl border border-neutral-200 dark:border-neutral-500/50 shadow-lg dark:shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
+                
+                {/* Visual Tab */}
+                <button 
+                    onClick={() => setActiveTab('visual')} 
+                    className={`flex-1 py-3 flex justify-center items-center border-r border-neutral-200 dark:border-white/10 rounded-none transition-colors 
+                        ${activeTab === 'visual' 
+                            ? 'text-emerald-600 dark:text-emerald-500 bg-emerald-500/5 dark:bg-white/5' 
+                            : 'text-neutral-500 dark:text-neutral-400'}`}
+                >
+                    <Activity size={20}/>
+                </button>
+
+                {/* Queue Tab */}
+                <button 
+                    onClick={() => setActiveTab('queue')} 
+                    className={`flex-1 py-3 flex justify-center items-center border-r border-neutral-200 dark:border-white/10 rounded-none transition-colors 
+                        ${activeTab === 'queue' 
+                            ? 'text-emerald-600 dark:text-emerald-500 bg-emerald-500/5 dark:bg-white/5' 
+                            : 'text-neutral-500 dark:text-neutral-400'}`}
+                >
+                    <ListMusic size={20}/>
+                </button>
+
+                {/* Lyrics Tab */}
+                <button 
+                    onClick={() => setActiveTab('lyrics')} 
+                    className={`flex-1 py-3 flex justify-center items-center border-r border-neutral-200 dark:border-white/10 rounded-none transition-colors 
+                        ${activeTab === 'lyrics' 
+                            ? 'text-emerald-600 dark:text-emerald-500 bg-emerald-500/5 dark:bg-white/5' 
+                            : 'text-neutral-500 dark:text-neutral-400'}`}
+                >
+                    <Mic2 size={20}/>
+                </button>
+
+                {/* Equalizer Tab */}
+                <button 
+                    onClick={() => setActiveTab('equalizer')} 
+                    className={`flex-1 py-3 flex justify-center items-center border-r border-neutral-200 dark:border-white/10 rounded-none transition-colors 
+                        ${activeTab === 'equalizer' 
+                            ? 'text-emerald-600 dark:text-emerald-500 bg-emerald-500/5 dark:bg-white/5' 
+                            : 'text-neutral-500 dark:text-neutral-400'}`}
+                >
+                    <Sliders size={20}/>
+                </button>
+
+                {/* Info Tab */}
+                <button 
+                    onClick={() => setActiveTab('info')} 
+                    className={`flex-1 py-3 flex justify-center items-center rounded-none transition-colors 
+                        ${activeTab === 'info' 
+                            ? 'text-emerald-600 dark:text-emerald-500 bg-emerald-500/5 dark:bg-white/5' 
+                            : 'text-neutral-500 dark:text-neutral-400'}`}
+                >
+                    <Info size={20}/>
+                </button>
+            </div>
+        </div>
 
       {/* --- CỘT GIỮA (QUEUE) --- */}
       <div className={`lg:col-span-3 flex flex-col h-[50vh] lg:h-[103%] w-full lg:w-[80%] bg-white/60 dark:bg-black/30 backdrop-blur-xl border border-neutral-200 dark:border-white/10 rounded-none overflow-hidden shadow-xl z-20 relative lg:-translate-x-10 order-2 ${activeTab === 'queue' ? 'flex' : 'hidden lg:flex'}`}>
@@ -511,7 +575,7 @@ const NowPlayingPage = () => {
             className="flex-1 min-h-0 p-4 custom-scrollbar overflow-y-auto"
           >
              {queueSongs.length > 0 ? (
-                <div className="space-y-2">
+                <div className="space-y-2 relative">
                    {queueSongs.map((queueSong) => {
                       const isCurrentlyPlaying = queueSong.id === song.id;
                       return (
@@ -652,7 +716,7 @@ const NowPlayingPage = () => {
                                          </div>
                                      </div>
                                  ) : parsedLyrics.length > 0 ? (
-                                     <ul className="space-y-6 py-[40%] px-2">
+                                     <ul className="space-y-6 py-[40%] px-2 relative">
                                          {parsedLyrics.map((line, index) => {
                                              const isActive = index === activeLineIndex;
                                              return (

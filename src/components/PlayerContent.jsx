@@ -238,27 +238,49 @@ const PlayerContent = ({ song, songUrl }) => {
   if (!songUrl || !song) return null;
 
   return (
-    <div className="w-full max-w-[100vw] overflow-hidden">
+    <div className="w-full max-w-full overflow-hidden box-border">
       
       {/* ========================================================================
         MOBILE LAYOUT (từ Code 1)
         ========================================================================
       */}
       <div 
-        className={`
-            md:hidden fixed bottom-[64px] left-0 right-0 z-[9998] 
-            transition-all duration-300 ease-in-out bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl border-t border-neutral-200 dark:border-white/10
-            shadow-[0_-5px_20px_rgba(0,0,0,0.3)] max-w-full overflow-hidden
-            ${isExpanded ? 'h-auto pb-6 rounded-none !border-emerald-500' : 'h-16'}
-        `}
+          className={`
+              md:hidden w-full max-w-full box-border
+              relative /* Bỏ dấu ! để tránh xung đột nếu không cần thiết */
+              transition-all duration-300 ease-in-out 
+              bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl 
+              border-t border-neutral-200 dark:border-white/10
+              shadow-[0_-5px_20px_rgba(0,0,0,0.3)]
+              /* TUYỆT ĐỐI KHÔNG CÓ overflow-hidden Ở ĐÂY */
+              ${isExpanded ? 'h-auto pb-6 rounded-none !border-emerald-500' : 'h-16'}
+          `}
       >
           {error && <div className="absolute -top-8 bg-red-500 text-white text-xs py-1 px-3 z-50 font-mono w-full text-center">Error: Load Failed</div>}
 
           <button 
-             onClick={() => setIsExpanded(!isExpanded)}
-             className="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-5 bg-white dark:bg-neutral-900 rounded-none flex items-center justify-center border-t border-x border-neutral-200 dark:border-white/10 shadow-sm z-50"
+              onClick={(e) => {
+                  e.stopPropagation(); // Chặn sự kiện lan ra ngoài
+                  setIsExpanded(!isExpanded);
+              }}
+              className="
+                  absolute 
+                  top-1 /* Đẩy lên trên hẳn viền player */
+                  left-1/2 -translate-x-1/2 
+                  w-12 h-6 
+                  bg-white dark:bg-neutral-900 
+                  flex items-center justify-center 
+                  border-t border-x border-neutral-300 dark:border-white/10 
+                  z-[99999] /* z-index cao nhất có thể */
+                  cursor-pointer
+                  shadow-md
+              "
           >
-             {isExpanded ? <ChevronDown size={16} className="text-emerald-500"/> : <ChevronUp size={16}/>}
+              {isExpanded ? (
+                  <ChevronDown size={18} className="text-emerald-500" />
+              ) : (
+                  <ChevronUp size={18} className="text-emerald-500" />
+              )}
           </button>
 
           {!isExpanded && (
@@ -297,7 +319,7 @@ const PlayerContent = ({ song, songUrl }) => {
           )}
 
           {isExpanded && (
-             <div className="flex flex-col px-4 pt-4 gap-4 animate-in slide-in-from-bottom-10 duration-300 bg-neutral-100 dark:bg-neutral-900/50 max-w-full overflow-hidden">
+             <div className="flex flex-col px-4 pt-4 gap-4 animate-in slide-in-from-bottom-10 duration-300 bg-neutral-100 dark:bg-neutral-900/50 w-full max-w-full overflow-hidden">
                  <div className="flex justify-between items-start">
                      <div className="w-full flex justify-center"><MediaItem data={song} /></div>
                      <button onClick={navigateToFullPlayer} className="p-2 absolute right-4 top-4 bg-neutral-200 dark:bg-white/10 text-neutral-600 dark:text-neutral-300"><Maximize2 size={20}/></button>
@@ -333,8 +355,8 @@ const PlayerContent = ({ song, songUrl }) => {
       <div className="hidden md:grid md:grid-cols-3 h-full px-4 items-center gap-6 bg-white dark:bg-black border-t border-neutral-200 dark:border-white/10">
         
         {/* LEFT: Info & Actions */}
-        <div className="flex w-full md:w-[24em] justify-start items-center gap-2 -translate-y-1">
-            <div className="flex-1 min-w-0"><MediaItem data={song} /></div>
+        <div className="flex w-full max-w-full md:max-w-[24em] justify-start items-center gap-2 -translate-y-1">
+            <div className="max-w-[24em] flex-1 min-w-0"><MediaItem data={song} /></div>
             
             <div className="flex items-center gap-1">
                 {/* Nút Save Tuned từ Code 2 */}
@@ -366,7 +388,7 @@ const PlayerContent = ({ song, songUrl }) => {
         </div>
 
         {/* CENTER: Controls & Progress */}
-        <div className="flex flex-col items-center w-full max-w-[722px] gap-y-1">
+        <div className="flex flex-col items-center w-full max-w-[500px] gap-y-1 mx-auto">
             <div className="flex items-center gap-x-6 translate-y-1.5">
                 <button onClick={() => player.setIsShuffle(!player.isShuffle)} className={`transition p-1 ${player.isShuffle ? "text-emerald-500" : "text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white"}`} title="Shuffle"><Shuffle size={16}/></button>
                 <button onClick={onPlayPrevious} className="text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition hover:scale-110 p-1"><SkipBack size={20}/></button>
