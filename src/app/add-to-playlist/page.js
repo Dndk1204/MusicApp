@@ -173,66 +173,75 @@ export default function AddToPlaylistPage() {
   const handleAddMulti = async () => {
     if (!song?.id) return;
 
-    // 1. Kiểm tra chọn playlist
     if (selected.length === 0) {
-      alert("NO_TARGET_SELECTED", "error"); 
+      alert("NO_TARGET_SELECTED", "error");
       return;
     }
 
     setAdding(true);
 
     try {
-      // --- GIỮ NGUYÊN LOGIC UPSERT SONG ---
-      const { error: upsertErr } = await supabase.from("songs").upsert(
-        {
-          id: song.id,
-          title: song.title,
-          author: song.author,
-          duration: song.duration,
-          image_url: song.image_url || song.image_path,
-          song_url: song.song_url || song.song_path,
-        },
-        { onConflict: "id" }
-      );
-      if (upsertErr) throw upsertErr;
-
-      // --- GIỮ NGUYÊN LOGIC CHECK TRÙNG ---
-      const { data: existing } = await supabase
-        .from("playlist_songs")
-        .select("playlist_id")
-        .in("playlist_id", selected)
-        .eq("song_id", song.id);
-
-      const existed = existing?.map((x) => x.playlist_id) || [];
-      const newTargets = selected.filter((pid) => !existed.includes(pid));
-
-      if (newTargets.length === 0) {
-        alert("TRACK_ALREADY_EXISTS", "warning"); 
-        setAdding(false);
+      /* ===============================
+        1️⃣ AUTH
+      =============================== */
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert("PLEASE_LOGIN", "error");
         return;
       }
 
-      // --- GIỮ NGUYÊN LOGIC INSERT ---
-      const rows = newTargets.map((pid) => ({
+      /* ===============================
+        2️⃣ CHECK DUPLICATE
+      =============================== */
+      const { data: existing, error: existErr } = await supabase
+        .from("playlist_songs")
+        .select("playlist_id")
+        .eq("song_id", song.id)
+        .in("playlist_id", selected);
+
+      if (existErr) throw existErr;
+
+      const existedIds = existing?.map(x => x.playlist_id) || [];
+      const targets = selected.filter(id => !existedIds.includes(id));
+
+      if (targets.length === 0) {
+        alert("TRACK_ALREADY_EXISTS", "warning");
+        return;
+      }
+
+      /* ===============================
+        3️⃣ INSERT
+      =============================== */
+      const rows = targets.map(pid => ({
         playlist_id: pid,
         song_id: song.id,
-        added_at: new Date(),
+        added_at: new Date()
       }));
 
-      const { error: insertErr } = await supabase.from("playlist_songs").insert(rows);
+      const { error: insertErr } = await supabase
+        .from("playlist_songs")
+        .insert(rows);
+
       if (insertErr) throw insertErr;
 
-      // 2. Thông báo thành công (Cyber Style)
-      alert(`SUCCESS: INJECTED TO ${newTargets.length} PLAYLIST(S)`, "success");
+      /* ===============================
+        4️⃣ SUCCESS
+      =============================== */
+      alert(
+        `SUCCESS: INJECTED TO ${targets.length} PLAYLIST(S)`,
+        "success"
+      );
 
-      setTimeout(() => router.back(), 700);
+      setTimeout(() => router.back(), 600);
 
     } catch (err) {
-      console.error(err);
-      alert("SYSTEM_CRITICAL_FAILURE", "error");
+      console.error("ADD_TO_PLAYLIST_FAILED:", err);
+      alert(err.message || "PERMISSION_DENIED", "error");
+    } finally {
+      setAdding(false);
     }
-    setAdding(false);
   };
+
 
   /* -------------------------------------------------------
       UI

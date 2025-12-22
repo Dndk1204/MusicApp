@@ -370,7 +370,7 @@ const PlayerContent = ({ song, songUrl }) => {
                                 title: song.title,
                                 author: song.artistsNames || song.author,
                                 song_url: song.streaming?.mp3 || song.song_url,
-                                image_url: song.thumbnailM || song.image_url,
+                                image_path: song.thumbnailM || song.image_path || song.image_url,
                                 duration: song.duration
                             };
                             router.push(`/add-to-playlist?song=${encodeURIComponent(JSON.stringify(normalizedSong))}`); 
