@@ -675,7 +675,7 @@ const NowPlayingPage = () => {
                                 ))}
                             </div>
                             <div className="flex gap-2 pt-2 w-full">
-                                <CyberButton onClick={handleSaveSettings} disabled={isSaving} className="flex-1 w-full text-neutral-400 dark:hover:!text-white hover:text-green-500 transition p-1.5 justify-center border border-transparent hover:border-green-500/50 flex items-center gap-2 rounded-none" title="Save EQ Configuration">
+                                <CyberButton onClick={handleSaveSettings} disabled={isSaving} className="flex-1 w-full text-neutral-400 hover:!text-white transition p-1.5 justify-center border border-transparent hover:border-green-500/50 flex items-center gap-2 rounded-none" title="Save EQ Configuration">
                                     {isSaving ? <Loader2 className="animate-spin" size={14}/> : <Save size={14}/>}
                                     <span className="text-xs font-mono">SAVE_CONFIG</span>
                                 </CyberButton>

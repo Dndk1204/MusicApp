@@ -93,13 +93,21 @@ const Navbar = ({ onToggleSidebar }) => {
 
     const fetchProfile = async () => {
         if (user) {
-            const { data } = await supabase.from('profiles').select('role, avatar_url').eq('id', user.id).single();
+            // 1. Lấy dữ liệu ban đầu
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('role, avatar_url')
+                .eq('id', user.id)
+                .single();
+            
             if (data) {
                 setIsAdmin(data.role === 'admin');
                 setAvatarUrl(data.avatar_url);
             }
 
-            channel = supabase.channel('realtime-profile')
+            // 2. Thiết lập kênh Realtime độc nhất cho user này
+            // Sử dụng tên channel kèm user.id để tránh xung đột
+            channel = supabase.channel(`profile-updates-${user.id}`)
                 .on(
                     'postgres_changes',
                     {
@@ -110,15 +118,26 @@ const Navbar = ({ onToggleSidebar }) => {
                     },
                     (payload) => {
                         const newData = payload.new;
+                        
+                        // Cập nhật Avatar ngay lập tức
                         if (newData.avatar_url) {
+                            // Thêm timestamp để ép trình duyệt tải lại ảnh mới hoàn toàn
                             setAvatarUrl(`${newData.avatar_url}?t=${new Date().getTime()}`);
+                        } else {
+                            setAvatarUrl(null);
                         }
+
+                        // Cập nhật Role nếu có thay đổi
                         if (newData.role) {
                             setIsAdmin(newData.role === 'admin');
                         }
                     }
                 )
-                .subscribe();
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        console.log("Realtime profile listening active");
+                    }
+                });
 
         } else {
             setIsAdmin(false);
@@ -128,14 +147,17 @@ const Navbar = ({ onToggleSidebar }) => {
 
     fetchProfile();
 
-    const handleClickOutside = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false); };
+    const handleClickOutside = (e) => { 
+        if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false); 
+    };
     document.addEventListener("mousedown", handleClickOutside);
     
     return () => {
         document.removeEventListener("mousedown", handleClickOutside);
+        // Quan trọng: Hủy subscribe khi component unmount hoặc user thay đổi
         if (channel) supabase.removeChannel(channel);
     };
-  }, [user]);
+}, [user]);
 
   const handleLogout = async () => {
     setShowMenu(false);
@@ -271,7 +293,16 @@ const Navbar = ({ onToggleSidebar }) => {
           
           {/* Avatar Menu Button */}
           <button onClick={() => setShowMenu(!showMenu)} className="relative h-8 w-8 md:h-10 md:w-10 flex items-center justify-center bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/20 hover:border-emerald-500 transition-all duration-300 group rounded-none overflow-hidden shrink-0">
-            {user && avatarUrl ? <img src={avatarUrl} alt="Avatar" className="object-cover w-full h-full grayscale group-hover:grayscale-0 transition-all duration-500" /> : <User className="text-neutral-500 dark:text-neutral-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-500 transition-colors" size={20} />}
+            {user && avatarUrl ? (
+              <img 
+                  key={avatarUrl} // Thêm key để React render lại animation khi URL thay đổi
+                  src={avatarUrl} 
+                  alt="Avatar" 
+                  className="object-cover w-full h-full grayscale group-hover:grayscale-0 transition-all duration-500 animate-in fade-in" 
+              />
+            ) : (
+              <User className="text-neutral-500 dark:text-neutral-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-500 transition-colors" size={20} />
+            )}
             
             <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
             <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>

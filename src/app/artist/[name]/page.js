@@ -10,7 +10,7 @@ import getSongs from "@/app/actions/getSongs";
 import getAlbums from "@/app/actions/getAlbums";
 import SongSection from "@/components/SongSection";
 import FollowButton from "@/components/FollowButton";
-import { GlitchText, CyberCard, ScanlineOverlay, VerticalGlitchText } from "@/components/CyberComponents";
+import { CyberCard, ScanlineOverlay, VerticalGlitchText } from "@/components/CyberComponents";
 import BackButton from "@/components/BackButton";
 
 // --- SKELETON LOADER ---
@@ -154,7 +154,6 @@ const ArtistPage = ({ params }) => {
             }
 
             // 3. XỬ LÝ ẢNH & STATS
-            let finalImage = null;
             const { data: profileData } = await supabase
                 .from('profiles')
                 .select('avatar_url')
@@ -162,9 +161,7 @@ const ArtistPage = ({ params }) => {
                 .limit(1)
                 .maybeSingle();
             
-            if (profileData?.avatar_url) finalImage = profileData.avatar_url;
-            else if (_localSongs.length > 0) finalImage = _localSongs[0].image_path;
-            else if (_jamendoSongs.length > 0) finalImage = _jamendoSongs[0].image_path;
+            const finalImage = profileData?.avatar_url || null;
 
             setArtistImage(finalImage);
 
