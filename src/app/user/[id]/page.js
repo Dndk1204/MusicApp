@@ -502,13 +502,13 @@ const UserProfilePage = () => {
                                     <div className="inline-flex flex-col md:translate-y-2 gap-2 mt-2 bg-black/5 md:bg-black/40 backdrop-blur-md border-0 md:border border-white/10 p-0 md:p-3 w-fit items-center md:items-start">
                                         {isOwner ? (
                                             <>
-                                                <div className="flex items-center gap-2 text-xs font-mono dark:text-neutral-300 text-neutral-600">
-                                                    <Mail size={12} className="text-emerald-500 md:text-emerald-300"/>
-                                                    <span className="text-emerald-600 dark:text-emerald-500 font-bold hidden md:inline">EMAIL:</span> {user?.email}
+                                                <div className="flex items-center gap-2 text-xs font-mono dark:text-neutral-300 text-neutral-200">
+                                                    <Mail size={12} className="text-emerald-700 md:text-emerald-300"/>
+                                                    <span className="text-emerald-700 dark:text-emerald-500 font-bold hidden md:inline">EMAIL:</span> {user?.email}
                                                 </div>
-                                                <div className="flex items-center gap-2 text-xs font-mono dark:text-neutral-300 text-neutral-600">
-                                                    <Phone size={12} className="text-emerald-500 md:text-emerald-300"/>
-                                                    <span className="text-emerald-600 dark:text-emerald-500 font-bold hidden md:inline">PHONE:</span> {profile.phone || "N/A"}
+                                                <div className="flex items-center gap-2 text-xs font-mono dark:text-neutral-300 text-neutral-200">
+                                                    <Phone size={12} className="text-emerald-700 md:text-emerald-300"/>
+                                                    <span className="text-emerald-700 dark:text-emerald-500 font-bold hidden md:inline">PHONE:</span> {profile.phone || "N/A"}
                                                 </div>
                                             </>
                                         ) : (

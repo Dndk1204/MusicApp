@@ -335,9 +335,11 @@ const PlayerContent = ({ song, songUrl }) => {
                       <button onClick={() => player.setIsShuffle(!player.isShuffle)} className={`p-2 ${player.isShuffle ? "text-emerald-500" : "text-neutral-400"}`}><Shuffle size={20}/></button>
                       <div className="flex items-center gap-4">
                           <button onClick={onPlayPrevious} className="p-2 text-neutral-800 dark:text-white"><SkipBack size={24}/></button>
+                          <button onClick={() => { if(sound) sound.seek(Math.max(0, seek - 5)); }} className="text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition hover:scale-110 p-1"><Rewind size={18}/></button>
                           <button onClick={handlePlay} className="h-12 w-12 bg-neutral-200 dark:bg-emerald-400/50 flex items-center justify-center border border-emerald-300">
                                {isLoading ? <div className="w-6 h-6 border-2 border-current border-t-transparent animate-spin" style={{ borderRadius: '50%' }}/> : <Icon size={28} fill="currentColor"/>}
                           </button>
+                          <button onClick={() => { if(sound) sound.seek(Math.min(duration, seek + 5)); }} className="text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition hover:scale-110 p-1"><FastForward size={18}/></button>
                           <button onClick={onPlayNext} className="p-2 text-neutral-800 dark:text-white"><SkipForward size={24}/></button>
                       </div>
                       <button onClick={() => player.setRepeatMode((player.repeatMode+1)%3)} className={`p-2 ${player.repeatMode!==0 ? "text-emerald-500" : "text-neutral-400"}`}>
@@ -359,9 +361,6 @@ const PlayerContent = ({ song, songUrl }) => {
             <div className="max-w-[24em] flex-1 min-w-0"><MediaItem data={song} /></div>
             
             <div className="flex items-center gap-1">
-                {/* Nút Save Tuned từ Code 2 */}
-                <button onClick={onSaveTunedSong} className="text-neutral-500 hover:text-green-500 transition p-1.5" title="Save as Tuned Song"><Save size={18}/></button>
-
                 <button 
                     onClick={() => { 
                         if(song) {
@@ -392,7 +391,7 @@ const PlayerContent = ({ song, songUrl }) => {
             <div className="flex items-center gap-x-6 translate-y-1.5">
                 <button onClick={() => player.setIsShuffle(!player.isShuffle)} className={`transition p-1 ${player.isShuffle ? "text-emerald-500" : "text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white"}`} title="Shuffle"><Shuffle size={16}/></button>
                 <button onClick={onPlayPrevious} className="text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition hover:scale-110 p-1"><SkipBack size={20}/></button>
-                <button onClick={() => { if(sound) sound.seek(Math.max(0, seek - 5)); }} className="text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition hover:scale-110 p-1"><Rewind size={18}/></button>
+                <button onClick={() => { if(sound) sound.seek(Math.max(0, seek - 5)); }} className="text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition hover:scale-110 p-1"><Rewind size={20}/></button>
                 
                 <button onClick={handlePlay} disabled={!sound || isLoading} className="relative flex items-center justify-center h-8 !w-16 bg-neutral-200 dark:bg-emerald-400/50 text-black dark:text-emerald-100 border border-neutral-300 dark:border-emerald-300 hover:bg-emerald-500 transition-all duration-200 shadow-sm">
                     <div className="relative w-full h-full flex items-center justify-center">
@@ -401,7 +400,7 @@ const PlayerContent = ({ song, songUrl }) => {
                     </div>
                 </button>
 
-                <button onClick={() => { if(sound) sound.seek(Math.min(duration, seek + 5)); }} className="text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition hover:scale-110 p-1"><FastForward size={18}/></button>
+                <button onClick={() => { if(sound) sound.seek(Math.min(duration, seek + 5)); }} className="text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition hover:scale-110 p-1"><FastForward size={20}/></button>
                 <button onClick={onPlayNext} className="text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition hover:scale-110 p-1"><SkipForward size={20}/></button>
                 <button onClick={() => player.setRepeatMode((player.repeatMode+1)%3)} className={`transition p-1 ${player.repeatMode!==0 ? "text-emerald-500" : "text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white"}`} title="Repeat">
                     {player.repeatMode===2 ? <Repeat1 size={16}/> : <Repeat size={16}/>}
