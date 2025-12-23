@@ -217,14 +217,14 @@ const Navbar = ({ onToggleSidebar }) => {
           <div className="relative w-8 h-8 md:w-10 md:h-10 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
               {/* Logo cho Light Mode (Sẽ ẩn khi ở Dark Mode) */}
               <img 
-                src="/logoVOID_lightmode.png" 
+                src="/logovoid-lightmode.png" 
                 alt="VOID Logo Light"
                 className="w-full h-full object-contain block dark:hidden"
               />
               
               {/* Logo cho Dark Mode (Mặc định ẩn, chỉ hiện khi ở Dark Mode) */}
               <img 
-                src="/logoVOID_darkmode.png" 
+                src="/logovoid-darkmode.png" 
                 alt="VOID Logo Dark"
                 className="w-full h-full object-contain hidden dark:block"
               />
