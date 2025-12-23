@@ -246,111 +246,142 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
   const filteredArtists = fullArtistsList.filter((artist) => (artist.originalName || artist.name || "").toLowerCase().includes(artistSearchTerm.toLowerCase()));
 
   // --- HANDLERS ---
-  const handleSyncMusic = async () => { if (!await confirm("Sync 100 tracks from API?", "SYNC")) return; setSyncing(true); try { const CLIENT_ID = '3501caaa'; let allTracks = []; const offsets = Array.from({ length: 5 }, (_, i) => i * 20); const responses = await Promise.all(offsets.map(offset => fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=jsonpretty&limit=20&include=musicinfo&order=popularity_week&offset=${offset}`).then(res => res.json()))); responses.forEach(data => { if (data.results) allTracks = [...allTracks, ...data.results]; }); if (allTracks.length > 0) { const songsToInsert = allTracks.map(track => ({ title: track.name, author: track.artist_name, song_url: track.audio, image_url: track.image, duration: track.duration, play_count: 0, is_public: true })); const { error: upsertError } = await supabase.from('songs').upsert(songsToInsert, { onConflict: 'song_url', ignoreDuplicates: true }); if (upsertError) throw upsertError; success("Synced successfully!"); await fetchDashboardData(); } } catch (e) { error(e.message); } finally { setSyncing(false); } };
-  const handleSyncArtists = async () => { if (!await confirm("Update top 50 artists?", "SYNC")) return; setSyncingArtists(true); try { const CLIENT_ID = '3501caaa'; const res = await fetch(`https://api.jamendo.com/v3.0/artists/?client_id=${CLIENT_ID}&format=jsonpretty&limit=50&order=popularity_total`); const data = await res.json(); if (data.results) { const artistsToUpsert = data.results.map(artist => ({ name: artist.name, image_url: artist.image })); const { error: upsertError } = await supabase.from('artists').upsert(artistsToUpsert, { onConflict: 'name', ignoreDuplicates: true }); if (upsertError) throw upsertError; success("Artists synced!"); await fetchDashboardData(); } } catch (e) { error(e.message); } finally { setSyncingArtists(false); } };
-  const handleResetArtists = async () => { if (!await confirm("Reset DB?", "RESET")) return; setResetting(true); try { await supabase.rpc('reset_artists_data'); success("Reset complete."); await fetchDashboardData(); } catch (e) { error(e.message); } finally { setResetting(false); } };
-  const handleRestoreFollowed = async () => { if (!await confirm("Restore followed?", "RESTORE")) return; setRestoring(true); try { await supabase.rpc('restore_followed_artists'); success("Restored."); await fetchDashboardData(); } catch (e) { error(e.message); } finally { setRestoring(false); } };
-  const handleCleanupSongs = async () => { if (!await confirm("Remove duplicates?", "CLEANUP")) return; setCleaning(true); try { await supabase.rpc('cleanup_duplicate_songs'); success("Songs cleaned."); await fetchDashboardData(); } catch (err) { error(err.message); } finally { setCleaning(false); } };
-  const handleCleanupArtists = async () => { if (!await confirm("Remove duplicates?", "CLEANUP")) return; setCleaning(true); try { await supabase.rpc('cleanup_duplicate_artists'); success("Artists cleaned."); await fetchDashboardData(); } catch (err) { error(err.message); } finally { setCleaning(false); } };
-  const handleDeleteUser = async (id) => { if(await confirm("Delete user?", "DELETE")) { await supabase.from('profiles').delete().eq('id', id); success("Deleted."); fetchDashboardData(); } };
-  const handleDeleteSong = async (id) => { if(await confirm("Delete song?", "DELETE")) { await supabase.from('songs').delete().eq('id', id); success("Deleted."); fetchDashboardData(); } };
-  const handleDeleteDbArtist = async (id) => { if (!id) return; if(await confirm("Delete artist?", "DELETE")) { await supabase.from('artists').delete().eq('id', id); success("Deleted."); fetchDashboardData(); } };
+    const handleSyncMusic = async () => { if (!await confirm("Sync 100 tracks from API?", "SYNC")) return; setSyncing(true); try { const CLIENT_ID = '3501caaa'; let allTracks = []; const offsets = Array.from({ length: 5 }, (_, i) => i * 20); const responses = await Promise.all(offsets.map(offset => fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=jsonpretty&limit=20&include=musicinfo&order=popularity_week&offset=${offset}`).then(res => res.json()))); responses.forEach(data => { if (data.results) allTracks = [...allTracks, ...data.results]; }); if (allTracks.length > 0) { const songsToInsert = allTracks.map(track => ({ title: track.name, author: track.artist_name, song_url: track.audio, image_url: track.image, duration: track.duration, play_count: 0, is_public: true })); const { error: upsertError } = await supabase.from('songs').upsert(songsToInsert, { onConflict: 'song_url', ignoreDuplicates: true }); if (upsertError) throw upsertError; success("Synced successfully!"); await fetchDashboardData(); } } catch (e) { error(e.message); } finally { setSyncing(false); } };
+    const handleSyncArtists = async () => { if (!await confirm("Update top 50 artists?", "SYNC")) return; setSyncingArtists(true); try { const CLIENT_ID = '3501caaa'; const res = await fetch(`https://api.jamendo.com/v3.0/artists/?client_id=${CLIENT_ID}&format=jsonpretty&limit=50&order=popularity_total`); const data = await res.json(); if (data.results) { const artistsToUpsert = data.results.map(artist => ({ name: artist.name, image_url: artist.image })); const { error: upsertError } = await supabase.from('artists').upsert(artistsToUpsert, { onConflict: 'name', ignoreDuplicates: true }); if (upsertError) throw upsertError; success("Artists synced!"); await fetchDashboardData(); } } catch (e) { error(e.message); } finally { setSyncingArtists(false); } };
+    const handleResetArtists = async () => { if (!await confirm("Reset DB?", "RESET")) return; setResetting(true); try { await supabase.rpc('reset_artists_data'); success("Reset complete."); await fetchDashboardData(); } catch (e) { error(e.message); } finally { setResetting(false); } };
+    const handleRestoreFollowed = async () => { if (!await confirm("Restore followed?", "RESTORE")) return; setRestoring(true); try { await supabase.rpc('restore_followed_artists'); success("Restored."); await fetchDashboardData(); } catch (e) { error(e.message); } finally { setRestoring(false); } };
+    const handleCleanupSongs = async () => { if (!await confirm("Remove duplicates?", "CLEANUP")) return; setCleaning(true); try { await supabase.rpc('cleanup_duplicate_songs'); success("Songs cleaned."); await fetchDashboardData(); } catch (err) { error(err.message); } finally { setCleaning(false); } };
+    const handleCleanupArtists = async () => { if (!await confirm("Remove duplicates?", "CLEANUP")) return; setCleaning(true); try { await supabase.rpc('cleanup_duplicate_artists'); success("Artists cleaned."); await fetchDashboardData(); } catch (err) { error(err.message); } finally { setCleaning(false); } };
+    const handleDeleteUser = async (id) => { if(await confirm("Delete user?", "DELETE")) { await supabase.from('profiles').delete().eq('id', id); success("Deleted."); fetchDashboardData(); } };
 
-const handleUpdateSong = async (songId, updates) => {
-    try {
-        const song = allSongsList.find(s => s.id === songId);
-        if (!song) throw new Error("TRACK_NOT_FOUND");
+    const handleDeleteSong = async (id) => { if(await confirm("Delete song?", "DELETE")) { await supabase.from('songs').delete().eq('id', id); success("Deleted."); fetchDashboardData(); } };
+    const handleDeleteDbArtist = async (id) => { if (!id) return; if(await confirm("Delete artist?", "DELETE")) { await supabase.from('artists').delete().eq('id', id); success("Deleted."); fetchDashboardData(); } };
 
-        let finalUpdates = { ...updates };
-
-        // 1. Xử lý Upload Lyrics nếu Admin có sửa nội dung trong Modal
-        if (updates.new_lyrics_content) {
-            const fileName = `lyric-mod-${songId}-${Date.now()}.srt`;
-            const blob = new Blob([updates.new_lyrics_content], { type: 'text/plain' });
-            
-            const { error: uploadError } = await supabase.storage
-                .from('songs')
-                .upload(fileName, blob);
-                
-            if (uploadError) throw uploadError;
-
-            const { data: urlData } = supabase.storage
-                .from('songs')
-                .getPublicUrl(fileName);
-                
-            finalUpdates.lyric_url = urlData.publicUrl;
-        }
-
-        // 2. Logic Phê duyệt (Approve)
-        // Admin nhấn Approve từ Modal thường gửi updates.is_public = true
-        if (updates.is_public === true || updates.is_verified === true) {
-            finalUpdates.is_verified = true;
-            finalUpdates.is_denied = false;
-
-            // Thực thi dựa trên tín hiệu yêu cầu (pending_action) của User
-            if (song.pending_action === 'set_private') {
-                finalUpdates.is_public = false; 
-            } else {
-                // Mặc định cho 'upload' hoặc 'set_public'
-                finalUpdates.is_public = true; 
-            }
-            
-            // Hoàn tất quy trình duyệt, xóa nhãn yêu cầu
-            finalUpdates.pending_action = null; 
-        }
-
-        // 3. QUAN TRỌNG: Sửa lỗi "new_lyrics_content column not found"
-        // Xóa tất cả các field "tạm" không tồn tại trong bảng 'songs' của Database
-        delete finalUpdates.new_lyrics_content;
-
-        // 4. Thực thi cập nhật Database
-        const { error: dbError } = await supabase
-            .from('songs')
-            .update(finalUpdates)
-            .eq('id', songId);
-
-        if (dbError) throw dbError;
-
-        success("PROTOCOL_EXECUTED: Hệ thống đã thực thi yêu cầu.");
-        await fetchDashboardData();
-        setIsTrackModalOpen(false);
-    } catch (err) {
-        console.error("Moderation Error:", err);
-        error(err.message || "Unknown error occurred during moderation.");
-    }
-};
-
-const handleBulkAction = async (action) => {
-        if (selectedSongIds.length === 0) return;
-        const isApprove = action === 'approve';
-        if (!await confirm(`Execute ${action} for ${selectedSongIds.length} signals?`, "BULK_PROTOCOL")) return;
-
-        setLoading(true);
+    const handleUpdateSong = async (songId, updates) => {
         try {
-            for (const id of selectedSongIds) {
-                const song = allSongsList.find(s => s.id === id);
-                let updateBody = { is_verified: isApprove, is_denied: !isApprove, pending_action: null };
+            const song = allSongsList.find(s => s.id === songId);
+            if (!song) throw new Error("TRACK_NOT_FOUND");
+
+            let finalUpdates = { ...updates };
+
+            // 1. Xử lý Upload Lyrics nếu Admin có sửa nội dung trong Modal
+            if (updates.new_lyrics_content) {
+                const fileName = `lyric-mod-${songId}-${Date.now()}.srt`;
+                const blob = new Blob([updates.new_lyrics_content], { type: 'text/plain' });
                 
-                if (isApprove) {
-                    updateBody.is_public = song.pending_action !== 'set_private';
-                }
+                const { error: uploadError } = await supabase.storage
+                    .from('songs')
+                    .upload(fileName, blob);
+                    
+                if (uploadError) throw uploadError;
 
-                await supabase.from('songs').update(updateBody).eq('id', id);
+                const { data: urlData } = supabase.storage
+                    .from('songs')
+                    .getPublicUrl(fileName);
+                    
+                finalUpdates.lyric_url = urlData.publicUrl;
             }
-            success("BATCH_COMPLETE.");
-            setSelectedSongIds([]);
+
+            // 2. Logic Phê duyệt (Approve)
+            // Admin nhấn Approve từ Modal thường gửi updates.is_public = true
+            if (updates.is_public === true || updates.is_verified === true) {
+                finalUpdates.is_verified = true;
+                finalUpdates.is_denied = false;
+
+                // Thực thi dựa trên tín hiệu yêu cầu (pending_action) của User
+                if (song.pending_action === 'set_private') {
+                    finalUpdates.is_public = false; 
+                } else {
+                    // Mặc định cho 'upload' hoặc 'set_public'
+                    finalUpdates.is_public = true; 
+                }
+                
+                // Hoàn tất quy trình duyệt, xóa nhãn yêu cầu
+                finalUpdates.pending_action = null; 
+            }
+
+            // 3. QUAN TRỌNG: Sửa lỗi "new_lyrics_content column not found"
+            // Xóa tất cả các field "tạm" không tồn tại trong bảng 'songs' của Database
+            delete finalUpdates.new_lyrics_content;
+
+            // 4. Thực thi cập nhật Database
+            const { error: dbError } = await supabase
+                .from('songs')
+                .update(finalUpdates)
+                .eq('id', songId);
+
+            if (dbError) throw dbError;
+
+            success("PROTOCOL_EXECUTED: Hệ thống đã thực thi yêu cầu.");
             await fetchDashboardData();
-        } catch (err) { error(err.message); } finally { setLoading(false); }
-};
+            setIsTrackModalOpen(false);
+        } catch (err) {
+            console.error("Moderation Error:", err);
+            error(err.message || "Unknown error occurred during moderation.");
+        }
+    };
 
-const handleSelectAll = (filteredSongs) => {
-    if (selectedSongIds.length === filteredSongs.length && filteredSongs.length > 0) {
-    setSelectedSongIds([]);
-    } else {
-    setSelectedSongIds(filteredSongs.map(s => s.id));
-    }
-};
+    const handleBulkAction = async (action) => {
+            if (selectedSongIds.length === 0) return;
+            const isApprove = action === 'approve';
+            if (!await confirm(`Execute ${action} for ${selectedSongIds.length} signals?`, "BULK_PROTOCOL")) return;
 
+            setLoading(true);
+            try {
+                for (const id of selectedSongIds) {
+                    const song = allSongsList.find(s => s.id === id);
+                    let updateBody = { is_verified: isApprove, is_denied: !isApprove, pending_action: null };
+                    
+                    if (isApprove) {
+                        updateBody.is_public = song.pending_action !== 'set_private';
+                    }
+
+                    await supabase.from('songs').update(updateBody).eq('id', id);
+                }
+                success("BATCH_COMPLETE.");
+                setSelectedSongIds([]);
+                await fetchDashboardData();
+            } catch (err) { error(err.message); } finally { setLoading(false); }
+    };
+
+    const handleSelectAll = (filteredSongs) => {
+        if (selectedSongIds.length === filteredSongs.length && filteredSongs.length > 0) {
+        setSelectedSongIds([]);
+        } else {
+        setSelectedSongIds(filteredSongs.map(s => s.id));
+        }
+    };
+
+    const handleChangeUserRole = async (id, newRole) => {
+        if (!await confirm(`Set role to ${newRole}?`, 'SET_ROLE')) return;
+
+        // Optimistic update (Cập nhật UI trước cho mượt)
+        const prevUsers = usersList;
+        setUsersList(prev => prev.map(u => u.id === id ? { ...u, role: newRole } : u));
+
+        try {
+            // --- CÁCH CŨ (BỊ LỖI RLS) ---
+            // const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', id);
+
+            // --- CÁCH MỚI (DÙNG RPC) ---
+            const { error } = await supabase.rpc('set_user_role', { 
+                target_user_id: id, 
+                new_role: newRole 
+            });
+
+            if (error) throw error;
+            success('Role updated successfully.');
+            
+            // Refresh lại data để đảm bảo đồng bộ
+            await fetchDashboardData();
+
+        } catch (err) {
+            console.error(err);
+            // Revert lại UI nếu lỗi
+            setUsersList(prevUsers);
+            error(err.message || 'Failed to update role.');
+        }
+    };
   if (loading) return <AdminSkeleton />;
   const isSongTableView = ['songs_list', 'admin_uploads', 'user_uploads'].includes(currentView);
 
@@ -540,7 +571,13 @@ const handleSelectAll = (filteredSongs) => {
                 <div className="overflow-x-auto max-h-[400px]">
                     <table className="w-full text-left text-xs font-mono text-neutral-600 dark:text-neutral-400">
                         <thead className="bg-neutral-200 dark:bg-black/40 text-neutral-700 dark:text-neutral-500 uppercase tracking-widest sticky top-0 backdrop-blur-md border-b border-neutral-300 dark:border-white/10">
-                            <tr><th className="px-6 py-3">Identity</th><th className="px-6 py-3">Role</th><th className="px-6 py-3">Status</th><th className="px-6 py-3">Date_Joined</th><th className="px-6 py-3 text-right">Cmd</th></tr>
+                            <tr>
+                                <th className="px-6 py-3">Identity</th>
+                                <th className="px-6 py-3 w-36 text-center">Role</th>
+                                <th className="px-6 py-3">Status</th>
+                                <th className="px-6 py-3">Date_Joined</th>
+                                <th className="px-6 py-3 text-right">Cmd</th>
+                            </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-200 dark:divide-white/5">
                             {usersList.map((user) => {
@@ -555,10 +592,20 @@ const handleSelectAll = (filteredSongs) => {
                                                 <span className="text-neutral-800 dark:text-neutral-200 font-bold">{user.full_name || "Unknown"}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-3 align-middle">
-                                            <span className={`px-2 py-0.5 rounded-none text-[9px] uppercase border font-bold ${user.role === 'admin' ? 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'}`}>
-                                                {user.role}
-                                            </span>
+                                        <td className="px-6 py-3 align-middle text-center">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <span className={`inline-block min-w-[72px] px-2 py-0.5 rounded-none text-[9px] uppercase border font-bold ${user.role === 'admin' ? 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'}`}>
+                                                    {user.role}
+                                                </span>
+                                                <select
+                                                    value={user.role}
+                                                    onChange={(e) => handleChangeUserRole(user.id, e.target.value)}
+                                                    className="text-[11px] font-mono rounded-sm px-2 py-1 border border-neutral-300 dark:border-white/20 bg-white dark:bg-black/60 text-neutral-900 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                                                >
+                                                    <option value="user">user</option>
+                                                    <option value="admin">admin</option>
+                                                </select>
+                                            </div>
                                         </td>
                                         <td className="px-6 py-3 align-middle">
                                             {isOnline ? (
@@ -575,7 +622,9 @@ const handleSelectAll = (filteredSongs) => {
                                         </td>
                                         <td className="px-6 py-3 opacity-60 align-middle">{new Date(user.created_at).toLocaleDateString('en-GB')}</td>
                                         <td className="px-6 py-3 text-right align-middle">
-                                            {user.role !== 'admin' && (<button onClick={() => handleDeleteUser(user.id)} className="text-neutral-500 hover:text-red-500 transition p-2"><Trash2 size={14} /></button>)}
+                                            {user.role !== 'admin' && (
+                                                <button onClick={() => handleDeleteUser(user.id)} className="text-neutral-500 hover:text-red-500 transition p-2"><Trash2 size={14} /></button>
+                                            )}
                                         </td>
                                     </tr>
                                 );
@@ -811,6 +860,8 @@ const handleSelectAll = (filteredSongs) => {
                         
                         // Lấy thông tin nhãn yêu cầu (Action Label)
                         const actionInfo = getActionLabel(song.pending_action);
+                        // Lấy thông tin người upload/ yêu cầu để hiển thị cho admin
+                        const requester = getUploaderInfo(song.user_id);
 
                         return (
                             <div 
@@ -825,6 +876,10 @@ const handleSelectAll = (filteredSongs) => {
                                 <div className="absolute top-2 right-2 z-20 flex flex-col items-end gap-1">
                                     <span className={`text-[8px] font-mono px-2 py-0.5 border font-bold tracking-tighter ${actionInfo.color} shadow-sm`}>
                                         {actionInfo.label}
+                                    </span>
+                                    {/* Người yêu cầu (uploader) */}
+                                    <span className="text-[9px] font-mono text-neutral-700 dark:text-neutral-300 bg-white dark:bg-black/20 px-2 py-0.5 uppercase border border-neutral-200 dark:border-white/10">
+                                        Requested: {requester?.name || 'Unknown'}
                                     </span>
                                     {/* Badge trạng thái phụ để Admin biết hiện tại bài đang là gì */}
                                     <span className="text-[7px] font-mono text-neutral-500 bg-neutral-100 dark:bg-white/5 px-1 uppercase border border-neutral-300 dark:border-white/10">
