@@ -14,21 +14,19 @@ const AuthModal = () => {
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [adminCode, setAdminCode] = useState(""); 
-  
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [variant, setVariant] = useState("login"); 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
-  const SECRET_ADMIN_CODE = "admin123";
 
   useEffect(() => {
     if (isOpen) {
-      setVariant(view);
-      setEmail("");
-      setPassword("");
-      setAdminCode("");
-      setMessage(null);
+        setVariant(view);
+        setEmail("");
+        setPassword("");
+        setConfirmPassword("");
+        setMessage(null);
     }
   }, [isOpen, view]);
 
@@ -38,35 +36,28 @@ const AuthModal = () => {
     setMessage(null);
 
     try {
-      if (variant === 'register') {
-        let userRole = 'user';
-        if (adminCode === SECRET_ADMIN_CODE) {
-            userRole = 'admin';
-        }
-
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { 
-            data: { 
-                full_name: 'User',
-                role: userRole
-            } 
-          }
-        });
-
+        if (variant === 'register') {
+        // KIỂM TRA MẬT KHẨU KHỚP NHAU
+            if (password !== confirmPassword) {
+                throw new Error("PASSWORDS_DO_NOT_MATCH");
+            }
+            const { error } = await supabase.auth.signUp({
+                email,
+                password,
+                options: { 
+                    data: { 
+                        full_name: 'User',
+                        role: 'user'
+                    } 
+                }
+            });
         if (error) throw error;
-        
-        if (userRole === 'admin') {
-            setMessage({ type: 'success', text: ':: ADMIN_REQ :: Check Email.' });
-        } else {
-            setMessage({ type: 'success', text: ':: REGISTERED :: Check Email.' });
+        setMessage({ type: 'success', text: ':: REGISTERED :: Check Email.' });
         }
-      } 
-      else if (variant === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password
+        else if (variant === 'login') {
+            const { error } = await supabase.auth.signInWithPassword({
+            email,
+            password
         });
         if (error) throw error;
         
@@ -76,7 +67,7 @@ const AuthModal = () => {
             closeModal();
             router.refresh(); 
         }, 1000);
-      }
+        }
       else if (variant === 'recovery') {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/update-password`,
@@ -171,7 +162,7 @@ const AuthModal = () => {
                     />
                 </div>
                 
-                {/* PASSWORD INPUT */}
+                {/* PASSWORD INPUT (Chỉ giữ lại 1 cái) */}
                 {variant !== 'recovery' && (
                     <div className="relative group">
                         <Lock className="absolute left-3 top-3 text-neutral-500 group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-500 transition-colors pointer-events-none" size={16}/>
@@ -194,23 +185,24 @@ const AuthModal = () => {
                     </div>
                 )}
 
-                {/* ADMIN CODE INPUT */}
+                {/* --- CONFIRM PASSWORD INPUT --- */}
                 {variant === 'register' && (
-                    <div className="relative group">
-                        <ShieldAlert className="absolute left-3 top-3 text-neutral-500 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-500 transition-colors pointer-events-none" size={16}/>
+                    <div className="relative group animate-in slide-in-from-left-2 fade-in duration-300">
+                        <Lock className="absolute left-3 top-3 text-neutral-500 group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-500 transition-colors pointer-events-none" size={16}/>
                         <input
-                            type="text"
-                            placeholder="ADMIN_CODE (OPTIONAL)"
-                            value={adminCode}
-                            onChange={(e) => setAdminCode(e.target.value)}
+                            type="password"
+                            placeholder="CONFIRM_PASSWORD..."
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
                             disabled={loading}
+                            required
                             className="
                                 w-full p-3 pl-10 text-xs font-mono outline-none transition-all rounded-none
                                 bg-white border-2 border-neutral-300 text-neutral-900 placeholder-neutral-400
-                                focus:border-blue-500 focus:shadow-[0_0_15px_rgba(59,130,246,0.2)]
+                                focus:border-emerald-500 focus:shadow-[0_0_15px_rgba(16,185,129,0.2)]
                                 
                                 dark:bg-black/40 dark:border-white/20 dark:text-white dark:placeholder-neutral-600
-                                dark:focus:border-blue-500 dark:focus:shadow-[0_0_15px_rgba(59,130,246,0.15)]
+                                dark:focus:border-emerald-500 dark:focus:shadow-[0_0_15px_rgba(16,185,129,0.15)]
                             "
                         />
                     </div>

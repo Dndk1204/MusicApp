@@ -165,8 +165,9 @@ const UploadModal = () => {
         is_denied: false,
         
         // Gắn tín hiệu: Nếu bài mới tải lên bởi user thì action là 'upload'
-        // Trường hợp bài private (isPublic === 'false') vẫn cần duyệt nội dung lần đầu
-        pending_action: isAdmin ? null : 'upload', 
+        // Nếu user chọn private thì đánh dấu 'set_private' để khi admin duyệt
+        // hệ thống giữ nguyên trạng thái private thay vì mặc định public
+        pending_action: isAdmin ? null : (isPublic === 'false' ? 'set_private' : 'upload'), 
         
         play_count: 0,
         duration: songDuration
