@@ -4,6 +4,8 @@ import Image from "next/image";
 import useLoadImage from "@/hooks/useLoadImage";
 import { Play } from "lucide-react";
 import Link from "next/link";
+import usePlayer from "@/hooks/usePlayer"; // 1. Import hook usePlayer
+
 // Import Cyber Components
 import { ScanlineOverlay, CyberCard } from "./CyberComponents";
 // Import Hover Preview Component
@@ -19,10 +21,14 @@ const formatDuration = (sec) => {
 
 const SongItem = ({ data, onClick }) => {
   const imagePath = useLoadImage(data);
+  const player = usePlayer(); // 2. Khởi tạo player store
 
-  // Xác định nguồn dữ liệu để tạo link chính xác
-  // Nếu data.user_id là 'jamendo_api' -> source=jamendo
-  // Nếu data.user_id là UUID (từ DB) -> source=local
+  // 3. Hàm xử lý khi click vào bài hát
+  const handlePlay = () => {
+    player.setSongData(data); // Đưa toàn bộ thông tin bài hát vào songData của store
+    onClick(data.id);         // Gọi hàm phát nhạc chính (thường là setId)
+  };
+
   const sourceParam = data.user_id === 'jamendo_api' ? 'jamendo' : 'local';
 
   return (
@@ -38,21 +44,19 @@ const SongItem = ({ data, onClick }) => {
         overflow-hidden
       "
     >
-      <div onClick={() => onClick(data.id)} className="w-full" data-song-json={JSON.stringify(data)}>
+      {/* 4. Thay đổi onClick từ onClick(data.id) thành handlePlay */}
+      <div onClick={handlePlay} className="w-full" data-song-json={JSON.stringify(data)}>
           
           {/* 1. ẢNH CONTAINER */}
           <div className="relative w-full aspect-square bg-neutral-200 dark:bg-neutral-800 overflow-hidden border-b border-neutral-300 dark:border-white/10 group/img">
             
-            {/* BỌC HOVER PREVIEW TẠI ĐÂY */}
             <HoverImagePreview
                 src={imagePath || '/images/music-placeholder.png'}
                 alt={data.title}
-                // Nhận URL Audio để preview đoạn cao trào
                 audioSrc={data.song_url || data.song_path} 
                 className="w-full h-full"
                 previewSize={240}
             >
-                {/* CHILDREN: Giao diện hiển thị bình thường */}
                 <div className="relative w-full h-full">
                     <Image
                       className="
@@ -70,10 +74,8 @@ const SongItem = ({ data, onClick }) => {
                     
                     <ScanlineOverlay />
                     
-                    {/* Hover Tint */}
                     <div className="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300"></div>
 
-                    {/* Play Button Overlay */}
                     <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover/img:opacity-100 transition-all duration-300 backdrop-blur-[2px]">
                         <div className="bg-emerald-500 text-black p-3 shadow-[0_0_20px_rgba(16,185,129,0.4)] transform scale-50 group-hover/img:scale-100 transition duration-300 border border-emerald-400">
                             <Play size={24} fill="black" className="ml-1" />
@@ -86,7 +88,6 @@ const SongItem = ({ data, onClick }) => {
 
           {/* 2. THÔNG TIN */}
           <div className="p-3 flex flex-col gap-1 relative bg-white/50 dark:bg-transparent">
-            {/* Decor Corner */}
             <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
             <p className="font-bold font-mono truncate w-full text-sm text-neutral-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-500 transition-colors">
@@ -97,7 +98,7 @@ const SongItem = ({ data, onClick }) => {
               <div className="flex items-center gap-2 truncate max-w-[70%]">
                 <span className="w-1 h-1 bg-emerald-500 shrink-0"></span>
                 <Link
-                  href={`/artist/${encodeURIComponent(data.author)}?source=${sourceParam}`} // THÊM PARAM SOURCE
+                  href={`/artist/${encodeURIComponent(data.author)}?source=${sourceParam}`}
                   onClick={(e) => e.stopPropagation()}
                   className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono tracking-wider hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline transition-colors truncate"
                 >

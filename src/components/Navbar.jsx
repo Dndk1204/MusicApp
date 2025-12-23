@@ -9,6 +9,7 @@ import { useModal } from "@/context/ModalContext";
 import qs from "query-string"; 
 import AdvancedSearchModal from "./AdvancedSearchModal"; 
 import { useAuth } from "@/components/AuthWrapper";
+import { GlitchText, HorizontalGlitchText } from "@/components/CyberComponents";
 
 const Navbar = ({ onToggleSidebar }) => {
   const router = useRouter();
@@ -212,23 +213,57 @@ const Navbar = ({ onToggleSidebar }) => {
         </button>
 
         <Link href="/" className="flex items-center gap-x-3 cursor-pointer group shrink-0">
-          {/* Logo Icon Box */}
-          <div className="relative w-8 h-8 md:w-10 md:h-10 bg-neutral-900 dark:bg-black flex items-center justify-center border border-neutral-400 dark:border-white/20 group-hover:border-emerald-500 transition-colors duration-300 rounded-none overflow-hidden shadow-sm group-hover:shadow-[0_0_15px_rgba(16,185,129,0.4)]">
-              <Disc size={18} className="md:w-5 md:h-5 text-neutral-500 dark:text-neutral-400 group-hover:text-white animate-[spin_4s_linear_infinite] relative z-10 transition-colors duration-300" />
-              <div className="absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.5)_50%)] bg-[size:100%_4px] pointer-events-none z-20 opacity-50"></div>
+          {/* Logo Image Box - Thay thế Icon Disc bằng Ảnh */}
+          <div className="relative w-8 h-8 md:w-10 md:h-10 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+              {/* Logo cho Light Mode (Sẽ ẩn khi ở Dark Mode) */}
+              <img 
+                src="/logoVOID%20lightmode.png" 
+                alt="VOID Logo Light"
+                className="w-full h-full object-contain block dark:hidden"
+              />
+              
+              {/* Logo cho Dark Mode (Mặc định ẩn, chỉ hiện khi ở Dark Mode) */}
+              <img 
+                src="/logoVOID%20darkmode.png" 
+                alt="VOID Logo Dark"
+                className="w-full h-full object-contain hidden dark:block"
+              />
           </div>
           
-          {/* Logo Text (Ẩn hoàn toàn trên mobile) */}
+          {/* Logo Text (Giữ nguyên phần text của bạn) */}
+          {/* LEFT: LOGO & MENU TOGGLE */}
           <div className="hidden md:flex flex-col items-start justify-center h-10">
-              <div className="relative">
-                  <h1 className="text-xl md:text-2xl font-black font-mono text-neutral-900 dark:text-white tracking-[0.35em] leading-none transition-colors duration-300 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-emerald-600 group-hover:to-cyan-600 dark:group-hover:from-emerald-500 dark:group-hover:to-cyan-500 pl-1">
-                      VOID
-                  </h1>
-              </div>
-              <div className="flex items-center gap-2 h-3 mt-0.5">
-                  <span className="w-1.5 h-1.5 bg-emerald-500 animate-pulse rounded-none shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
-                  <span className="text-[8px] md:text-[9px] font-mono text-neutral-500 tracking-widest uppercase group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300">System_Null</span>
-              </div>
+            <div className="relative">
+              {/* Thay thế h1 bằng GlitchText */}
+              <HorizontalGlitchText
+                text="VOID"
+                className="
+                  text-xl md:text-2xl 
+                  font-black font-mono 
+                  text-neutral-900 dark:text-white 
+                  tracking-[0.35em] 
+                  leading-none 
+                  transition-all duration-300 
+                  /* Hiệu ứng gradient khi hover vào cả cụm logo (group) */
+                  group-hover:text-transparent 
+                  group-hover:bg-clip-text 
+                  group-hover:bg-gradient-to-r 
+                  group-hover:from-emerald-500 
+                  group-hover:to-cyan-500 
+                  pl-1
+                  /* Tạo hiệu ứng bóng mờ (glow) nhẹ khi hover */
+                  group-hover:drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]
+                "
+              />
+            </div>
+            
+            {/* Phần Sub-text System_Null giữ nguyên vì đã rất hợp style */}
+            <div className="flex items-center gap-2 h-3 mt-0.5">
+              <span className="w-1.5 h-1.5 bg-emerald-500 animate-pulse rounded-none shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+              <span className="text-[8px] md:text-[9px] font-mono text-neutral-500 tracking-widest uppercase group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300">
+                System_Null
+              </span>
+            </div>
           </div>
         </Link>
       </div>

@@ -58,7 +58,7 @@
     width: 100%;
     /* Quan trọng: Dùng overflow-x-hidden một cách triệt để */
     overflow-x: hidden; 
-    overflow-y: auto;
+    overflow-y: hidden;
     
     /* Đảm bảo không bao giờ có thanh cuộn ngang xuất hiện */
     max-width: 100vw;
