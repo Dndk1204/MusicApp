@@ -6,12 +6,29 @@ import AuthModal from "@/components/AuthModal";
 import UploadModal from "@/components/UploadModal";
 import GlobalPopup from "@/components/GlobalPopup";
 import MainLayout from "@/components/MainLayout";
-import ClientOnlyWrapper from "@/components/ClientOnlyWrapper"; // Import wrapper mới
+import ClientOnlyWrapper from "@/components/ClientOnlyWrapper";
+import TitleUpdater from "@/components/TitleUpdater";
+
+export const viewport = {
+  themeColor: "#000000",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: 0,
+};
 
 export const metadata = {
   title: "V O I D - Music App",
   description: "Nghe nhạc trực tuyến phong cách Cyberpunk",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0",
+  icons: {
+    // Sử dụng %20 để thay thế khoảng trắng trong tên file "VOID favicon.ico"
+    icon: [
+      { url: "/VOID_favicon.ico" },
+      { url: "/VOID_favicon.ico", sizes: "32x32" }
+    ],
+    shortcut: "/VOID_favicon.ico",
+    apple: "/VOID_favicon.ico",
+  },
 };
 
 export default function RootLayout({ children }) {
@@ -29,6 +46,7 @@ export default function RootLayout({ children }) {
         <SupabaseProvider>
           <ModalProvider>
             <AuthWrapper>
+              <TitleUpdater />
               
               <MainLayout>
                 {children}
