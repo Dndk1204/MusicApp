@@ -1,16 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import HoverImagePreview from "@/components/HoverImagePreview";
 
-export default function CommentForm({ songId, currentUser, onSuccess }) {
+export default function CommentForm({ songId, onSuccess }) {
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
 
+  // =========================
+  // GET AUTH USER + PROFILE
+  // =========================
+  useEffect(() => {
+    const loadUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      const authUser = data?.user ?? null;
+
+      setUser(authUser);
+
+      if (authUser) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", authUser.id)
+          .single();
+
+        setProfile(profileData);
+      }
+    };
+
+    loadUser();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // =========================
+  // SUBMIT COMMENT
+  // =========================
   const handleSubmit = async () => {
-    if (!content.trim() || !currentUser || sending) return;
+    if (!content.trim() || !user || sending) return;
 
     setSending(true);
 
@@ -18,13 +54,10 @@ export default function CommentForm({ songId, currentUser, onSuccess }) {
       .from("song_comments")
       .insert({
         song_id: songId,
-        user_id: currentUser.id,
+        user_id: user.id, // ✅ đúng auth user id
         content: content.trim(),
       })
-      .select(`
-      *,
-      profiles (*)
-    `)
+      .select(`*, profiles (*)`)
       .single();
 
     if (!error) {
@@ -35,74 +68,94 @@ export default function CommentForm({ songId, currentUser, onSuccess }) {
     setSending(false);
   };
 
-  if (!currentUser) {
+  // =========================
+  // NOT LOGIN
+  // =========================
+  if (!user) {
     return (
-      <div className="w-full border border-dashed border-neutral-300 dark:border-white/10 p-3 text-center rounded-md">
-        <p className="text-xs text-neutral-500 italic">Login to comment</p>
+      <div className="text-xs text-neutral-500 italic text-center py-2">
+        Login to comment
       </div>
     );
   }
 
   return (
-    <div className="w-full border border-neutral-300 dark:border-white/10 rounded-md p-3 bg-white dark:bg-black/5 flex flex-col gap-2">
-      {/* HEADER với nút toggle */}
-      <div className="flex justify-between items-center">
-        <span className="text-xs font-medium text-emerald-700">
-          :: Add a comment ::
-        </span>
-        <button
-          onClick={() => setCollapsed((prev) => !prev)}
-          className="p-1 text-neutral-500 hover:text-neutral-700 transition"
-          title={collapsed ? "Expand" : "Collapse"}
-        >
-          {collapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-        </button>
-      </div>
-
-      {/* TEXTAREA */}
-      {!collapsed && (
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Write a comment..."
-          rows={3}
-          className="
-            w-full
-            p-2
-            text-xs
-            bg-neutral-100 dark:bg-white/5
-            border border-neutral-200 dark:border-white/10
-            resize-none
-            focus:outline-none
-            focus:border-emerald-500
-            transition-all
-          "
-        />
-      )}
-
-      {/* ACTION BAR */}
-      {!collapsed && (
-        <div className="flex justify-end">
-          <button
-            onClick={handleSubmit}
-            disabled={sending || !content.trim()}
+    <div className="flex gap-3 items-start w-full">
+      {/* AVATAR */}
+      <HoverImagePreview
+        src={profile?.avatar_url} 
+        alt={profile?.full_name || "User"}
+        className="w-8 h-8 rounded-sm shrink-0"
+        previewSize={160}
+        fallbackIcon="user"
+      >
+        <div className="relative group w-8 h-8">
+          <img
+            src={profile?.avatar_url || "/avatar-default.png"}
+            alt="avatar"
             className="
-              text-xs
-              px-4 py-1.5
-              border
-              border-neutral-300 dark:border-white/10
-              transition
-              transform
-              hover:scale-105
-              hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-600
-              disabled:opacity-50
-              disabled:cursor-not-allowed
+              w-8 h-8
+              rounded-full
+              object-cover
+              grayscale
+              group-hover:grayscale-0
+              transition-all
+              duration-300
             "
-          >
-            {sending ? "Posting..." : "Post"}
-          </button>
+          />
         </div>
-      )}
+      </HoverImagePreview>
+      {/* COMMENT BOX */}
+      <div className="flex-1">
+        <div
+          className="
+            bg-emerald-50 dark:bg-emerald-500/10
+            border border-emerald-200 dark:border-emerald-500/20
+            rounded-2xl
+            px-4 py-2
+            flex flex-col
+            focus-within:ring-1
+            focus-within:ring-emerald-500
+          "
+        >
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Write a comment..."
+            rows={1}
+            className="
+              w-full
+              text-sm
+              bg-transparent
+              resize-none
+              focus:outline-none
+              text-emerald-900 dark:text-emerald-100
+              placeholder:text-emerald-400
+            "
+          />
+
+          {/* POST BUTTON */}
+          <div className="flex justify-end mt-2">
+            <button
+              onClick={handleSubmit}
+              disabled={sending || !content.trim()}
+              className="
+                text-xs
+                font-medium
+                px-4 py-1.5
+                rounded-full
+                bg-emerald-500
+                text-white
+                hover:bg-emerald-600
+                disabled:opacity-50
+                disabled:cursor-not-allowed
+              "
+            >
+              {sending ? "Posting..." : "Post"}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

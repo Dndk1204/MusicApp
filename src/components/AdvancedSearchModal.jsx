@@ -12,7 +12,7 @@ const AdvancedSearchModal = ({ onClose, currentSearch }) => {
   
   const [title, setTitle] = useState(currentSearch || "");
   const [artist, setArtist] = useState("");
-  const [uploader, setUploader] = useState(""); // <-- STATE MỚI
+  const [uploader, setUploader] = useState(""); 
   const [tag, setTag] = useState("");
   const [mounted, setMounted] = useState(false);
 
@@ -24,45 +24,44 @@ const AdvancedSearchModal = ({ onClose, currentSearch }) => {
     };
   }, []);
 
+  // --- SỬA LOGIC TẠI ĐÂY ---
   const handleSearch = () => {
-    const query = {};
-    
-    // Logic gộp Title
-    if (title.trim()) query.title = title.trim();
-    
-    // Logic Artist
-    if (artist.trim()) {
-        // Nếu tiêu đề trống, tìm artist vào field title (tùy logic backend của bạn)
-        // Hoặc gửi riêng query.artist nếu backend hỗ trợ
-        if (!title.trim()) {
-            query.title = artist.trim();
-        } else {
-            // Gộp vào chuỗi tìm kiếm chung
-            query.title = `${title.trim()} ${artist.trim()}`;
-        }
-    }
+  const query = {};
+  
+  // 1. Tên bài hát / Từ khóa chung
+  if (title.trim()) {
+      query.title = title.trim();
+  }
 
-    // Logic Uploader (User Name)
-    if (uploader.trim()) {
-        query.uploader = uploader.trim();
-    }
+  // 2. Tên nghệ sĩ (Dành cho Songs/Artists)
+  if (artist.trim()) {
+      query.artist = artist.trim(); 
+  }
 
-    // Logic Tag
-    if (tag) query.tag = tag;
+  // 3. Tên người đăng (Dành cho Playlists/Users/Community)
+  if (uploader.trim()) {
+      query.uploader = uploader.trim();
+  }
 
-    const url = qs.stringifyUrl({ 
-        url: '/search', 
-        query: query 
-    }, { skipEmptyString: true, skipNull: true });
+  // 4. Thể loại
+  if (tag) {
+      query.tag = tag;
+  }
 
-    router.push(url);
-    onClose();
-  };
+  // URL sạch: /search?title=Chill&uploader=Sơn%20Tùng
+  const url = qs.stringifyUrl({ 
+      url: '/search', 
+      query: query 
+  }, { skipEmptyString: true, skipNull: true });
+
+  router.push(url);
+  onClose();
+};
 
   const handleReset = () => {
     setTitle("");
     setArtist("");
-    setUploader(""); // <-- RESET UPLOADER
+    setUploader(""); 
     setTag("");
   };
 
@@ -151,7 +150,7 @@ const AdvancedSearchModal = ({ onClose, currentSearch }) => {
 
               {/* Input: Artist */}
               <div className="space-y-2 group">
-                  <label className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-mono text-neutral-500 dark:text-neutral-400 font-bold group-focus-within:text-neutral-900 dark:group-focus-within:text-white transition-colors">
+                  <label className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-mono text-neutral-500 dark:text-neutral-400 font-bold group-focus-within:text-emerald-500 dark:group-focus-within:text-emerald-500 transition-colors">
                       <User size={12}/> Artist_Identity
                   </label>
                   <input 
@@ -172,7 +171,7 @@ const AdvancedSearchModal = ({ onClose, currentSearch }) => {
 
               {/* Input: Uploader (NEW) */}
               <div className="space-y-2 group">
-                  <label className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-mono text-neutral-500 dark:text-neutral-400 font-bold group-focus-within:text-blue-600 dark:group-focus-within:text-blue-500 transition-colors">
+                  <label className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-mono text-neutral-500 dark:text-neutral-400 font-bold group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-500 transition-colors">
                       <CircleUser size={12}/> Uploader_Name / ID
                   </label>
                   <input 
@@ -183,17 +182,17 @@ const AdvancedSearchModal = ({ onClose, currentSearch }) => {
                       className="
                         w-full p-3 text-sm font-mono outline-none transition-all rounded-none
                         bg-white border-2 border-neutral-300 text-neutral-900 placeholder-neutral-400
-                        focus:border-blue-500 focus:shadow-[0_0_10px_rgba(59,130,246,0.2)]
+                        focus:border-emerald-500 focus:shadow-[0_0_10px_rgba(59,130,246,0.2)]
                         
                         dark:bg-black/40 dark:border-white/20 dark:text-white dark:placeholder-neutral-600
-                        dark:focus:border-blue-500 dark:focus:shadow-[0_0_15px_rgba(59,130,246,0.15)]
+                        dark:focus:border-emerald-500 dark:focus:shadow-[0_0_15px_rgba(59,130,246,0.15)]
                       "
                   />
               </div>
 
               {/* Select: Genre */}
               <div className="space-y-2 group">
-                  <label className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-mono text-neutral-500 dark:text-neutral-400 font-bold group-focus-within:text-neutral-900 dark:group-focus-within:text-white transition-colors">
+                  <label className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-mono text-neutral-500 dark:text-neutral-400 font-bold group-focus-within:text-emerald-500 dark:group-focus-within:text-emerald-500 transition-colors">
                       <Tag size={12}/> Genre_Classification
                   </label>
                   <div className="relative">

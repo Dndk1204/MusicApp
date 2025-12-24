@@ -4,11 +4,13 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { X, FileText, Save, Loader2 } from "lucide-react";
 import { GlitchText, CyberButton } from "@/components/CyberComponents";
+import useUI from "@/hooks/useUI";
 
 const LyricsEditModal = ({ isOpen, onClose, song, onUpdate }) => {
   const [lyrics, setLyrics] = useState("");
   const [lyricsFile, setLyricsFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { alert } = useUI(); 
 
   useEffect(() => {
     if (song && isOpen) {
@@ -106,7 +108,7 @@ const LyricsEditModal = ({ isOpen, onClose, song, onUpdate }) => {
           border-2 border-neutral-400 dark:border-white/20
           shadow-[0_0_50px_rgba(0,0,0,0.5)] dark:shadow-[0_0_50px_rgba(16,185,129,0.15)]
           rounded-none
-          max-h-[90vh] overflow-y-auto custom-scrollbar
+          max-h-[100vh] overflow-y-auto custom-scrollbar
       ">
         {/* Decoration Corners */}
         <div className="absolute top-0 left-0 w-3 h-3 border-t-4 border-l-4 border-purple-600 dark:border-purple-500 pointer-events-none z-30"></div>
@@ -133,7 +135,7 @@ const LyricsEditModal = ({ isOpen, onClose, song, onUpdate }) => {
         </div>
 
         {/* Body */}
-        <div className="p-6 md:p-8 bg-neutral-50 dark:bg-black/80">
+        <div className="p-4 md:p-6 bg-neutral-50 dark:bg-black/80">
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
 
                 {/* Song Info Display */}

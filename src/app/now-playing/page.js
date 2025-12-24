@@ -246,26 +246,40 @@ const NowPlayingPage = () => {
     }
   }, [player.activeId]);
 
-  // --- LOGIC SCROLL TO ACTIVE SONG IN QUEUE ---
-  // Sử dụng useEffect để theo dõi song.id và activeTab
+  // --- FIX TRIỆT ĐỂ: AUTO SCROLL QUEUE KHÔNG ĐẨY NAVBAR ---
   useEffect(() => {
-    if (!song?.id || queueSongs.length === 0) return;
+    if (loading || !song?.id || queueSongs.length === 0 || !queueContainerRef.current) return;
 
-    // Dùng setTimeout để đảm bảo DOM đã render xong danh sách
-    const timer = setTimeout(() => {
-        const activeElement = document.getElementById(`queue-item-${song.id}`);
-        
-        // Kiểm tra xem element có tồn tại và đang hiển thị không
-        if (activeElement) {
-            activeElement.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'center' // Căn bài hát vào giữa danh sách
-            });
-        }
-    }, 1000); // Delay 500ms để chắc chắn UI đã ổn định
+    const performScroll = () => {
+      const container = queueContainerRef.current;
+      const activeItem = document.getElementById(`queue-item-${song.id}`);
+      
+      if (activeItem && container) {
+        // TÍNH TOÁN VỊ TRÍ CUỘN NỘI BỘ (Chỉ tác động bên trong Div Queue)
+        const scrollTarget = activeItem.offsetTop - (container.offsetHeight / 2) + (activeItem.offsetHeight / 2);
 
-    return () => clearTimeout(timer);
-  }, [song?.id, activeTab, queueSongs.length]);
+        // Dùng scrollTo thay vì scrollIntoView để cô lập phạm vi cuộn
+        container.scrollTo({
+          top: scrollTarget,
+          behavior: 'smooth'
+        });
+      }
+    };
+
+    performScroll();
+    
+    // ResizeObserver để cuộn lại nếu tab được mở ra sau khi load
+    const ro = new ResizeObserver(() => {
+      if (queueContainerRef.current?.offsetHeight > 0) performScroll();
+    });
+    ro.observe(queueContainerRef.current);
+
+    const timers = [setTimeout(performScroll, 100), setTimeout(performScroll, 800)];
+    return () => {
+      ro.disconnect();
+      timers.forEach(t => clearTimeout(t));
+    };
+  }, [loading, song?.id, queueSongs.length, activeTab]);
 
   useEffect(() => { if (song) { setRawLyrics(null); setParsedLyrics([]); setActiveLineIndex(-1); setLoadingLyrics(false); } }, [song?.id]);
 
@@ -528,7 +542,7 @@ const NowPlayingPage = () => {
             className="flex-1 min-h-0 p-4 custom-scrollbar overflow-y-auto"
           >
              {queueSongs.length > 0 ? (
-                <div className="space-y-2">
+                <div className="space-y-2 relative">
                    {queueSongs.map((queueSong) => {
                       const isCurrentlyPlaying = queueSong.id === song.id;
                       return (
@@ -637,7 +651,7 @@ const NowPlayingPage = () => {
                                 ))}
                             </div>
                             <div className="flex gap-2 pt-2 w-full">
-                                <CyberButton onClick={handleSaveSettings} disabled={isSaving} className="flex-1 w-full text-neutral-400 dark:hover:!text-white hover:text-green-500 transition p-1.5 justify-center border border-transparent hover:border-green-500/50 flex items-center gap-2 rounded-none" title="Save EQ Configuration">
+                                <CyberButton onClick={handleSaveSettings} disabled={isSaving} className="flex-1 w-full text-neutral-400 hover:!text-white transition p-1.5 justify-center border border-transparent hover:border-green-500/50 flex items-center gap-2 rounded-none" title="Save EQ Configuration">
                                     {isSaving ? <Loader2 className="animate-spin" size={14}/> : <Save size={14}/>}
                                     <span className="text-xs font-mono">SAVE_CONFIG</span>
                                 </CyberButton>
@@ -678,7 +692,7 @@ const NowPlayingPage = () => {
                                          </div>
                                      </div>
                                  ) : parsedLyrics.length > 0 ? (
-                                     <ul className="space-y-6 py-[40%] px-2">
+                                     <ul className="space-y-6 py-[40%] px-2 relative">
                                          {parsedLyrics.map((line, index) => {
                                              const isActive = index === activeLineIndex;
                                              return (

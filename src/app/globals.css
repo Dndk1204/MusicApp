@@ -50,20 +50,48 @@
     --aurora-opacity: 0.4;
   }
 
+  /* --- CẬP NHẬT TRONG global.css --- */
+
   html,
   body {
     height: 100%;
     width: 100%;
-    overflow: hidden; /* Chặn scroll body, chỉ scroll container con */
+    /* Quan trọng: Dùng overflow-x-hidden một cách triệt để */
+    overflow-x: hidden; 
+    overflow-y: hidden;
     
-    /* Sử dụng biến màu */
+    /* Đảm bảo không bao giờ có thanh cuộn ngang xuất hiện */
+    max-width: 100vw;
+    position: relative;
+
     background-color: var(--bg-primary);
     color: var(--text-primary);
-    
     font-family: 'Space Mono', 'Courier New', monospace; 
-
-    /* Hiệu ứng chuyển màu mượt khi đổi theme */
     transition: background-color 0.3s ease, color 0.3s ease;
+    
+    /* Ngăn chặn hành vi kéo nảy trang trên mobile (iOS) */
+    overscroll-behavior-x: none;
+  }
+
+  /* Fix lỗi tràn viền cho Next.js root */
+  #__next {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  /* Đảm bảo mọi thẻ fixed không bị đẩy ra ngoài do box-model */
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent; /* Xóa khung highlight khi click trên mobile */
+  }
+
+  /* Khắc phục lỗi: Thẻ body::before (Aurora) có width 200% 
+    Đôi khi trình duyệt không clip (cắt) tốt phần thừa của pseudo-element 
+  */
+  body {
+    position: relative;
+    overflow-x: hidden;
   }
 
   /* --- AURORA BACKGROUND ANIMATION --- */
@@ -84,6 +112,10 @@
     animation: moveBackground 20s infinite alternate;
     z-index: -1;
     pointer-events: none;
+  }
+
+  *, ::before, ::after {
+    box-sizing: border-box;
   }
 
   @keyframes moveBackground {

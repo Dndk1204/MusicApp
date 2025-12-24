@@ -100,7 +100,7 @@ export default function CommentItem({
             src={profile?.avatar_url}
             alt={profile?.full_name || "User"}
             className="w-8 h-8 rounded-sm shrink-0"
-            previewSize={120}
+            previewSize={160}
             fallbackIcon="user"
           >
             {profile?.avatar_url ? (

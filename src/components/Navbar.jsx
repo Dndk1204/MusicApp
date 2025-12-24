@@ -9,6 +9,7 @@ import { useModal } from "@/context/ModalContext";
 import qs from "query-string"; 
 import AdvancedSearchModal from "./AdvancedSearchModal"; 
 import { useAuth } from "@/components/AuthWrapper";
+import { GlitchText, HorizontalGlitchText } from "@/components/CyberComponents";
 
 const Navbar = ({ onToggleSidebar }) => {
   const router = useRouter();
@@ -93,13 +94,21 @@ const Navbar = ({ onToggleSidebar }) => {
 
     const fetchProfile = async () => {
         if (user) {
-            const { data } = await supabase.from('profiles').select('role, avatar_url').eq('id', user.id).single();
+            // 1. Lấy dữ liệu ban đầu
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('role, avatar_url')
+                .eq('id', user.id)
+                .single();
+            
             if (data) {
                 setIsAdmin(data.role === 'admin');
                 setAvatarUrl(data.avatar_url);
             }
 
-            channel = supabase.channel('realtime-profile')
+            // 2. Thiết lập kênh Realtime độc nhất cho user này
+            // Sử dụng tên channel kèm user.id để tránh xung đột
+            channel = supabase.channel(`profile-updates-${user.id}`)
                 .on(
                     'postgres_changes',
                     {
@@ -110,15 +119,26 @@ const Navbar = ({ onToggleSidebar }) => {
                     },
                     (payload) => {
                         const newData = payload.new;
+                        
+                        // Cập nhật Avatar ngay lập tức
                         if (newData.avatar_url) {
+                            // Thêm timestamp để ép trình duyệt tải lại ảnh mới hoàn toàn
                             setAvatarUrl(`${newData.avatar_url}?t=${new Date().getTime()}`);
+                        } else {
+                            setAvatarUrl(null);
                         }
+
+                        // Cập nhật Role nếu có thay đổi
                         if (newData.role) {
                             setIsAdmin(newData.role === 'admin');
                         }
                     }
                 )
-                .subscribe();
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        console.log("Realtime profile listening active");
+                    }
+                });
 
         } else {
             setIsAdmin(false);
@@ -128,14 +148,17 @@ const Navbar = ({ onToggleSidebar }) => {
 
     fetchProfile();
 
-    const handleClickOutside = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false); };
+    const handleClickOutside = (e) => { 
+        if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false); 
+    };
     document.addEventListener("mousedown", handleClickOutside);
     
     return () => {
         document.removeEventListener("mousedown", handleClickOutside);
+        // Quan trọng: Hủy subscribe khi component unmount hoặc user thay đổi
         if (channel) supabase.removeChannel(channel);
     };
-  }, [user]);
+}, [user]);
 
   const handleLogout = async () => {
     setShowMenu(false);
@@ -190,23 +213,57 @@ const Navbar = ({ onToggleSidebar }) => {
         </button>
 
         <Link href="/" className="flex items-center gap-x-3 cursor-pointer group shrink-0">
-          {/* Logo Icon Box */}
-          <div className="relative w-8 h-8 md:w-10 md:h-10 bg-neutral-900 dark:bg-black flex items-center justify-center border border-neutral-400 dark:border-white/20 group-hover:border-emerald-500 transition-colors duration-300 rounded-none overflow-hidden shadow-sm group-hover:shadow-[0_0_15px_rgba(16,185,129,0.4)]">
-              <Disc size={18} className="md:w-5 md:h-5 text-neutral-500 dark:text-neutral-400 group-hover:text-white animate-[spin_4s_linear_infinite] relative z-10 transition-colors duration-300" />
-              <div className="absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.5)_50%)] bg-[size:100%_4px] pointer-events-none z-20 opacity-50"></div>
+          {/* Logo Image Box - Thay thế Icon Disc bằng Ảnh */}
+          <div className="relative w-8 h-8 md:w-10 md:h-10 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+              {/* Logo cho Light Mode (Sẽ ẩn khi ở Dark Mode) */}
+              <img 
+                src="/VOID-Light.png" 
+                alt="VOID Logo Light"
+                className="w-full h-full object-contain block dark:hidden"
+              />
+              
+              {/* Logo cho Dark Mode (Mặc định ẩn, chỉ hiện khi ở Dark Mode) */}
+              <img 
+                src="/VOID-Dark.png" 
+                alt="VOID Logo Dark"
+                className="w-full h-full object-contain hidden dark:block"
+              />
           </div>
           
-          {/* Logo Text (Ẩn hoàn toàn trên mobile) */}
+          {/* Logo Text (Giữ nguyên phần text của bạn) */}
+          {/* LEFT: LOGO & MENU TOGGLE */}
           <div className="hidden md:flex flex-col items-start justify-center h-10">
-              <div className="relative">
-                  <h1 className="text-xl md:text-2xl font-black font-mono text-neutral-900 dark:text-white tracking-[0.35em] leading-none transition-colors duration-300 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-emerald-600 group-hover:to-cyan-600 dark:group-hover:from-emerald-500 dark:group-hover:to-cyan-500 pl-1">
-                      VOID
-                  </h1>
-              </div>
-              <div className="flex items-center gap-2 h-3 mt-0.5">
-                  <span className="w-1.5 h-1.5 bg-emerald-500 animate-pulse rounded-none shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
-                  <span className="text-[8px] md:text-[9px] font-mono text-neutral-500 tracking-widest uppercase group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300">System_Null</span>
-              </div>
+            <div className="relative">
+              {/* Thay thế h1 bằng GlitchText */}
+              <HorizontalGlitchText
+                text="VOID"
+                className="
+                  text-xl md:text-2xl 
+                  font-black font-mono 
+                  text-neutral-900 dark:text-white 
+                  tracking-[0.35em] 
+                  leading-none 
+                  transition-all duration-300 
+                  /* Hiệu ứng gradient khi hover vào cả cụm logo (group) */
+                  group-hover:text-transparent 
+                  group-hover:bg-clip-text 
+                  group-hover:bg-gradient-to-r 
+                  group-hover:from-emerald-500 
+                  group-hover:to-cyan-500 
+                  pl-1
+                  /* Tạo hiệu ứng bóng mờ (glow) nhẹ khi hover */
+                  group-hover:drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]
+                "
+              />
+            </div>
+            
+            {/* Phần Sub-text System_Null giữ nguyên vì đã rất hợp style */}
+            <div className="flex items-center gap-2 h-3 mt-0.5">
+              <span className="w-1.5 h-1.5 bg-emerald-500 animate-pulse rounded-none shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+              <span className="text-[8px] md:text-[9px] font-mono text-neutral-500 tracking-widest uppercase group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300">
+                System_Null
+              </span>
+            </div>
           </div>
         </Link>
       </div>
@@ -271,7 +328,16 @@ const Navbar = ({ onToggleSidebar }) => {
           
           {/* Avatar Menu Button */}
           <button onClick={() => setShowMenu(!showMenu)} className="relative h-8 w-8 md:h-10 md:w-10 flex items-center justify-center bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/20 hover:border-emerald-500 transition-all duration-300 group rounded-none overflow-hidden shrink-0">
-            {user && avatarUrl ? <img src={avatarUrl} alt="Avatar" className="object-cover w-full h-full grayscale group-hover:grayscale-0 transition-all duration-500" /> : <User className="text-neutral-500 dark:text-neutral-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-500 transition-colors" size={20} />}
+            {user && avatarUrl ? (
+              <img 
+                  key={avatarUrl} // Thêm key để React render lại animation khi URL thay đổi
+                  src={avatarUrl} 
+                  alt="Avatar" 
+                  className="object-cover w-full h-full grayscale group-hover:grayscale-0 transition-all duration-500 animate-in fade-in" 
+              />
+            ) : (
+              <User className="text-neutral-500 dark:text-neutral-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-500 transition-colors" size={20} />
+            )}
             
             <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
             <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>

@@ -104,7 +104,7 @@ const CreatePlaylistModal = ({ onClose, onCreate }) => {
             <div className="flex gap-3">
                 <GlitchButton 
                     onClick={onClose}
-                    className="flex-1 py-3 text-xs !border-red-500 !text-red-500 dark:!border-red-400/70 dark:!text-red-400 hover:!text-black dark:hover:!text-white"
+                    className="flex-1 py-3 text-xs !border-red-500 !text-red-500 dark:!border-red-400/70 dark:!text-red-400 hover:!text-red-500 dark:hover:!text-white"
                 >
                     ABORT
                 </GlitchButton>

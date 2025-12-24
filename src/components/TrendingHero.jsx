@@ -289,7 +289,7 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
                             <div className="flex gap-4 items-center">
                                 <HoloButton 
                                     onClick={handlePlay} 
-                                    className="px-6 md:px-8 py-2 md:py-2 text-[10px] md:text-xs border-emerald-500 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white"
+                                    className="px-6 md:px-8 py-2 md:py-2 text-[10px] md:text-xs border-emerald-500 dark:text-emerald-400 hover:!bg-emerald-500 hover:!text-white"
                                 >
                                     <Play size={12} fill="currentColor" className="mr-2" /> PLAY_TRACK
                                 </HoloButton>

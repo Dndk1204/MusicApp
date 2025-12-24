@@ -188,7 +188,7 @@ export default function TunedTracksPage() {
       </div>
 
       <div className="flex gap-4 mb-10 z-20 relative justify-center md:justify-start">
-        <HoloButton onClick={() => handlePlayCollection(Object.values(songsTuned).flat())} className="px-8 bg-emerald-500/10 border-emerald-500/50 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white">
+        <HoloButton onClick={() => handlePlayCollection(Object.values(songsTuned).flat())} className="px-8 bg-emerald-500/10 border-emerald-500/50 text-emerald-600 dark:text-emerald-400 hover:!bg-emerald-500 hover:!text-white">
           <Play size={18} fill="currentColor" className="mr-2" /> PLAY_ALL
         </HoloButton>
       </div>
