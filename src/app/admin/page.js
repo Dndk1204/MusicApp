@@ -252,7 +252,36 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
     const handleRestoreFollowed = async () => { if (!await confirm("Restore followed?", "RESTORE")) return; setRestoring(true); try { await supabase.rpc('restore_followed_artists'); success("Restored."); await fetchDashboardData(); } catch (e) { error(e.message); } finally { setRestoring(false); } };
     const handleCleanupSongs = async () => { if (!await confirm("Remove duplicates?", "CLEANUP")) return; setCleaning(true); try { await supabase.rpc('cleanup_duplicate_songs'); success("Songs cleaned."); await fetchDashboardData(); } catch (err) { error(err.message); } finally { setCleaning(false); } };
     const handleCleanupArtists = async () => { if (!await confirm("Remove duplicates?", "CLEANUP")) return; setCleaning(true); try { await supabase.rpc('cleanup_duplicate_artists'); success("Artists cleaned."); await fetchDashboardData(); } catch (err) { error(err.message); } finally { setCleaning(false); } };
-    const handleDeleteUser = async (id) => { if(await confirm("Delete user?", "DELETE")) { await supabase.from('profiles').delete().eq('id', id); success("Deleted."); fetchDashboardData(); } };
+    const handleDeleteUser = async (id) => {
+    // 1. Xác nhận hành động
+    if (!await confirm("PROTOCOL: PERMANENTLY_ERASE_USER_IDENTITY?", "CRITICAL_ACTION")) return;
+
+    setLoading(true); // Bật loading nếu muốn (hoặc tạo state deleting riêng)
+    
+    try {
+        // 2. Gọi hàm RPC đã tạo ở Bước 1
+        const { error } = await supabase.rpc('delete_user_by_admin', { 
+            target_user_id: id 
+        });
+
+        if (error) throw error;
+
+        // 3. Thông báo thành công
+        success("TARGET_ELIMINATED: User removed from System & Auth.");
+        
+        // 4. Cập nhật lại giao diện ngay lập tức (Optimistic Update)
+        setUsersList(prev => prev.filter(u => u.id !== id));
+        
+        // 5. Fetch lại dữ liệu mới nhất để đồng bộ
+        await fetchDashboardData();
+
+    } catch (err) {
+        console.error("Delete Error:", err);
+        error(`EXECUTION_FAILED: ${err.message}`);
+    } finally {
+        setLoading(false);
+    }
+    };
 
     const handleDeleteSong = async (id) => { if(await confirm("Delete song?", "DELETE")) { await supabase.from('songs').delete().eq('id', id); success("Deleted."); fetchDashboardData(); } };
     const handleDeleteDbArtist = async (id) => { if (!id) return; if(await confirm("Delete artist?", "DELETE")) { await supabase.from('artists').delete().eq('id', id); success("Deleted."); fetchDashboardData(); } };
