@@ -8,6 +8,7 @@ import GlobalPopup from "@/components/GlobalPopup";
 import MainLayout from "@/components/MainLayout";
 import ClientOnlyWrapper from "@/components/ClientOnlyWrapper";
 import TitleUpdater from "@/components/TitleUpdater";
+import ProfileGuard from "@/components/ProfileGuard";
 
 export const viewport = {
   themeColor: "#000000",
@@ -21,7 +22,6 @@ export const metadata = {
   title: "V O I D - Music App",
   description: "Nghe nhạc trực tuyến phong cách Cyberpunk",
   icons: {
-    // Sử dụng %20 để thay thế khoảng trắng trong tên file "VOID favicon.ico"
     icon: [
       { url: "/VOID_favicon.ico" },
       { url: "/VOID_favicon.ico", sizes: "32x32" }
@@ -48,9 +48,11 @@ export default function RootLayout({ children }) {
             <AuthWrapper>
               <TitleUpdater />
               
-              <MainLayout>
-                {children}
-              </MainLayout>
+              <ProfileGuard> 
+                <MainLayout>
+                  {children}
+                </MainLayout>
+              </ProfileGuard>
 
               <AuthModal />
               <UploadModal />

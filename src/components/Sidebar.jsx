@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { 
   Library, Plus, ListMusic, Play, Trash2, 
   UploadCloud, User, Disc, ChevronLeft, ChevronRight, X 
@@ -45,6 +45,7 @@ const PlaylistSkeleton = ({ collapsed }) => {
 // =========================
 const Sidebar = ({ children, className = "", isOpen = false, onClose = () => {} }) => {
   const router = useRouter();
+  const pathname = usePathname();
   const { alert, confirm } = useUI();
   const { isAuthenticated } = useAuth();
   const { openModal } = useModal();
@@ -57,7 +58,21 @@ const Sidebar = ({ children, className = "", isOpen = false, onClose = () => {} 
   const [isCollapsed, setIsCollapsed] = useState(false); 
 
   const [user, setUser] = useState(null);
+  const [isProfileCompleted, setIsProfileCompleted] = useState(true); 
   const channelRef = useRef(null);
+
+  const checkAccess = (callback) => {
+    if (!isAuthenticated) {
+      openModal(); // Mở AuthModal nếu chưa login
+      return;
+    }
+    if (!isProfileCompleted) {
+      alert("SYS ERR: Please finish your infomation (INITIALIZATION) to use this feature.", "error");
+      router.push("/complete-profile");
+      return;
+    }
+    callback(); // Nếu ổn thì cho phép thực hiện hành động
+  };
 
   const getFirstLetter = (name) => (name ? name.trim()[0].toUpperCase() : "?");
 
@@ -78,22 +93,44 @@ const Sidebar = ({ children, className = "", isOpen = false, onClose = () => {} 
         .subscribe();
   };
 
+  const fetchProfileStatus = async (uid) => {
+    if (!uid) return;
+    const { data } = await supabase
+      .from("profiles")
+      .select("is_completed")
+      .eq("id", uid)
+      .single();
+    setIsProfileCompleted(!!data?.is_completed);
+  };
+
   useEffect(() => {
     const initAuth = async () => {
         const { data } = await supabase.auth.getSession();
         const currentUser = data?.session?.user ?? null;
         setUser(currentUser);
-        if (currentUser) { fetchPlaylists(currentUser.id); setupRealtime(currentUser.id); } else { setLoading(false); }
+        if (currentUser) { fetchPlaylists(currentUser.id); fetchProfileStatus(currentUser.id); setupRealtime(currentUser.id); } else { setLoading(false); }
     };
     initAuth();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) { setUser(session.user); fetchPlaylists(session.user.id); setupRealtime(session.user.id); } 
-      else { setUser(null); setPlaylists([]); setLoading(false); if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null; } }
+      if (session?.user) { setUser(session.user); fetchPlaylists(session.user.id); fetchProfileStatus(session.user.id); setupRealtime(session.user.id); } 
+      else { setUser(null); setIsProfileCompleted(true); setPlaylists([]); setLoading(false); if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null; } }
     });
     return () => { subscription.unsubscribe(); if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null; } };
   }, []);
 
   useEffect(() => { onClose(); }, [router]);
+
+  const handleUploadOpen = () => {
+    checkAccess(() => uploadModal.onOpen());
+  };
+
+  const handleNewPlaylistClick = () => {
+    checkAccess(() => setShowAddModal(true));
+  };
+
+  const handleNavigate = (path) => {
+    checkAccess(() => router.push(path));
+  };
 
   // --- ACTIONS ---
   const handleNewPlaylist = async (name) => {
@@ -212,7 +249,7 @@ const Sidebar = ({ children, className = "", isOpen = false, onClose = () => {} 
                     </div>
                     
                     <CyberButton
-                        onClick={uploadModal.onOpen}
+                        onClick={handleUploadOpen}
                         className={`
                             flex items-center gap-1.5 rounded-none
                             bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/30
@@ -229,12 +266,12 @@ const Sidebar = ({ children, className = "", isOpen = false, onClose = () => {} 
                 </div>
 
                 <div className="flex flex-col gap-1">
-                    <button onClick={() => router.push('/user/library')} className={`flex items-center gap-2 w-full p-1.5 rounded-none hover:!text-emerald-400 hover:bg-neutral-200/50 dark:hover:bg-white/5 transition text-xs text-neutral-900 dark:text-neutral-300 font-medium group ${isCollapsed ? 'md:justify-center' : ''}`}>
+                    <button onClick={() => handleNavigate('/user/library')} className={`flex items-center gap-2 w-full p-1.5 rounded-none hover:!text-emerald-400 hover:bg-neutral-200/50 dark:hover:bg-white/5 transition text-xs text-neutral-900 dark:text-neutral-300 font-medium group ${isCollapsed ? 'md:justify-center' : ''}`}>
                         <div className="w-8 h-8 shrink-0 rounded-none bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center border border-neutral-300 dark:border-white/5 group-hover:text-emerald-500 transition"><User size={13} /></div>
                         <span className={`text-[13px] whitespace-nowrap ${isCollapsed ? 'md:hidden' : 'block'}`}>My Uploads</span>
                     </button>
 
-                    <button onClick={() => router.push('/tuned-tracks')} className={`flex items-center gap-2 w-full p-1.5 rounded-none hover:!text-emerald-400 hover:bg-neutral-200/50 dark:hover:bg-white/5 transition text-xs text-neutral-900 dark:text-neutral-300 font-medium group ${isCollapsed ? 'md:justify-center' : ''}`}>
+                    <button onClick={() => handleNavigate('/tuned-tracks')} className={`flex items-center gap-2 w-full p-1.5 rounded-none hover:!text-emerald-400 hover:bg-neutral-200/50 dark:hover:bg-white/5 transition text-xs text-neutral-900 dark:text-neutral-300 font-medium group ${isCollapsed ? 'md:justify-center' : ''}`}>
                         <div className="w-8 h-8 shrink-0 rounded-none bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center border border-neutral-300 dark:border-white/5 group-hover:text-emerald-500 transition"><Disc size={13} /></div>
                         <span className={`text-[13px] whitespace-nowrap ${isCollapsed ? 'md:hidden' : 'block'}`}>Tuned Tracks</span>
                     </button>
@@ -251,7 +288,7 @@ const Sidebar = ({ children, className = "", isOpen = false, onClose = () => {} 
                     <p className={`font-bold text-[12px] tracking-[0.2em] font-mono whitespace-nowrap ${isCollapsed ? 'md:hidden' : 'block'}`}>PLAYLISTS</p>
                 </div>
                 {isAuthenticated && (
-                    <button onClick={() => setShowAddModal(true)} className="hover:text-emerald-500 p-1 transition hover:bg-white/10 rounded-none border border-transparent hover:border-emerald-500/50"><Plus size={16} /></button>
+                    <button onClick={handleNewPlaylistClick} className="hover:text-emerald-500 p-1 transition hover:bg-white/10 rounded-none border border-transparent hover:border-emerald-500/50"><Plus size={16} /></button>
                 )}
             </div>
 
