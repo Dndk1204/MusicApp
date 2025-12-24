@@ -4,25 +4,52 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { Lock, Loader2, KeyRound } from "lucide-react";
-// Import Cyber Components
 import { GlitchText, CyberButton } from "@/components/CyberComponents";
 
 const UpdatePassword = () => {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(true); // Thêm state để chờ verify session
   const [message, setMessage] = useState(null);
 
-  // Kiểm tra session
+  // --- LOGIC ĐƯỢC SỬA ĐỔI ---
   useEffect(() => {
-    const checkSession = async () => {
+    // Lắng nghe sự thay đổi trạng thái Auth thay vì chỉ check 1 lần
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      
+      console.log("Auth Event:", event); // Debug log
+
+      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
+        // Nếu đã vào được chế độ khôi phục hoặc đã đăng nhập -> Cho phép ở lại
+        setVerifying(false);
+      } else if (event === "SIGNED_OUT") {
+        // Nếu bị đăng xuất -> Đá về trang chủ
+        // Thêm delay nhỏ để tránh redirect khi đang load trang lần đầu
+        setTimeout(() => {
+            // Kiểm tra kỹ lại lần nữa cho chắc
+            supabase.auth.getSession().then(({ data: { session } }) => {
+                if (!session) router.push("/");
+            });
+        }, 1000);
+      }
+    });
+
+    // Check session ban đầu (phòng trường hợp session đã có sẵn từ middleware)
+    const checkInitialSession = async () => {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-            router.push("/"); 
+        if (session) {
+            setVerifying(false);
         }
+        // Lưu ý: Không else { router.push } ở đây, hãy để onAuthStateChange lo
     };
-    checkSession();
+    checkInitialSession();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [router]);
+  // ---------------------------
 
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -37,6 +64,10 @@ const UpdatePassword = () => {
       if (error) throw error;
       
       setMessage({ type: 'success', text: ':: PASSWORD_UPDATED :: Redirecting...' });
+      
+      // Đăng xuất sau khi đổi pass xong để bắt user login lại (tùy chọn, bảo mật hơn)
+      await supabase.auth.signOut();
+      
       setTimeout(() => {
         router.push("/");
       }, 2000);
@@ -47,11 +78,20 @@ const UpdatePassword = () => {
     }
   };
 
+  // Hiển thị màn hình chờ khi đang check session
+  if (verifying) {
+      return (
+        <div className="w-full min-h-[80vh] flex items-center justify-center bg-neutral-100 dark:bg-black">
+             <div className="flex flex-col items-center gap-4">
+                <Loader2 className="animate-spin text-emerald-500" size={40} />
+                <p className="font-mono text-xs animate-pulse text-emerald-600">:: VERIFYING_SECURITY_TOKEN ::</p>
+             </div>
+        </div>
+      );
+  }
+
   return (
-    // Container chính: Căn giữa, padding
     <div className="w-full min-h-[80vh] flex items-center justify-center p-6 bg-neutral-100 dark:bg-black transition-colors duration-500">
-      
-      {/* CYBER CARD WRAPPER */}
       <div className="
           relative w-full max-w-md overflow-hidden
           bg-white dark:bg-black 
@@ -67,7 +107,6 @@ const UpdatePassword = () => {
 
         {/* HEADER SECTION */}
         <div className="bg-neutral-100 dark:bg-neutral-900 border-b border-neutral-300 dark:border-white/10 p-8 text-center relative">
-            {/* Top Gradient Line */}
             <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-transparent via-emerald-500 to-transparent"></div>
             
             <div className="w-14 h-14 mx-auto flex items-center justify-center mb-4 bg-neutral-200 dark:bg-white/5 border border-neutral-400 dark:border-white/20 rounded-none shadow-inner">
@@ -85,8 +124,6 @@ const UpdatePassword = () => {
         
         {/* BODY SECTION */}
         <div className="p-8 bg-neutral-50/50 dark:bg-black/80">
-            
-            {/* NOTIFICATION AREA */}
             {message && (
                 <div className={`mb-6 p-3 border text-xs font-mono font-bold text-center uppercase tracking-wide animate-in slide-in-from-top-2 rounded-none
                     ${message.type === 'error' 
@@ -97,10 +134,7 @@ const UpdatePassword = () => {
                 </div>
             )}
             
-            {/* FORM */}
             <form onSubmit={handleUpdate} className="flex flex-col gap-6">
-                
-                {/* Password Input */}
                 <div className="group relative">
                     <label className="text-[10px] font-mono uppercase mb-2 block font-bold text-neutral-500 dark:text-neutral-400 group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-500 transition-colors">
                         Enter New Password
@@ -127,7 +161,6 @@ const UpdatePassword = () => {
                     </div>
                 </div>
 
-                {/* Submit Button */}
                 <CyberButton 
                     onClick={(e) => !loading && handleUpdate(e)} 
                     disabled={loading}
@@ -143,11 +176,9 @@ const UpdatePassword = () => {
                         CONFIRM_UPDATE
                     </span>
                 </CyberButton>
-
             </form>
         </div>
       </div>
-      
     </div>
   );
 };
