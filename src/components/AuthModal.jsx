@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useModal } from "@/context/ModalContext";
 import { useRouter } from "next/navigation";
 // Chỉ dùng icon có sẵn trong lucide-react
-import { X, Lock, Mail, Fingerprint, KeyRound, AlertTriangle } from "lucide-react";
+import { X, Lock, Mail, Fingerprint, KeyRound } from "lucide-react";
 // Import Cyber Components của bạn
 import { GlitchText, CyberButton } from "@/components/CyberComponents";
 
@@ -16,9 +16,8 @@ const AuthModal = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [otp, setOtp] = useState(""); // Lưu mã 6 số
+  const [otp, setOtp] = useState(""); 
   
-  // Các trạng thái: 'login', 'register', 'recovery', 'verify_otp'
   const [variant, setVariant] = useState("login"); 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
@@ -40,16 +39,36 @@ const AuthModal = () => {
     setMessage(null);
 
     try {
-        // --- 1. ĐĂNG KÝ ---
+        // --- 1. ĐĂNG KÝ (CẬP NHẬT LOGIC ĐIỀU HƯỚNG) ---
         if (variant === 'register') {
             if (password !== confirmPassword) throw new Error("PASSWORDS_DO_NOT_MATCH");
             
-            const { error } = await supabase.auth.signUp({
+            // Lấy URL hiện tại để làm base redirect
+            const origin = window.location.origin;
+
+            const { data, error } = await supabase.auth.signUp({
                 email, password,
-                options: { data: { full_name: 'User', role: 'user' } }
+                options: { 
+                    data: { full_name: 'User', role: 'user' },
+                    // QUAN TRỌNG: Dòng này giúp link trong email chuyển hướng đúng chỗ
+                    // Yêu cầu bạn phải có file app/auth/callback/route.js xử lý param 'next'
+                    emailRedirectTo: `${origin}/auth/callback?next=/complete-profile`
+                }
             });
+            
             if (error) throw error;
-            setMessage({ type: 'success', text: ':: REGISTERED :: Check Email.' });
+
+            // KIỂM TRA: Nếu Supabase trả về session ngay lập tức (do tắt Confirm Email)
+            if (data.session) {
+                setMessage({ type: 'success', text: ':: REGISTERED :: Redirecting to Setup...' });
+                setTimeout(() => {
+                    closeModal();
+                    router.push("/complete-profile");
+                }, 1500);
+            } else {
+                // Nếu bắt buộc xác thực email
+                setMessage({ type: 'success', text: ':: CHECK EMAIL TO ACTIVATE ::' });
+            }
         }
         
         // --- 2. ĐĂNG NHẬP ---
@@ -58,12 +77,18 @@ const AuthModal = () => {
             if (error) throw error;
             
             setMessage({ type: 'success', text: ':: ACCESS_GRANTED ::' });
-            setTimeout(() => { closeModal(); router.refresh(); }, 1000);
+            
+            // Sau khi login, kiểm tra xem user đã có avatar/tên chưa
+            // Nếu chưa thì đá sang trang complete-profile (Optional logic)
+            setTimeout(() => { 
+                closeModal(); 
+                router.refresh(); 
+                // router.push("/complete-profile"); // Bỏ comment nếu muốn login xong cũng vào đó
+            }, 1000);
         }
         
         // --- 3. QUÊN MẬT KHẨU (Gửi OTP) ---
         else if (variant === 'recovery') {
-            // Gửi mã 6 số (OTP) thay vì Magic Link
             const { error } = await supabase.auth.signInWithOtp({
                 email,
                 options: { shouldCreateUser: false } 
@@ -71,12 +96,11 @@ const AuthModal = () => {
             if (error) throw error;
 
             setMessage({ type: 'success', text: ':: CODE_SENT :: Check Inbox.' });
-            setVariant('verify_otp'); // Chuyển sang màn hình nhập code
+            setVariant('verify_otp'); 
         }
 
         // --- 4. XÁC THỰC OTP ---
         else if (variant === 'verify_otp') {
-            // Xác thực mã người dùng nhập
             const { error } = await supabase.auth.verifyOtp({
                 email,
                 token: otp,
@@ -87,7 +111,6 @@ const AuthModal = () => {
 
             setMessage({ type: 'success', text: ':: VERIFIED :: Redirecting...' });
             
-            // Thành công -> Chuyển sang trang đổi mật khẩu
             setTimeout(() => {
                 closeModal();
                 router.push("/update-password"); 
@@ -125,7 +148,6 @@ const AuthModal = () => {
             <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-transparent via-emerald-500 to-transparent"></div>
             
             <div className="w-12 h-12 mx-auto flex items-center justify-center mb-3 bg-neutral-200 dark:bg-white/5 border border-neutral-400 dark:border-white/20 rounded-none shadow-inner">
-                {/* Đổi icon tùy theo trạng thái */}
                 {variant === 'verify_otp' ? (
                      <KeyRound size={24} className="text-emerald-600 dark:text-emerald-500 animate-pulse"/>
                 ) : (
@@ -156,7 +178,6 @@ const AuthModal = () => {
         {/* BODY */}
         <div className="p-6 bg-neutral-50/50 dark:bg-black/80">
             
-            {/* THÔNG BÁO LỖI / THÀNH CÔNG */}
             {message && (
                 <div className={`mb-4 p-2 text-[10px] font-mono font-bold text-center border uppercase tracking-wide animate-in slide-in-from-top-2
                     ${message.type === 'error' 
@@ -169,7 +190,6 @@ const AuthModal = () => {
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 
-                {/* INPUT EMAIL: Ẩn khi đang nhập OTP */}
                 {variant !== 'verify_otp' && (
                     <div className="relative group">
                         <Mail className="absolute left-3 top-3 text-neutral-500 group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-500 transition-colors pointer-events-none" size={16}/>
@@ -185,7 +205,6 @@ const AuthModal = () => {
                     </div>
                 )}
                 
-                {/* INPUT PASSWORD: Chỉ hiện khi Login/Register */}
                 {(variant === 'login' || variant === 'register') && (
                     <div className="relative group">
                         <Lock className="absolute left-3 top-3 text-neutral-500 group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-500 transition-colors pointer-events-none" size={16}/>
@@ -201,7 +220,6 @@ const AuthModal = () => {
                     </div>
                 )}
 
-                {/* CONFIRM PASSWORD: Chỉ hiện khi Register */}
                 {variant === 'register' && (
                     <div className="relative group animate-in slide-in-from-left-2 fade-in duration-300">
                         <Lock className="absolute left-3 top-3 text-neutral-500 group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-500 transition-colors pointer-events-none" size={16}/>
@@ -217,7 +235,6 @@ const AuthModal = () => {
                     </div>
                 )}
 
-                {/* --- MÀN HÌNH NHẬP OTP --- */}
                 {variant === 'verify_otp' && (
                     <div className="relative group animate-in zoom-in duration-300">
                         <div className="text-center mb-4 text-[10px] font-mono text-neutral-500">
@@ -226,37 +243,23 @@ const AuthModal = () => {
                         
                         <div className="relative">
                             <KeyRound className="absolute left-3 top-3 text-neutral-500 group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-500 transition-colors pointer-events-none" size={16}/>
-                            
                             <input
                                 type="text"
-                                placeholder="________"  // 8 dấu gạch dưới
+                                placeholder="________" 
                                 value={otp}
                                 onChange={(e) => {
-                                    // Chỉ cho phép nhập số
                                     const val = e.target.value.replace(/\D/g, '');
-                                    // SỬA: Cho phép nhập tối đa 8 ký tự
                                     if (val.length <= 8) setOtp(val);
                                 }}
                                 disabled={loading}
                                 required
-                                maxLength={8} // SỬA: Max length = 8
-                                className="
-                                    w-full p-3 pl-10 text-lg font-mono outline-none transition-all rounded-none 
-                                    bg-white border-2 border-neutral-300 text-neutral-900 
-                                    focus:border-emerald-500 focus:shadow-[0_0_15px_rgba(16,185,129,0.2)]
-                                    
-                                    dark:bg-black/40 dark:border-white/20 dark:text-white 
-                                    dark:focus:border-emerald-500 dark:focus:shadow-[0_0_15px_rgba(16,185,129,0.15)]
-                                    
-                                    text-center font-bold placeholder-neutral-600
-                                    tracking-[0.3em] // SỬA: Giảm tracking từ 0.6em xuống 0.3em để vừa 8 số
-                                "
+                                maxLength={8} 
+                                className="w-full p-3 pl-10 text-lg font-mono outline-none transition-all rounded-none bg-white border-2 border-neutral-300 text-neutral-900 focus:border-emerald-500 focus:shadow-[0_0_15px_rgba(16,185,129,0.2)] dark:bg-black/40 dark:border-white/20 dark:text-white dark:focus:border-emerald-500 dark:focus:shadow-[0_0_15px_rgba(16,185,129,0.15)] text-center font-bold placeholder-neutral-600 tracking-[0.3em]"
                             />
                         </div>
                     </div>
                 )}
                 
-                {/* NÚT SUBMIT */}
                 <CyberButton 
                     type="submit" 
                     disabled={loading} 
@@ -270,7 +273,6 @@ const AuthModal = () => {
                 </CyberButton>
             </form>
 
-            {/* FOOTER LINKS */}
             <div className="mt-6 text-center text-[10px] font-mono text-neutral-500 flex flex-col gap-y-3 pt-4 border-t border-dashed border-neutral-300 dark:border-white/10">
                 {variant === 'login' && (
                 <>
@@ -289,7 +291,6 @@ const AuthModal = () => {
                     </div>
                 )}
 
-                {/* Nút quay lại khi nhập sai OTP hoặc muốn đổi email */}
                 {variant === 'verify_otp' && (
                      <div onClick={() => {setVariant('recovery'); setOtp(''); setMessage(null)}} className="cursor-pointer hover:text-red-500 transition font-bold">
                         [ RESEND_CODE / EDIT_EMAIL ]
