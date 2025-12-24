@@ -82,7 +82,7 @@ const getCommunityUploads = async () => {
             .not('user_id', 'is', null) 
             .eq('is_public', true)      
             .order('created_at', { ascending: false }) 
-            .limit(11);
+            .limit(25);
 
         let songsData = data;
 
@@ -94,7 +94,7 @@ const getCommunityUploads = async () => {
                 .not('user_id', 'is', null)
                 .eq('public', true)
                 .order('created_at', { ascending: false })
-                .limit(11);
+                .limit(25);
 
             if (error2) {
                 console.error("Error checking public:", error2);
@@ -128,11 +128,11 @@ export default async function Home() {
     communityUploads 
   ] = await Promise.all([
     getSongs({ boost: 'popularity_month', limit: 10 }), 
-    getSongs({ boost: 'buzzrate', limit: 11 }),        
-    getSongs({ tag: 'pop', limit: 11 }),
-    getSongs({ tag: 'electronic', limit: 11 }),
-    getSongs({ tag: 'rock', limit: 11 }),
-    getSongs({ tag: 'indie', limit: 11 }),
+    getSongs({ boost: 'buzzrate', limit: 25 }),        
+    getSongs({ tag: 'pop', limit: 25 }),
+    getSongs({ tag: 'electronic', limit: 25 }),
+    getSongs({ tag: 'rock', limit: 25 }),
+    getSongs({ tag: 'indie', limit: 25 }),
     getTopArtists(), 
     getCommunityUploads() 
   ]);

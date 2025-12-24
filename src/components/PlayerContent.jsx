@@ -270,7 +270,7 @@ const PlayerContent = ({ song, songUrl }) => {
                   w-12 h-6 
                   bg-white dark:bg-neutral-900 
                   flex items-center justify-center 
-                  border-t border-x border-neutral-300 dark:border-white/10 
+                  border-y border-x border-neutral-300 dark:border-white/10 
                   z-[99999] /* z-index cao nhất có thể */
                   cursor-pointer
                   shadow-md
@@ -286,11 +286,11 @@ const PlayerContent = ({ song, songUrl }) => {
           {!isExpanded && (
              <div className="flex items-center justify-between px-3 h-full w-full max-w-full" onClick={() => setIsExpanded(true)}>
                  <div className="flex items-center gap-2 flex-1 min-w-0 mr-2 overflow-hidden">
-                     <div className="w-10 h-10 shrink-0 bg-neutral-800 border border-neutral-600 overflow-hidden relative">
+                     <div className="w-10 h-10 shrink-0 bg-neutral-800 border border-neutral-600 rounded-full overflow-hidden relative">
                         <img 
                             src={song.image_path || song.image_url || "/images/default_song.png"} 
                             alt={song.title} 
-                            className={`w-full h-full object-cover ${isPlaying ? 'animate-[spin_10s_linear_infinite]' : ''}`}
+                            className={`w-full h-full object-cover ${isPlaying ? 'animate-[spin_10s_linear_infinite] rounded-full' : ''}`}
                         />
                      </div>
                      <div className="flex flex-col justify-center min-w-0 overflow-hidden">
@@ -331,18 +331,18 @@ const PlayerContent = ({ song, songUrl }) => {
                       <span className="text-[10px] font-mono w-8 text-neutral-500">{formatTime(duration)}</span>
                  </div>
 
-                 <div className="flex flex-wrap justify-between items-center gap-2 mt-2 w-full px-2">
-                      <button onClick={() => player.setIsShuffle(!player.isShuffle)} className={`p-2 ${player.isShuffle ? "text-emerald-500" : "text-neutral-400"}`}><Shuffle size={20}/></button>
-                      <div className="flex items-center gap-4">
+                 <div className="flex flex-wrap justify-between items-center gap-1 mt-2 w-full px-2">
+                      <button onClick={() => player.setIsShuffle(!player.isShuffle)} className={`p-2 flex ${player.isShuffle ? "text-emerald-500" : "text-neutral-400"}`}><Shuffle size={20}/></button>
+                      <div className="flex items-center gap-2">
                           <button onClick={onPlayPrevious} className="p-2 text-neutral-800 dark:text-white"><SkipBack size={24}/></button>
-                          <button onClick={() => { if(sound) sound.seek(Math.max(0, seek - 5)); }} className="text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition hover:scale-110 p-1"><Rewind size={18}/></button>
+                          <button onClick={() => { if(sound) sound.seek(Math.max(0, seek - 5)); }} className="text-neutral-500 dark:text-white hover:text-black dark:hover:text-white transition hover:scale-110 p-1"><Rewind size={20}/></button>
                           <button onClick={handlePlay} className="h-12 w-12 bg-neutral-200 dark:bg-emerald-400/50 flex items-center justify-center border border-emerald-300">
                                {isLoading ? <div className="w-6 h-6 border-2 border-current border-t-transparent animate-spin" style={{ borderRadius: '50%' }}/> : <Icon size={28} fill="currentColor"/>}
                           </button>
-                          <button onClick={() => { if(sound) sound.seek(Math.min(duration, seek + 5)); }} className="text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition hover:scale-110 p-1"><FastForward size={18}/></button>
+                          <button onClick={() => { if(sound) sound.seek(Math.min(duration, seek + 5)); }} className="text-neutral-500 dark:text-white hover:text-black dark:hover:text-white transition hover:scale-110 p-1"><FastForward size={20}/></button>
                           <button onClick={onPlayNext} className="p-2 text-neutral-800 dark:text-white"><SkipForward size={24}/></button>
                       </div>
-                      <button onClick={() => player.setRepeatMode((player.repeatMode+1)%3)} className={`p-2 ${player.repeatMode!==0 ? "text-emerald-500" : "text-neutral-400"}`}>
+                      <button onClick={() => player.setRepeatMode((player.repeatMode+1)%3)} className={`p-2 flex ${player.repeatMode!==0 ? "text-emerald-500" : "text-neutral-400"}`}>
                         {player.repeatMode===2 ? <Repeat1 size={20}/> : <Repeat size={20}/>}
                       </button>
                  </div>

@@ -39,7 +39,7 @@ const Player = () => {
 
   /* ------------------------------------------------------
       2. FETCH SONG DATA
-      Ưu tiên lấy từ Supabase DB -> Nếu thiếu mới gọi API Jamendo
+      Ưu tiên lấy từ Supabase DB -> Nếu thiếu mới gọi API /get-song (để tránh duplicate calls)
   ------------------------------------------------------ */
   useEffect(() => {
     if (!isMounted) return;
@@ -52,12 +52,15 @@ const Player = () => {
         return;
       }
 
+      // Prevent duplicate API calls for same song ID
+      const currentActiveId = player.activeId;
+
       try {
         // A. Thử lấy bài hát từ Database (Supabase)
         const { data: dbSong } = await supabase
           .from("songs")
           .select("*")
-          .eq("id", player.activeId)
+          .eq("id", currentActiveId)
           .single();
 
         // Nếu có trong DB và đã có URL -> Dùng luôn (Nhanh nhất)
@@ -73,34 +76,33 @@ const Player = () => {
           return;
         }
 
-        // B. Nếu không có hoặc thiếu URL -> Gọi API Jamendo
-        // (Sử dụng external_id nếu có, hoặc dùng chính ID hiện tại)
-        const jamendoId = dbSong?.external_id || player.activeId;
-        const CLIENT_ID = "3501caaa";
-        
-        const res = await fetch(
-          `https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=json&id=${jamendoId}&audioformat=mp31`
-        );
-        const json = await res.json();
+        // B. Nếu không có hoặc thiếu URL -> Gọi API route /get-song (thay vì gọi trực tiếp)
+        console.log(`[Player] Fetching song from API: ${currentActiveId}`);
 
-        if (!json.results || !json.results[0]) {
-          console.warn(`[Player] Song not found on Jamendo: ${jamendoId}`);
+        const res = await fetch(`/api/get-song?id=${currentActiveId}`);
+        const data = await res.json();
+
+        if (!res.ok || !data.song) {
+          console.warn(`[Player] Song not found: ${currentActiveId}`, data.error);
           return;
         }
 
-        const track = json.results[0];
-
-        // Tạo object bài hát chuẩn hóa
+        const apiSong = data.song;
+// Tạo object bài hát chuẩn hóa
         const recoveredSong = {
-          id: dbSong?.id || jamendoId,
-          title: track.name,
-          author: track.artist_name,
-          duration: track.duration,
-          song_path: track.audio,
-          image_path: track.image || track.album_image || "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600",
+          id: apiSong.id,
+          title: apiSong.title,
+          author: apiSong.author,
+          duration: apiSong.duration,
+          song_path: apiSong.song_path,
+          image_path: apiSong.image_path,
+          lyrics: apiSong.lyrics,
         };
 
-        setSong(recoveredSong);
+        // Double-check activeId hasn't changed during API call
+        if (player.activeId === currentActiveId) {
+          setSong(recoveredSong);
+        }
 
         // C. Lưu ngược lại vào DB để lần sau load nhanh hơn (Cache)
         await supabase.from("songs").upsert({
@@ -110,7 +112,7 @@ const Player = () => {
             duration: recoveredSong.duration,
             song_url: recoveredSong.song_path,
             image_url: recoveredSong.image_path,
-            external_id: jamendoId, // Lưu lại ID gốc của Jamendo
+            external_id: currentActiveId === recoveredSong.id ? null : currentActiveId,
         });
 
       } catch (err) {
@@ -170,7 +172,7 @@ const Player = () => {
         bg-white/95 dark:bg-black/90 backdrop-blur-xl
         border-t-2 border-neutral-300 dark:border-emerald-500/30
         z-[5000]
-        shadow-[0_-10px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_-5px_30px_rgba(16,185,129,0.1)]
+shadow-[0_-10px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_-5px_30px_rgba(16,185,129,0.1)]
         transition-all duration-500
         box-border overflow-visible
     ">

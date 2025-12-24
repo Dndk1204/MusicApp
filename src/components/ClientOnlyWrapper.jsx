@@ -21,8 +21,8 @@ export default function ClientOnlyWrapper() {
     <>
       <div className="hidden md:block">
         <CyberCursor />
+        <CyberContextMenu />
       </div>
-      <CyberContextMenu />
     </>
   );
 }

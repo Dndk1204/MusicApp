@@ -503,15 +503,15 @@ const NowPlayingPage = () => {
         <div className="lg:hidden flex fixed bottom-24 left-1/2 -translate-x-1/2 w-[95%] max-w-md justify-center z-[99999]">
             <div className="flex w-full bg-white/80 dark:bg-neutral-900/95 backdrop-blur-xl border border-neutral-200 dark:border-neutral-500/50 shadow-lg dark:shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
                 
-                {/* Visual Tab */}
+                {/* Info Tab */}
                 <button 
-                    onClick={() => setActiveTab('visual')} 
-                    className={`flex-1 py-3 flex justify-center items-center border-r border-neutral-200 dark:border-white/10 rounded-none transition-colors 
-                        ${activeTab === 'visual' 
+                    onClick={() => setActiveTab('info')} 
+                    className={`flex-1 py-3 flex justify-center items-center rounded-none transition-colors 
+                        ${activeTab === 'info' 
                             ? 'text-emerald-600 dark:text-emerald-500 bg-emerald-500/5 dark:bg-white/5' 
                             : 'text-neutral-500 dark:text-neutral-400'}`}
                 >
-                    <Activity size={20}/>
+                    <Info size={20}/>
                 </button>
 
                 {/* Queue Tab */}
@@ -545,17 +545,6 @@ const NowPlayingPage = () => {
                             : 'text-neutral-500 dark:text-neutral-400'}`}
                 >
                     <Sliders size={20}/>
-                </button>
-
-                {/* Info Tab */}
-                <button 
-                    onClick={() => setActiveTab('info')} 
-                    className={`flex-1 py-3 flex justify-center items-center rounded-none transition-colors 
-                        ${activeTab === 'info' 
-                            ? 'text-emerald-600 dark:text-emerald-500 bg-emerald-500/5 dark:bg-white/5' 
-                            : 'text-neutral-500 dark:text-neutral-400'}`}
-                >
-                    <Info size={20}/>
                 </button>
             </div>
         </div>
