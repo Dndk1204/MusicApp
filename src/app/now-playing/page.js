@@ -15,7 +15,8 @@ import {
   FileText,
   Mic2,
   AlertTriangle,
-  ListMusic
+  ListMusic,
+  MessageSquare
 } from "lucide-react";
 
 // --- IMPORTS ---
@@ -28,6 +29,8 @@ import useUI from "@/hooks/useUI";
 import { GlitchText, CyberButton, GlitchButton, ScanlineOverlay } from "@/components/CyberComponents";
 // Import Hover Preview
 import HoverImagePreview from "@/components/HoverImagePreview";
+
+import SongComments from "@/components/comments/SongComments";
 
 // ==================================================================================
 // --- 1. SRT PARSER ---
@@ -239,7 +242,7 @@ const NowPlayingPage = () => {
 
   useEffect(() => {
     if (player.activeId) {
-      setActiveTab('info');
+      setActiveTab('comments');
     }
   }, [player.activeId]);
 
@@ -472,6 +475,10 @@ const NowPlayingPage = () => {
                      </span>
                  )}
              </div>
+             <div className="col-span-2 p-3 bg-neutral-100 dark:bg-white/5 border border-neutral-200 dark:border-white/5 flex flex-col">
+                <p className="text-[9px] text-neutral-500 uppercase tracking-widest mb-1">UNIQUE_TRACK_ID</p>
+                <p className="truncate text-emerald-600 dark:text-emerald-500 font-mono text-[10px]">{song.id}</p>
+            </div>
           </div>
           
           <button onClick={() => router.back()} className="absolute top-0 left-0 lg:hidden p-4 text-neutral-500 hover:text-emerald-500 z-50"><ArrowLeft size={24} /></button>
@@ -500,54 +507,25 @@ const NowPlayingPage = () => {
       </div>
 
       {/* --- MOBILE TABS NAVIGATION (FLOATING, SQUARE, Z-INDEX 99999) --- */}
-        <div className="lg:hidden flex fixed bottom-24 left-1/2 -translate-x-1/2 w-[95%] max-w-md justify-center z-[99999]">
-            <div className="flex w-full bg-white/80 dark:bg-neutral-900/95 backdrop-blur-xl border border-neutral-200 dark:border-neutral-500/50 shadow-lg dark:shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
-                
-                {/* Info Tab */}
-                <button 
-                    onClick={() => setActiveTab('info')} 
-                    className={`flex-1 py-3 flex justify-center items-center rounded-none transition-colors 
-                        ${activeTab === 'info' 
-                            ? 'text-emerald-600 dark:text-emerald-500 bg-emerald-500/5 dark:bg-white/5' 
-                            : 'text-neutral-500 dark:text-neutral-400'}`}
+      <div className="lg:hidden flex fixed bottom-2 left-1/2 -translate-x-1/2 w-[100%] max-w-md justify-center z-[99999]">
+          <div className="flex w-full bg-neutral-900/95 dark:bg-black/95 backdrop-blur-xl border border-neutral-500/50 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
+              <button onClick={() => setActiveTab('visual')} className={`flex-1 py-3 flex justify-center items-center border-r border-white/10 rounded-none transition-colors ${activeTab==='visual' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><Activity size={20}/></button>
+              <button onClick={() => setActiveTab('queue')} className={`flex-1 py-3 flex justify-center items-center border-r border-white/10 rounded-none transition-colors ${activeTab==='queue' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><ListMusic size={20}/></button>
+              <button onClick={() => setActiveTab('lyrics')} className={`flex-1 py-3 flex justify-center items-center border-r border-white/10 rounded-none transition-colors ${activeTab==='lyrics' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><Mic2 size={20}/></button>
+              <button onClick={() => setActiveTab('equalizer')} className={`flex-1 py-3 flex justify-center items-center border-r border-white/10 rounded-none transition-colors ${activeTab==='equalizer' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><Sliders size={20}/></button>
+              <button onClick={() => setActiveTab('info')} className={`flex-1 py-3 flex justify-center items-center rounded-none transition-colors ${activeTab==='info' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><Info size={20}/></button>
+              <button
+                onClick={() => setActiveTab('comments')}
+                className={`flex-1 py-3 flex justify-center items-center rounded-none transition-colors ${
+                    activeTab === 'comments'
+                    ? 'text-emerald-500 bg-white/5'
+                    : 'text-neutral-400'
+                }`}
                 >
-                    <Info size={20}/>
-                </button>
-
-                {/* Queue Tab */}
-                <button 
-                    onClick={() => setActiveTab('queue')} 
-                    className={`flex-1 py-3 flex justify-center items-center border-r border-neutral-200 dark:border-white/10 rounded-none transition-colors 
-                        ${activeTab === 'queue' 
-                            ? 'text-emerald-600 dark:text-emerald-500 bg-emerald-500/5 dark:bg-white/5' 
-                            : 'text-neutral-500 dark:text-neutral-400'}`}
-                >
-                    <ListMusic size={20}/>
-                </button>
-
-                {/* Lyrics Tab */}
-                <button 
-                    onClick={() => setActiveTab('lyrics')} 
-                    className={`flex-1 py-3 flex justify-center items-center border-r border-neutral-200 dark:border-white/10 rounded-none transition-colors 
-                        ${activeTab === 'lyrics' 
-                            ? 'text-emerald-600 dark:text-emerald-500 bg-emerald-500/5 dark:bg-white/5' 
-                            : 'text-neutral-500 dark:text-neutral-400'}`}
-                >
-                    <Mic2 size={20}/>
-                </button>
-
-                {/* Equalizer Tab */}
-                <button 
-                    onClick={() => setActiveTab('equalizer')} 
-                    className={`flex-1 py-3 flex justify-center items-center border-r border-neutral-200 dark:border-white/10 rounded-none transition-colors 
-                        ${activeTab === 'equalizer' 
-                            ? 'text-emerald-600 dark:text-emerald-500 bg-emerald-500/5 dark:bg-white/5' 
-                            : 'text-neutral-500 dark:text-neutral-400'}`}
-                >
-                    <Sliders size={20}/>
-                </button>
-            </div>
-        </div>
+                <MessageSquare size={20} />
+              </button>
+          </div>
+      </div>
 
       {/* --- CỘT GIỮA (QUEUE) --- */}
       <div className={`lg:col-span-3 flex flex-col h-[50vh] lg:h-[103%] w-full lg:w-[80%] bg-white/60 dark:bg-black/30 backdrop-blur-xl border border-neutral-200 dark:border-white/10 rounded-none overflow-hidden shadow-xl z-20 relative lg:-translate-x-10 order-2 ${activeTab === 'queue' ? 'flex' : 'hidden lg:flex'}`}>
@@ -610,7 +588,7 @@ const NowPlayingPage = () => {
       </div>
 
       {/* --- CỘT PHẢI (TABS: EQ, LYRICS, INFO) --- */}
-      <div className={`lg:col-span-3 flex flex-col w-full lg:w-[135%] h-[60vh] lg:h-[103%] bg-white/80 dark:bg-black/40 backdrop-blur-2xl border border-neutral-200 dark:border-white/10 rounded-none overflow-hidden shadow-2xl z-30 relative lg:-translate-x-24 order-2 ${(activeTab === 'equalizer' || activeTab === 'lyrics' || activeTab === 'info') ? 'flex' : 'hidden lg:flex'}`}>
+      <div className={`lg:col-span-3 flex flex-col w-full lg:w-[135%] h-[60vh] lg:h-[103%] bg-white/80 dark:bg-black/40 backdrop-blur-2xl border border-neutral-200 dark:border-white/10 rounded-none overflow-hidden shadow-2xl z-30 relative lg:-translate-x-24 order-2 ${(activeTab === 'equalizer' || activeTab === 'lyrics' || activeTab === 'comments') ? 'flex' : 'hidden lg:flex'}`}>
           <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-emerald-500 z-40"></div>
           <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-emerald-500 z-40"></div>
           <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-emerald-500 z-40"></div>
@@ -618,9 +596,18 @@ const NowPlayingPage = () => {
 
           {/* TAB HEADER (DESKTOP ONLY) */}
           <div className="hidden lg:flex border-b border-neutral-200 dark:border-white/10 shrink-0">
-                <button onClick={() => setActiveTab('info')} className={`flex-1 py-4 text-[10px] font-mono tracking-widest uppercase flex items-center justify-center gap-2 transition-all rounded-none relative ${activeTab === 'info' ? 'bg-neutral-100 dark:bg-white/5 text-emerald-600 dark:text-emerald-500 font-bold' : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-white'}`}>
-                    <Info size={14}/> META
-                    {activeTab === 'info' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-emerald-500"></div>}
+                <button
+                onClick={() => setActiveTab('comments')}
+                className={`flex-1 py-4 text-[10px] font-mono tracking-widest uppercase flex items-center justify-center gap-2 transition-all rounded-none relative ${
+                    activeTab === 'comments'
+                    ? 'bg-neutral-100 dark:bg-white/5 text-emerald-600 dark:text-emerald-500 font-bold'
+                    : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-white'
+                }`}
+                >
+                <MessageSquare size={14}/> COMMENTS
+                {activeTab === 'comments' && (
+                    <div className="absolute bottom-0 left-0 w-full h-0.5 bg-emerald-500"></div>
+                )}
                 </button>
                 <button onClick={() => setActiveTab('lyrics')} className={`flex-1 py-4 text-[10px] font-mono tracking-widest uppercase flex items-center justify-center gap-2 transition-all rounded-none relative ${activeTab === 'lyrics' ? 'bg-neutral-100 dark:bg-white/5 text-emerald-600 dark:text-emerald-500 font-bold' : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-white'}`}>
                     <Mic2 size={14}/> LYRICS
@@ -720,41 +707,15 @@ const NowPlayingPage = () => {
                 </div>
             )}
 
-            {/* 3. INFO */}
-            {activeTab === 'info' && (
-                <div className="flex flex-col h-full w-full gap-4 text-xs font-mono text-neutral-700 dark:text-white animate-in fade-in duration-300 max-w-2xl mx-auto overflow-y-auto custom-scrollbar">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="p-3 bg-neutral-100 dark:bg-white/5 border border-neutral-200 dark:border-white/5">
-                            <p className="text-[9px] text-neutral-500 uppercase tracking-widest mb-1">ARTIST_ID</p>
-                            <p className="font-bold text-sm truncate">{song.author}</p>
-                        </div>
-                        <div className="p-3 bg-neutral-100 dark:bg-white/5 border border-neutral-200 dark:border-white/5">
-                            <p className="text-[9px] text-neutral-500 uppercase tracking-widest mb-1">DURATION</p>
-                            <p className="font-bold text-emerald-600 dark:text-emerald-500 text-sm">{formatTime(realDuration)}</p>
-                        </div>
-                        <div className="col-span-2 p-3 bg-neutral-100 dark:bg-white/5 border border-neutral-200 dark:border-white/5 flex flex-col">
-                            <p className="text-[9px] text-neutral-500 uppercase tracking-widest mb-1">UNIQUE_TRACK_ID</p>
-                            <p className="truncate text-emerald-600 dark:text-emerald-500 font-mono text-[10px]">{song.id}</p>
-                        </div>
-                        <div className="col-span-2 p-3 bg-neutral-100 dark:bg-white/5 border border-neutral-200 dark:border-white/5">
-                            <p className="text-[9px] text-neutral-500 uppercase tracking-widest mb-1">UPLOAD_SOURCE</p>
-                            <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 relative shrink-0">
-                                    <HoverImagePreview src={song.uploader_avatar} alt={song.uploader} className="w-full h-full cursor-none" previewSize={160} fallbackIcon="user">
-                                            <div className="w-full h-full group relative flex items-center justify-center overflow-hidden border border-white/20 bg-neutral-200 dark:bg-neutral-800 rounded-none">
-                                                {song.uploader_avatar ? <img src={song.uploader_avatar} className="w-full h-full object-cover transition-all duration-500 grayscale group-hover:grayscale-0" alt={song.uploader}/> : song.uploader_role === 'admin' ? <ShieldCheck size={14} className="text-yellow-500"/> : <UserCheck size={14} className="text-green-500"/>}
-                                                <ScanlineOverlay />
-                                            </div>
-                                    </HoverImagePreview>
-                                </div>
-                                <p className="font-bold">{song.uploader}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-dashed border-neutral-200 dark:border-white/10 text-center shrink-0">
-                        <p className="text-[9px] text-neutral-400 animate-pulse">:: SECURE_CONNECTION_ESTABLISHED ::</p>
-                    </div>
-                </div>
+            {/* 3. COMMENTS */}
+            {activeTab === 'comments' && song?.id && (
+            <div className="flex flex-col h-full animate-in fade-in duration-300 w-full">
+                <h3 className="shrink-0 text-[10px] font-mono text-emerald-500 uppercase tracking-wider mb-4 flex items-center gap-2 border-b border-neutral-200 dark:border-white/10 pb-2">
+                <MessageSquare size={12} /> :: SONG_COMMENTS ::
+                </h3>
+
+                <SongComments songId={song.id} />
+            </div>
             )}
          </div>
       </div>
