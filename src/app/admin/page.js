@@ -8,7 +8,7 @@ import {
   ShieldAlert, UploadCloud, Users, Trash2, TrendingUp, 
   Search, Loader2, RefreshCw, Music, ArrowLeft, Eraser, Mic2, Heart,
   Globe, Lock, Star, ArchiveRestore, Skull, Activity, List, User,
-  CheckCircle2, XCircle, Clock, Eye, ShieldCheck, Filter
+  CheckCircle2, XCircle, Clock, Eye, ShieldCheck, ChevronDown
 } from "lucide-react";
 import useUI from "@/hooks/useUI";
 import useUploadModal from "@/hooks/useUploadModal"; 
@@ -312,7 +312,7 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
 
             if (dbError) throw dbError;
 
-            success("PROTOCOL_EXECUTED: Hệ thống đã thực thi yêu cầu.");
+            success("PROTOCOL_EXECUTED: REQUEST_APPROVED.");
             await fetchDashboardData();
             setIsTrackModalOpen(false);
         } catch (err) {
@@ -594,18 +594,49 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
                                         </td>
                                         <td className="px-6 py-3 align-middle text-center">
                                             <div className="flex items-center justify-center gap-2">
-                                                <span className={`inline-block min-w-[72px] px-2 py-0.5 rounded-none text-[9px] uppercase border font-bold ${user.role === 'admin' ? 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'}`}>
+                                                {/* Role Badge (Giữ nguyên logic của bạn) */}
+                                                <span className={`
+                                                    inline-block min-w-[72px] px-2 py-0.5 rounded-none text-[9px] uppercase border font-bold font-mono tracking-wider
+                                                    ${user.role === 'admin' 
+                                                    ? 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400 shadow-[0_0_10px_rgba(239,68,68,0.1)]' 
+                                                    : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.1)]'}
+                                                `}>
                                                     {user.role}
                                                 </span>
-                                                <select
+
+                                                {/* Custom Select Container */}
+                                                <div className="relative group">
+                                                    <select
                                                     value={user.role}
                                                     onChange={(e) => handleChangeUserRole(user.id, e.target.value)}
-                                                    className="text-[11px] font-mono rounded-sm px-2 py-1 border border-neutral-300 dark:border-white/20 bg-white dark:bg-black/60 text-neutral-900 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                                                >
-                                                    <option value="user">user</option>
-                                                    <option value="admin">admin</option>
-                                                </select>
-                                            </div>
+                                                    className="
+                                                        appearance-none /* Ẩn mũi tên mặc định của trình duyệt */
+                                                        text-[10px] font-mono font-bold uppercase tracking-widest
+                                                        rounded-none /* Góc vuông tuyệt đối */
+                                                        pl-3 pr-8 py-1.5 
+                                                        border border-neutral-300 dark:border-white/20 
+                                                        bg-white dark:bg-black/60 
+                                                        text-neutral-900 dark:text-neutral-200 
+                                                        cursor-pointer 
+                                                        transition-all duration-300
+                                                        /* Hiệu ứng Focus & Hover */
+                                                        focus:outline-none 
+                                                        focus:border-emerald-500 
+                                                        focus:ring-1 focus:ring-emerald-500/50
+                                                        hover:border-emerald-500/50
+                                                        dark:hover:bg-neutral-900
+                                                    "
+                                                    >
+                                                    <option value="user" className="bg-white text-black dark:bg-black dark:text-white">USER</option>
+                                                    <option value="admin" className="bg-white text-black dark:bg-black dark:text-white">ADMIN</option>
+                                                    </select>
+
+                                                    {/* Custom Arrow Icon (Sử dụng Lucide ChevronDown) */}
+                                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400 group-hover:text-emerald-500 transition-colors">
+                                                    <ChevronDown size={14} />
+                                                    </div>
+                                                </div>
+                                                </div>
                                         </td>
                                         <td className="px-6 py-3 align-middle">
                                             {isOnline ? (

@@ -6,7 +6,6 @@ import { useAuth } from "@/components/AuthWrapper";
 import { useModal } from "@/context/ModalContext";
 import Link from "next/link";
 import { ArrowRight, ChevronRight } from "lucide-react";
-// Import Cyber Components
 import { GlitchText, CyberCard } from "@/components/CyberComponents";
 
 const SongSection = ({ title, songs, moreLink }) => {
@@ -16,11 +15,9 @@ const SongSection = ({ title, songs, moreLink }) => {
 
   const onPlay = (id) => {
     if (!isAuthenticated) {
-      // Show login modal if not authenticated
       openModal();
       return;
     }
-
     player.setId(id);
     player.setIds(songs.map((s) => s.id));
 
@@ -56,23 +53,41 @@ const SongSection = ({ title, songs, moreLink }) => {
         </div>
       )}
 
-      {/* Grid bài hát: 
-          - Mobile: gap-2 hoặc gap-3 để tiết kiệm chỗ
-          - Desktop: gap-4 rộng rãi
-      */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3 md:gap-4">
+      {/* GRID HỆ THỐNG: Tự động lấp đầy 2 hàng dựa trên độ phân giải */}
+      <div className="
+        grid 
+        grid-cols-2       /* Mobile: 2 cột (Hiện 3 bài + 1 Card) */
+        sm:grid-cols-3    /* Tablet: 3 cột (Hiện 5 bài + 1 Card) */
+        md:grid-cols-4    /* Laptop: 4 cột (Hiện 7 bài + 1 Card) */
+        lg:grid-cols-5    /* Desktop: 5 cột (Hiện 9 bài + 1 Card) */
+        xl:grid-cols-6    /* Wide: 6 cột (Hiện 11 bài + 1 Card) */
+        2xl:grid-cols-8   /* Ultra Wide: 8 cột (Hiện 15 bài + 1 Card) */
+        gap-3 md:gap-4
+      ">
         
-        {songs.map((item) => (
-          <SongItem 
-            key={item.id} 
-            onClick={onPlay} 
-            data={item} 
-          />
+        {songs.map((item, index) => (
+          <div 
+            key={item.id}
+            className={`
+              /* Logic ẩn/hiện bài hát để grid luôn đẹp */
+              ${index < 3 ? "block" : "hidden"}
+              ${index >= 3 && index < 5 ? "sm:block" : ""}
+              ${index >= 5 && index < 7 ? "md:block" : ""}
+              ${index >= 7 && index < 9 ? "lg:block" : ""}
+              ${index >= 9 && index < 11 ? "xl:block" : ""}
+              ${index >= 11 && index < 15 ? "2xl:block" : ""}
+            `}
+          >
+            <SongItem 
+              onClick={onPlay} 
+              data={item} 
+            />
+          </div>
         ))}
 
-        {/* THẺ XEM THÊM (Responsive Layout) */}
+        {/* THẺ XEM THÊM (Luôn nằm ở ô cuối cùng của hàng thứ 2) */}
         {moreLink && (
-            <Link href={moreLink} className="block relative h-full min-h-[180px] md:min-h-[220px]"> 
+            <Link href={moreLink} className="block relative h-full min-h-[160px] md:min-h-[200px]"> 
                 <CyberCard 
                     className="
                         group w-full h-full p-0
@@ -83,7 +98,6 @@ const SongSection = ({ title, songs, moreLink }) => {
                         relative flex flex-col items-center justify-center
                     "
                 >
-                    {/* Sử dụng Flexbox để căn giữa thay vì absolute position cứng nhắc */}
                     <div className="flex flex-col items-center justify-center p-4 z-10 w-full h-full">
                         <div className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center border border-neutral-400 dark:border-white/20 bg-white dark:bg-black group-hover:border-emerald-500 group-hover:text-emerald-500 transition-colors duration-300 relative overflow-hidden shrink-0">
                             <div className="absolute inset-0 bg-emerald-500 opacity-0 group-hover:opacity-20 transition-opacity"></div>

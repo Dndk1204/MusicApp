@@ -273,9 +273,9 @@ const MyUploadsPage = () => {
             cancelEditing();
             
             if (updateData.is_verified === false) {
-                alert('PROTOCOL_SENT: Yêu cầu đã được gửi tới Admin.', 'success');
+                alert('PROTOCOL_SENT: REQUEST HAS BEEN SENT TO ADMIN.', 'success');
             } else {
-                alert('SYSTEM_UPDATED: Cập nhật thành công.', 'success');
+                alert('SYSTEM_UPDATED: UPDATED SUCCESSFULLY.', 'success');
             }
 
         } catch (err) { 

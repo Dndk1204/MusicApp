@@ -1,5 +1,3 @@
-import { getJamendoTracks } from "@/lib/jamedoClient"; // Mượn client ID từ đây nếu cần hoặc khai báo lại
-
 const getAlbums = async (artistName) => {
   const CLIENT_ID = '3501caaa'; // Dùng ID của bạn
   
