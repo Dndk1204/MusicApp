@@ -96,7 +96,7 @@ const HoverImagePreview = ({
         const audio = new Audio(audioSrc);
         audioRef.current = audio;
         audio.volume = 0; 
-        audio.onloadedmetadata = () => { if (audio.duration > 45) audio.currentTime = 30; };
+        audio.onloadedmetadata = () => { if (audio.duration > 45) audio.currentTime = 60; };
 
         audio.play().then(() => {
             if (!isHoveringRef.current) { stopAudioImmediate(); return; }
