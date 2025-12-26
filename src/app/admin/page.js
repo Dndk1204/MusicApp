@@ -677,41 +677,69 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
 
                 {/* COMMENTS METRICS */}
                 <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-full">
-                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0">
-                        <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center"><MessageSquare size={16} className="text-sky-500" /> Comments</h4>
-                            <button onClick={() => router.push('/admin/comments')} className="text-[9px] text-sky-600 dark:text-sky-400 hover:underline font-mono uppercase">VIEW_COMMENTS</button>
-                    </div>
-                    <div className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                            <div>
-                                <p className="text-[10px] text-neutral-500 font-mono">Total Comments</p>
-                                <p className="text-2xl font-bold text-sky-700 dark:text-sky-400">{stats.totalComments || 0}</p>
-                            </div>
-                            <div>
-                                <p className="text-[10px] text-neutral-500 font-mono">Today</p>
-                                <p className="text-xl font-bold text-emerald-600">{stats.commentsToday || 0}</p>
-                            </div>
+            {/* HEADER - Giữ nguyên style đồng bộ */}
+            <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0">
+            <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center">
+            <MessageSquare size={16} className="text-sky-500" /> Top_Commented
+            </h4>
+            <button onClick={() => router.push('/admin/comments')} className="text-[9px] text-sky-600 dark:text-sky-400 hover:underline font-mono uppercase">VIEW_FULL</button>
+            </div>
+
+            {/* BODY - Chuyển sang dạng list giống 2 bảng kia */}
+            <div className="p-0 overflow-y-auto custom-scrollbar flex-1">
+            {stats.topCommentedSongs?.length > 0 ? (
+            stats.topCommentedSongs.map((t, i) => (
+                <div key={t.song_id} className="group flex justify-between items-center text-xs font-mono p-3 border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-sky-500/5 dark:hover:bg-sky-500/10 transition-colors relative">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                        {/* Rank số tự động */}
+                        <span className={`text-[10px] font-bold w-6 shrink-0 ${i < 3 ? 'text-sky-600 dark:text-sky-400' : 'text-neutral-400'}`}>
+                            #{String(i + 1).padStart(2, '0')}
+                        </span>
+                        
+                        {/* Thumbnail ảnh hoặc Icon Music */}
+                        <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 shrink-0 relative flex items-center justify-center overflow-hidden">
+                            {t.image_url ? <img src={t.image_url} alt={t.title} className="w-full h-full object-cover" /> : <Music size={14} className="text-neutral-400" />}
+                            <ScanlineOverlay />
                         </div>
 
-                        <div className="border-t border-dashed border-neutral-200 dark:border-white/5 pt-3">
-                            <h5 className="text-[10px] uppercase font-mono text-neutral-500 mb-2">Top Commented Songs</h5>
-                            {stats.topCommentedSongs?.length > 0 ? (
-                                stats.topCommentedSongs.map((t, i) => (
-                                    <div key={t.song_id} className="flex items-center justify-between text-xs font-mono py-2">
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            <span className={`text-[10px] font-bold w-6 shrink-0 ${i < 3 ? 'text-sky-600' : 'text-neutral-400'}`}>#{String(i+1).padStart(2,'0')}</span>
-                                            <div className="flex flex-col min-w-0">
-                                                <span className="truncate font-bold text-neutral-800 dark:text-neutral-200">{t.title}</span>
-                                                <span className="text-[10px] text-neutral-500">{t.count} comments</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-xs text-neutral-500 italic">No comments yet.</p>
-                            )}
+                        {/* Title và Sub-text */}
+                        <div className="flex flex-col min-w-0">
+                            <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
+                                {t.title}
+                            </span>
+                            <span className="truncate text-[10px] text-neutral-500 dark:text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300 uppercase italic opacity-70">
+                                SIGNAL_ID: {String(t.song_id).slice(0,6)}
+                            </span>
                         </div>
                     </div>
+
+                    {/* Badge số lượng comment bên phải */}
+                    <div className="flex items-center gap-2 pl-2 shrink-0">
+                        <span className="text-sky-700 dark:text-sky-400 font-bold bg-sky-100 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-500/20 px-2 py-0.5 text-[10px]">
+                            {t.count}
+                        </span>
+                    </div>
+                </div>
+            ))
+            ) : (
+            <div className="p-10 text-center text-[10px] font-mono text-neutral-500 uppercase tracking-widest animate-pulse">
+                NO_COMMENT_SIGNALS
+            </div>
+            )}
+            </div>
+
+            {/* FOOTER BAR - Để hiển thị các thông số tổng hợp mà không phá layout list */}
+            <div className="mt-auto p-2 border-t border-neutral-300 dark:border-white/10 bg-neutral-100/50 dark:bg-white/5 flex justify-around items-center shrink-0">
+            <div className="text-center">
+            <p className="text-[8px] text-neutral-500 uppercase font-mono">Grand_Total</p>
+            <p className="text-xs font-bold text-sky-600 dark:text-sky-400">{stats.totalComments || 0}</p>
+            </div>
+            <div className="h-4 w-[1px] bg-neutral-300 dark:bg-white/10"></div>
+            <div className="text-center">
+            <p className="text-[8px] text-neutral-500 uppercase font-mono">Today_Logs</p>
+            <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">+{stats.commentsToday || 0}</p>
+            </div>
+            </div>
                 </CyberCard>
             </div>
 
