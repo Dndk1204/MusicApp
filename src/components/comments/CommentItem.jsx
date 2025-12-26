@@ -69,6 +69,10 @@ export default function CommentItem({ comment, currentUser, onHide }) {
       console.error("Delete comment failed:", error);
       return false;
     }
+    
+    // Update UI ngay lập tức
+    onHide?.(id);
+    
     return true;
   };
 
@@ -232,7 +236,10 @@ export default function CommentItem({ comment, currentUser, onHide }) {
                       onClick={() =>
                         setConfirm({
                           message: "Delete this comment?",
-                          onConfirm: () => deleteComment(comment.id),
+                          onConfirm: async () => {
+                            const ok = await deleteComment(comment.id);
+                            return ok;
+                          },
                         })
                       }
                       className="block w-full px-3 py-1 text-left text-red-500 hover:bg-neutral-100 dark:hover:bg-white/10"
@@ -249,7 +256,7 @@ export default function CommentItem({ comment, currentUser, onHide }) {
           <div className="mt-2">
             {isCollapsed ? (
               <div className="flex items-center gap-2 text-[11px] italic text-neutral-400">
-                <span>Comment hidden</span>
+                <span>Comment is hidden</span>
                 <button
                   onClick={() => unhideComment(comment.id)}
                   className="text-emerald-500 hover:underline"
@@ -286,6 +293,32 @@ export default function CommentItem({ comment, currentUser, onHide }) {
               </p>
             )}
           </div>
+
+          {confirm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+              <div className="bg-white dark:bg-gray-900 p-5 rounded-lg shadow-xl w-[300px] text-sm">
+                <h3 className="font-semibold mb-2">Are you sure?</h3>
+                <p className="mb-4">{confirm.message}</p>
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setConfirm(null)}
+                    className="px-3 py-1 border rounded"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const ok = await confirm.onConfirm();
+                      if (ok) setConfirm(null);
+                    }}
+                    className="px-3 py-1 rounded bg-red-500 text-white"
+                  >
+                    Confirm
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>
