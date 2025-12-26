@@ -10,8 +10,6 @@ export default function SongComments({ songId }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const commentsEndRef = useRef(null);
-
   // Loại bỏ duplicate comment
   const uniqueComments = Array.from(new Map(comments.map(c => [c.id, c])).values());
 
@@ -24,7 +22,8 @@ export default function SongComments({ songId }) {
 
   /* 📥 Fetch comments + profiles */
   const fetchComments = useCallback(async () => {
-    if (!songId) return;
+    if (!songId || !currentUser) return;
+
     setLoading(true);
 
     const { data, error } = await supabase
@@ -34,7 +33,6 @@ export default function SongComments({ songId }) {
         content,
         created_at,
         updated_at,
-        is_deleted,
         is_edited,
         user_id,
         profiles (
@@ -42,14 +40,21 @@ export default function SongComments({ songId }) {
           full_name,
           avatar_url,
           role
+        ),
+        comment_hides (
+          is_hidden
         )
       `)
       .eq("song_id", songId)
+      .eq("comment_hides.user_id", currentUser.id)
       .order("created_at", { ascending: true });
 
-    if (!error) setComments(data || []);
+    if (!error) {
+      setComments(data || []);
+    }
+
     setLoading(false);
-  }, [songId]);
+  }, [songId, currentUser]);
 
   /* 🔔 Realtime subscription */
   useEffect(() => {
@@ -93,39 +98,41 @@ export default function SongComments({ songId }) {
     };
   }, [songId, fetchComments]);
 
-  /* 🔄 Auto-scroll xuống cuối khi comment thay đổi */
-  useEffect(() => {
-    commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [uniqueComments.length]);
-
   return (
-    <div className="flex flex-col w-full h-full gap-4 ">
-      {/* Form luôn cố định trên cùng */}
-      <CommentForm
-        songId={songId}
-        currentUser={currentUser}
-        onSuccess={fetchComments}
-      />
+    <div className="flex flex-col h-full w-full min-h-0">
+      {/* COMMENT LIST */}
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+        {loading && (
+          <p className="text-xs text-neutral-400 animate-pulse">
+            Loading comments...
+          </p>
+        )}
 
-      {/* Loading / Empty */}
-      {loading && (
-        <p className="text-xs text-neutral-400 animate-pulse">
-          Loading comments...
-        </p>
-      )}
-      {!loading && uniqueComments.length === 0 && (
-        <p className="text-xs text-neutral-500 italic">No comments yet.</p>
-      )}
+        {!loading && comments.length === 0 && (
+          <p className="text-xs text-neutral-500 italic text-center py-6">
+            No comments yet.
+          </p>
+        )}
 
-      {/* Danh sách comment scrollable */}
-      <div className="flex-1 overflow-y-auto flex flex-col gap-2 p-2 m-2">
-        {uniqueComments.map((comment) => (
+        {comments.map(comment => (
           <CommentItem
             key={comment.id}
             comment={comment}
             currentUser={currentUser}
+            onHide={(id) =>
+              setComments(prev => prev.filter(c => c.id !== id))
+            }
           />
         ))}
+      </div>
+
+      {/* COMMENT FORM — SÁT ĐÁY */}
+      <div className="shrink-0 pt-2">
+        <CommentForm
+          songId={songId}
+          currentUser={currentUser}
+          onSuccess={fetchComments}
+        />
       </div>
     </div>
   );

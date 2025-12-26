@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import HoverImagePreview from "@/components/HoverImagePreview";
 
@@ -9,6 +9,19 @@ export default function CommentForm({ songId, onSuccess }) {
   const [profile, setProfile] = useState(null);
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
+
+  const textareaRef = useRef(null); // ✅ thêm
+
+  // =========================
+  // AUTO GROW TEXTAREA (FACEBOOK STYLE)
+  // =========================
+  useEffect(() => {
+    if (!textareaRef.current) return;
+
+    textareaRef.current.style.height = "auto";
+    textareaRef.current.style.height =
+      textareaRef.current.scrollHeight + "px";
+  }, [content]);
 
   // =========================
   // GET AUTH USER + PROFILE
@@ -54,7 +67,7 @@ export default function CommentForm({ songId, onSuccess }) {
       .from("song_comments")
       .insert({
         song_id: songId,
-        user_id: user.id, // ✅ đúng auth user id
+        user_id: user.id,
         content: content.trim(),
       })
       .select(`*, profiles (*)`)
@@ -83,7 +96,7 @@ export default function CommentForm({ songId, onSuccess }) {
     <div className="flex gap-3 items-start w-full">
       {/* AVATAR */}
       <HoverImagePreview
-        src={profile?.avatar_url} 
+        src={profile?.avatar_url}
         alt={profile?.full_name || "User"}
         className="w-8 h-8 rounded-sm shrink-0"
         previewSize={160}
@@ -105,6 +118,7 @@ export default function CommentForm({ songId, onSuccess }) {
           />
         </div>
       </HoverImagePreview>
+
       {/* COMMENT BOX */}
       <div className="flex-1">
         <div
@@ -112,48 +126,53 @@ export default function CommentForm({ songId, onSuccess }) {
             bg-emerald-50 dark:bg-emerald-500/10
             border border-emerald-200 dark:border-emerald-500/20
             rounded-2xl
-            px-4 py-2
-            flex flex-col
+            px-3 py-2
+            flex items-end gap-2
             focus-within:ring-1
             focus-within:ring-emerald-500
           "
         >
+          {/* TEXTAREA */}
           <textarea
+            ref={textareaRef}
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Write a comment..."
             rows={1}
             className="
-              w-full
+              flex-1
               text-sm
               bg-transparent
               resize-none
               focus:outline-none
               text-emerald-900 dark:text-emerald-100
               placeholder:text-emerald-400
+              overflow-hidden
+              leading-5
+              max-h-[160px]
+              py-1
             "
           />
 
           {/* POST BUTTON */}
-          <div className="flex justify-end mt-2">
-            <button
-              onClick={handleSubmit}
-              disabled={sending || !content.trim()}
-              className="
-                text-xs
-                font-medium
-                px-4 py-1.5
-                rounded-full
-                bg-emerald-500
-                text-white
-                hover:bg-emerald-600
-                disabled:opacity-50
-                disabled:cursor-not-allowed
-              "
-            >
-              {sending ? "Posting..." : "Post"}
-            </button>
-          </div>
+          <button
+            onClick={handleSubmit}
+            disabled={sending || !content.trim()}
+            className="
+              shrink-0
+              text-xs
+              font-medium
+              px-4 py-1.5
+              rounded-full
+              bg-emerald-500
+              text-white
+              hover:bg-emerald-600
+              disabled:opacity-50
+              disabled:cursor-not-allowed
+            "
+          >
+            {sending ? "Posting..." : "Post"}
+          </button>
         </div>
       </div>
     </div>
