@@ -618,26 +618,28 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
 
             {/* STATS TABLES */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                
+                {/* 1. TOP_5_STREAMED */}
                 <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-full">
-                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0">
+                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0 h-[52px]">
                         <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center"><TrendingUp size={16} className="text-emerald-500" /> Top_5_Streamed</h4>
                         <button onClick={() => { setSongSortType('plays'); setCurrentView('songs_list'); }} className="text-[9px] text-emerald-600 dark:text-emerald-500 hover:underline font-mono uppercase">VIEW_FULL</button>
                     </div>
                     <div className="p-0 overflow-y-auto custom-scrollbar">
                         {stats.topSongs.slice(0, 5).map((s, i) => (
-                            <div key={s.id} className="group flex justify-between items-center text-xs font-mono p-3 border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-emerald-500/5 dark:hover:bg-emerald-500/10 transition-colors relative">
+                            <div key={s.id} className="group flex justify-between items-center text-xs font-mono px-3 h-[60px] border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-emerald-500/5 dark:hover:bg-emerald-500/10 transition-colors relative">
                                 <div className="flex items-center gap-3 overflow-hidden">
                                     <span className={`text-[10px] font-bold w-6 shrink-0 ${i < 3 ? 'text-emerald-600 dark:text-emerald-400' : 'text-neutral-400'}`}>#{String(i + 1).padStart(2, '0')}</span>
                                     <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 shrink-0 relative flex items-center justify-center overflow-hidden">
                                         {s.image_url ? <img src={s.image_url} alt={s.title} className="w-full h-full object-cover" /> : <Music size={14} className="text-neutral-400" />}
                                         <ScanlineOverlay />
                                     </div>
-                                    <div className="flex flex-col min-w-0">
-                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{s.title}</span>
-                                        <span className="truncate text-[10px] text-neutral-500 dark:text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300">{s.author}</span>
+                                    <div className="flex flex-col min-w-0 justify-center">
+                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors leading-tight">{s.title}</span>
+                                        <span className="truncate text-[10px] text-neutral-500 dark:text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300 leading-tight h-[14px] flex items-center">{s.author}</span>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 pl-2 shrink-0">
+                                <div className="shrink-0">
                                     <span className="text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-500/20 px-2 py-0.5 text-[10px]">{s.play_count}</span>
                                 </div>
                             </div>
@@ -645,26 +647,33 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
                     </div>
                 </CyberCard>
 
+                {/* 2. TOP_5_ARTISTS */}
                 <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-full">
-                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0">
+                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0 h-[52px]">
                         <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center"><Mic2 size={16} className="text-pink-500" /> Top_5_Artists</h4>
                         <button onClick={() => setCurrentView('db_artists_list')} className="text-[9px] text-pink-600 dark:text-pink-500 hover:underline font-mono uppercase">VIEW_FULL</button>
                     </div>
                     <div className="p-0 overflow-y-auto custom-scrollbar">
                         {popularArtistsList.slice(0, 5).map((artist, i) => (
-                            <div key={i} className="group flex justify-between items-center text-xs font-mono p-3 border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-pink-500/5 dark:hover:bg-pink-500/10 transition-colors relative">
+                            <div key={i} className="group flex justify-between items-center text-xs font-mono px-3 h-[60px] border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-pink-500/5 dark:hover:bg-pink-500/10 transition-colors relative">
                                 <div className="flex items-center gap-3 overflow-hidden">
                                     <span className={`text-[10px] font-bold w-6 shrink-0 ${i < 3 ? 'text-pink-600 dark:text-pink-400' : 'text-neutral-400'}`}>#{String(i + 1).padStart(2, '0')}</span>
                                     <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 shrink-0 relative flex items-center justify-center overflow-hidden">
                                         {artist.image_url ? <img src={artist.image_url} alt={artist.originalName} className="w-full h-full object-cover" /> : <User size={14} className="text-neutral-400" />}
                                         <ScanlineOverlay />
                                     </div>
-                                    <div className="flex flex-col min-w-0">
-                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors">{artist.originalName}</span>
-                                        {!artist.inDB && <span className="text-[8px] text-red-500 dark:text-red-400 border border-red-500/30 px-1 w-fit mt-0.5">SYNC_REQ</span>}
+                                    <div className="flex flex-col min-w-0 justify-center">
+                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors leading-tight">{artist.originalName}</span>
+                                        <div className="h-[14px] flex items-center mt-0.5">
+                                            {!artist.inDB ? (
+                                                <span className="text-[8px] text-red-500 dark:text-red-400 border border-red-500/30 px-1 leading-none">SYNC_REQ</span>
+                                            ) : (
+                                                <span className="text-[9px] text-neutral-400 opacity-50 italic">VERIFIED</span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 pl-2 shrink-0">
+                                <div className="shrink-0">
                                     <span className="text-pink-700 dark:text-pink-400 font-bold bg-pink-100 dark:bg-pink-900/30 border border-pink-200 dark:border-pink-500/20 px-2 py-0.5 text-[10px] flex items-center gap-1"><Heart size={8} fill="currentColor" /> {artist.followers}</span>
                                 </div>
                             </div>
@@ -672,41 +681,50 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
                     </div>
                 </CyberCard>
 
-                {/* COMMENTS METRICS */}
+                {/* 3. TOP_COMMENTED */}
                 <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-full">
-                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0">
-                        <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center"><MessageSquare size={16} className="text-sky-500" /> Comments</h4>
-                            <button onClick={() => router.push('/admin/comments')} className="text-[9px] text-sky-600 dark:text-sky-400 hover:underline font-mono uppercase">VIEW_COMMENTS</button>
+                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0 h-[52px]">
+                        <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center"><MessageSquare size={16} className="text-sky-500" /> Top_Commented</h4>
+                        <button onClick={() => router.push('/admin/comments')} className="text-[9px] text-sky-600 dark:text-sky-400 hover:underline font-mono uppercase">VIEW_FULL</button>
                     </div>
-                    <div className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                            <div>
-                                <p className="text-[10px] text-neutral-500 font-mono">Total Comments</p>
-                                <p className="text-2xl font-bold text-sky-700 dark:text-sky-400">{stats.totalComments || 0}</p>
-                            </div>
-                            <div>
-                                <p className="text-[10px] text-neutral-500 font-mono">Today</p>
-                                <p className="text-xl font-bold text-emerald-600">{stats.commentsToday || 0}</p>
-                            </div>
-                        </div>
-
-                        <div className="border-t border-dashed border-neutral-200 dark:border-white/5 pt-3">
-                            <h5 className="text-[10px] uppercase font-mono text-neutral-500 mb-2">Top Commented Songs</h5>
-                            {stats.topCommentedSongs?.length > 0 ? (
-                                stats.topCommentedSongs.map((t, i) => (
-                                    <div key={t.song_id} className="flex items-center justify-between text-xs font-mono py-2">
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            <span className={`text-[10px] font-bold w-6 shrink-0 ${i < 3 ? 'text-sky-600' : 'text-neutral-400'}`}>#{String(i+1).padStart(2,'0')}</span>
-                                            <div className="flex flex-col min-w-0">
-                                                <span className="truncate font-bold text-neutral-800 dark:text-neutral-200">{t.title}</span>
-                                                <span className="text-[10px] text-neutral-500">{t.count} comments</span>
-                                            </div>
+                    <div className="p-0 overflow-y-auto custom-scrollbar flex-1">
+                        {stats.topCommentedSongs?.length > 0 ? (
+                            stats.topCommentedSongs.map((t, i) => (
+                                <div key={t.song_id} className="group flex justify-between items-center text-xs font-mono px-3 h-[60px] border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-sky-500/5 dark:hover:bg-sky-500/10 transition-colors relative">
+                                    <div className="flex items-center gap-3 overflow-hidden">
+                                        <span className={`text-[10px] font-bold w-6 shrink-0 ${i < 3 ? 'text-sky-600 dark:text-sky-400' : 'text-neutral-400'}`}>#{String(i + 1).padStart(2, '0')}</span>
+                                        <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 shrink-0 relative flex items-center justify-center overflow-hidden">
+                                            {t.image_url ? <img src={t.image_url} alt={t.title} className="w-full h-full object-cover" /> : <Music size={14} className="text-neutral-400" />}
+                                            <ScanlineOverlay />
+                                        </div>
+                                        <div className="flex flex-col min-w-0 justify-center">
+                                            <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors leading-tight">{t.title}</span>
+                                            <span className="truncate text-[10px] text-neutral-500 dark:text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300 uppercase italic opacity-70 leading-tight h-[14px] flex items-center">
+                                                SID: {String(t.song_id).slice(0,6)}
+                                            </span>
                                         </div>
                                     </div>
-                                ))
-                            ) : (
-                                <p className="text-xs text-neutral-500 italic">No comments yet.</p>
-                            )}
+                                    <div className="shrink-0">
+                                        <span className="text-sky-700 dark:text-sky-400 font-bold bg-sky-100 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-500/20 px-2 py-0.5 text-[10px]">{t.count}</span>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="flex-1 flex items-center justify-center text-[10px] font-mono text-neutral-500 uppercase tracking-widest animate-pulse h-[300px]">
+                                NO_COMMENT_SIGNALS
+                            </div>
+                        )}
+                    </div>
+                    {/* FOOTER BAR */}
+                    <div className="mt-auto p-2 border-t border-neutral-300 dark:border-white/10 bg-neutral-100/50 dark:bg-white/5 flex justify-around items-center shrink-0 h-[42px]">
+                        <div className="text-center">
+                            <p className="text-[8px] text-neutral-500 uppercase font-mono">Grand_Total</p>
+                            <p className="text-xs font-bold text-sky-600 dark:text-sky-400">{stats.totalComments || 0}</p>
+                        </div>
+                        <div className="h-4 w-[1px] bg-neutral-300 dark:bg-white/10"></div>
+                        <div className="text-center">
+                            <p className="text-[8px] text-neutral-500 uppercase font-mono">Today_Logs</p>
+                            <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">+{stats.commentsToday || 0}</p>
                         </div>
                     </div>
                 </CyberCard>
