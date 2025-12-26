@@ -1,5 +1,6 @@
 "use client";
 
+import React, { memo, useCallback } from "react"; // 1. Thêm memo và useCallback
 import SongItem from "@/components/SongItem";
 import usePlayer from "@/hooks/usePlayer";
 import { useAuth } from "@/components/AuthWrapper";
@@ -9,24 +10,32 @@ import { ArrowRight, ChevronRight } from "lucide-react";
 import { GlitchText, CyberCard } from "@/components/CyberComponents";
 
 const SongSection = ({ title, songs, moreLink }) => {
-  const player = usePlayer();
+  // 2. CÁCH 2: CHỈ LẤY CÁC HÀM CẦN THIẾT
+  // Chúng ta không lấy 'activeId' ở đây vì bản thân SongSection không dùng nó để hiển thị.
+  // Việc loại bỏ activeId giúp Section này KHÔNG re-render khi bài hát thay đổi.
+  const setId = usePlayer((state) => state.setId);
+  const setIds = usePlayer((state) => state.setIds);
+  
   const { isAuthenticated } = useAuth();
   const { openModal } = useModal();
 
-  const onPlay = (id) => {
+  // 3. Sử dụng useCallback để hàm không bị tạo lại mỗi khi render
+  const onPlay = useCallback((id) => {
     if (!isAuthenticated) {
       openModal();
       return;
     }
-    player.setId(id);
-    player.setIds(songs.map((s) => s.id));
+
+    // Sửa lỗi: Gọi trực tiếp hàm từ selector
+    setId(id);
+    setIds(songs.map((s) => s.id));
 
     if (typeof window !== "undefined") {
         const songMap = {};
         songs.forEach(song => songMap[song.id] = song);
         window.__SONG_MAP__ = { ...window.__SONG_MAP__, ...songMap };
     }
-  };
+  }, [isAuthenticated, openModal, setId, setIds, songs]);
 
   if (!songs || songs.length === 0) return null;
 
@@ -53,23 +62,21 @@ const SongSection = ({ title, songs, moreLink }) => {
         </div>
       )}
 
-      {/* GRID HỆ THỐNG: Tự động lấp đầy 2 hàng dựa trên độ phân giải */}
+      {/* GRID HỆ THỐNG */}
       <div className="
         grid 
-        grid-cols-2       /* Mobile: 2 cột (Hiện 3 bài + 1 Card) */
-        sm:grid-cols-3    /* Tablet: 3 cột (Hiện 5 bài + 1 Card) */
-        md:grid-cols-4    /* Laptop: 4 cột (Hiện 7 bài + 1 Card) */
-        lg:grid-cols-5    /* Desktop: 5 cột (Hiện 9 bài + 1 Card) */
-        xl:grid-cols-6    /* Wide: 6 cột (Hiện 11 bài + 1 Card) */
-        2xl:grid-cols-8   /* Ultra Wide: 8 cột (Hiện 15 bài + 1 Card) */
+        grid-cols-2 
+        sm:grid-cols-3 
+        md:grid-cols-4 
+        lg:grid-cols-5 
+        xl:grid-cols-6 
+        2xl:grid-cols-8 
         gap-3 md:gap-4
       ">
-        
         {songs.map((item, index) => (
           <div 
             key={item.id}
             className={`
-              /* Logic ẩn/hiện bài hát để grid luôn đẹp */
               ${index < 3 ? "block" : "hidden"}
               ${index >= 3 && index < 5 ? "sm:block" : ""}
               ${index >= 5 && index < 7 ? "md:block" : ""}
@@ -85,7 +92,7 @@ const SongSection = ({ title, songs, moreLink }) => {
           </div>
         ))}
 
-        {/* THẺ XEM THÊM (Luôn nằm ở ô cuối cùng của hàng thứ 2) */}
+        {/* THẺ XEM THÊM */}
         {moreLink && (
             <Link href={moreLink} className="block relative h-full min-h-[160px] md:min-h-[200px]"> 
                 <CyberCard 
@@ -111,10 +118,10 @@ const SongSection = ({ title, songs, moreLink }) => {
                 </CyberCard>
             </Link>
         )}
-
       </div>
     </div>
   );
 };
 
-export default SongSection;
+// 4. Bọc memo để ngăn chặn re-render khi volume thay đổi ở thanh Player
+export default memo(SongSection);

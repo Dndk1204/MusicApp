@@ -7,7 +7,17 @@ module.exports = {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      keyframes: {
+        'vhs-bar': {
+          '0%, 100%': { height: '8px' },
+          '50%': { height: '24px' },
+        }
+      },
+      animation: {
+        'vhs-bar': 'vhs-bar 0.6s ease-in-out infinite',
+      }
+    }
   },
   plugins: [],
 }
