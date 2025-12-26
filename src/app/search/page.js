@@ -169,6 +169,7 @@ const SearchPage = async ({ searchParams }) => {
                 .select('*')
                 .not('user_id', 'is', null)
                 .eq('is_public', true)
+                .not('is_denied', 'is', true)
                 .order('created_at', { ascending: false });
             
             songs = (data || []).map(song => ({
@@ -227,7 +228,8 @@ const SearchPage = async ({ searchParams }) => {
                 .from('songs')
                 .select('*')
                 .not('user_id', 'is', null)
-                .eq('is_public', true);
+                .eq('is_public', true)
+                .not('is_denied', 'is', true);
 
             // LOGIC LỌC CHÍNH XÁC: AND (Title AND Artist)
             if (title) dbQuery = dbQuery.ilike('title', `%${title}%`);

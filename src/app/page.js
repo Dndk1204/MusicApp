@@ -77,24 +77,26 @@ const getCommunityUploads = async () => {
 
     try {
         const { data, error } = await supabase
-            .from('songs')
-            .select('*')
-            .not('user_id', 'is', null) 
-            .eq('is_public', true)      
-            .order('created_at', { ascending: false }) 
-            .limit(25);
+          .from('songs')
+          .select('*')
+          .not('user_id', 'is', null)
+          .eq('is_public', true)
+          .not('is_denied', 'is', true)
+          .order('created_at', { ascending: false })
+          .limit(25);
 
         let songsData = data;
 
         if (error) {
             console.error("Error checking is_public:", error);
             const { data: data2, error: error2 } = await supabase
-                .from('songs')
-                .select('*')
-                .not('user_id', 'is', null)
-                .eq('public', true)
-                .order('created_at', { ascending: false })
-                .limit(25);
+              .from('songs')
+              .select('*')
+              .not('user_id', 'is', null)
+              .eq('is_public', true)
+              .not('is_denied', 'is', true)
+              .order('created_at', { ascending: false })
+              .limit(25);
 
             if (error2) {
                 console.error("Error checking public:", error2);

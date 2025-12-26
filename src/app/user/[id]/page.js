@@ -366,7 +366,7 @@ const UserProfilePage = () => {
     
     const fetchSongs = async (userId, isProfileOwner) => {
         let query = supabase.from('songs').select('*').eq('user_id', userId).order('created_at', { ascending: false });
-        if (!isProfileOwner) { query = query.eq('is_public', true); }
+        if (!isProfileOwner) { query = query.eq('is_public', true).not('is_denied', 'is', true); }
         const { data } = await query;
         if (data) setUserSongs(data);
     };
