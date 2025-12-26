@@ -514,9 +514,6 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
         
         {currentView === 'dashboard' && (
             <div className="flex gap-3 flex-wrap">
-                <CyberButton onClick={() => uploadModal.onOpen()} className="flex items-center gap-2 text-xs py-2 px-4 h-auto rounded-none">
-                    <UploadCloud size={14}/> UPLOAD_SONG
-                </CyberButton>
                 <NeonButton onClick={handleSyncMusic} disabled={syncing} className="text-xs px-4 py-2 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-none">
                     {syncing ? <Loader2 className="animate-spin" size={14}/> : <RefreshCw size={14}/>} SYNC_API
                 </NeonButton>

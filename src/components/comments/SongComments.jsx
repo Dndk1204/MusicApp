@@ -10,9 +10,6 @@ export default function SongComments({ songId }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Loại bỏ duplicate comment
-  const uniqueComments = Array.from(new Map(comments.map(c => [c.id, c])).values());
-
   /* 🔐 Current user */
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
