@@ -158,52 +158,64 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
   }, [uploadModal.isOpen]);
 
   // --- PRESENCE LOGIC ---
-  useEffect(() => {
-    let channel = null;
-    let authListener = null;
+    useEffect(() => {
+        let channel = null;
 
-    const handlePresenceSync = () => {
-        if (!channel) return;
-        const newState = channel.presenceState();
-        const onlineIds = new Set();
-        Object.keys(newState).forEach((key) => {
-            newState[key].forEach((presence) => {
-                if (presence.user_id) onlineIds.add(presence.user_id);
+        const handlePresenceSync = () => {
+            if (!channel) return;
+
+            const newState = channel.presenceState();
+            const onlineIds = new Set();
+
+            // Duyệt qua toàn bộ state của Presence để lấy các user_id đang online
+            Object.keys(newState).forEach((key) => {
+                newState[key].forEach((presence) => {
+                    if (presence.user_id) {
+                        onlineIds.add(String(presence.user_id)); // Ép kiểu string để so sánh chính xác
+                    }
+                });
             });
-        });
-        setOnlineUsers(onlineIds);
-    };
 
-    const createChannelForUser = async (user) => {
-        if (!user) return;
-        if (channel) { try { supabase.removeChannel(channel); } catch (e) {} }
-        const clientKey = `${user.id}_${Date.now()}`;
-        channel = supabase.channel('online-users', { config: { presence: { key: clientKey } } });
-        channel.on('presence', { event: 'sync' }, handlePresenceSync);
-        channel.on('presence', { event: 'join' }, () => handlePresenceSync());
-        channel.on('presence', { event: 'leave' }, () => handlePresenceSync());
-        await channel.subscribe(async (status) => {
-            if (status === 'SUBSCRIBED') {
-                await channel.track({ user_id: user.id, online_at: new Date().toISOString() });
-            }
-        });
-    };
+            // QUAN TRỌNG: Cập nhật state với một Set mới để React re-render
+            setOnlineUsers(new Set(onlineIds));
+            console.log("PROTOCOL: ONLINE_SENSORS_UPDATED", onlineIds);
+        };
 
-    (async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) await createChannelForUser(session.user);
-        const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN' && session?.user) createChannelForUser(session.user);
-            if (event === 'SIGNED_OUT') { setOnlineUsers(new Set()); if (channel) { supabase.removeChannel(channel); channel = null; } }
-        });
-        authListener = listener;
-    })();
+        const initPresence = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.user) return;
 
-    return () => {
-        if (authListener?.subscription) authListener.subscription.unsubscribe();
-        if (channel) supabase.removeChannel(channel);
-    };
-  }, []);
+            // Tạo channel chung cho toàn bộ hệ thống online
+            channel = supabase.channel('online-users', {
+                config: { presence: { key: session.user.id } }
+            });
+
+            channel
+                .on('presence', { event: 'sync' }, handlePresenceSync)
+                .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+                    console.log(':: NEW_SIGNAL_DETECTED ::', key, newPresences);
+                    handlePresenceSync();
+                })
+                .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+                    console.log(':: SIGNAL_LOST ::', key, leftPresences);
+                    handlePresenceSync();
+                })
+                .subscribe(async (status) => {
+                    if (status === 'SUBSCRIBED') {
+                        await channel.track({ 
+                            user_id: session.user.id, 
+                            online_at: new Date().toISOString() 
+                        });
+                    }
+                });
+        };
+
+        initPresence();
+
+        return () => {
+            if (channel) supabase.removeChannel(channel);
+        };
+    }, []);
 
   useEffect(() => {
     const init = async () => {
@@ -218,6 +230,36 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
     init();
   }, [router]);
 
+  useEffect(() => {
+    // Lắng nghe thay đổi trực tiếp từ Database bảng profiles
+    const profileSubscription = supabase
+        .channel('public:profiles')
+        .on('postgres_changes', { 
+            event: '*', 
+            schema: 'public', 
+            table: 'profiles' 
+        }, (payload) => {
+            console.log(':: PROFILE_DATABASE_UPDATED ::', payload);
+            
+            // Cập nhật lại usersList cục bộ để không phải fetch lại toàn bộ
+            setUsersList((currentList) => {
+                if (payload.eventType === 'INSERT') return [payload.new, ...currentList];
+                if (payload.eventType === 'UPDATE') {
+                    return currentList.map(u => u.id === payload.new.id ? payload.new : u);
+                }
+                if (payload.eventType === 'DELETE') {
+                    return currentList.filter(u => u.id !== payload.old.id);
+                }
+                return currentList;
+            });
+        })
+        .subscribe();
+
+    return () => {
+        supabase.removeChannel(profileSubscription);
+    };
+    }, []);
+    
   // --- FILTER LOGIC ---
   let displayedSongs = allSongsList;
   let songViewTitle = "Full_Database_Tracks";
