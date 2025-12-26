@@ -259,7 +259,7 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
         supabase.removeChannel(profileSubscription);
     };
     }, []);
-    
+
   // --- FILTER LOGIC ---
   let displayedSongs = allSongsList;
   let songViewTitle = "Full_Database_Tracks";
@@ -375,6 +375,13 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
             // Xóa tất cả các field "tạm" không tồn tại trong bảng 'songs' của Database
             delete finalUpdates.new_lyrics_content;
 
+            // Nếu admin đánh dấu Deny, đảm bảo bài hát không còn public và không được coi là verified
+            if (finalUpdates.is_denied === true) {
+                finalUpdates.is_public = false;
+                finalUpdates.is_verified = false;
+                finalUpdates.pending_action = null;
+            }
+
             // 4. Thực thi cập nhật Database
             const { error: dbError } = await supabase
                 .from('songs')
@@ -393,26 +400,35 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
     };
 
     const handleBulkAction = async (action) => {
-            if (selectedSongIds.length === 0) return;
-            const isApprove = action === 'approve';
-            if (!await confirm(`Execute ${action} for ${selectedSongIds.length} signals?`, "BULK_PROTOCOL")) return;
+        if (selectedSongIds.length === 0) return;
+        const isApprove = action === 'approve';
+        if (!await confirm(`Execute ${action} for ${selectedSongIds.length} signals?`, "BULK_PROTOCOL")) return;
 
-            setLoading(true);
-            try {
-                for (const id of selectedSongIds) {
-                    const song = allSongsList.find(s => s.id === id);
-                    let updateBody = { is_verified: isApprove, is_denied: !isApprove, pending_action: null };
-                    
-                    if (isApprove) {
-                        updateBody.is_public = song.pending_action !== 'set_private';
-                    }
-
-                    await supabase.from('songs').update(updateBody).eq('id', id);
+        setLoading(true);
+        try {
+            for (const id of selectedSongIds) {
+                const song = allSongsList.find(s => s.id === id);
+                
+                // CẬP NHẬT logic đồng bộ: Nếu Approve thì Denied phải False và ngược lại
+                let updateBody = { 
+                    is_verified: isApprove, 
+                    is_denied: !isApprove, // Nếu isApprove=true thì is_denied=false
+                    pending_action: null 
+                };
+                
+                if (isApprove) {
+                    updateBody.is_public = song.pending_action !== 'set_private';
+                } else {
+                    // Nếu Deny thì thường bài hát nên chuyển về Private
+                    updateBody.is_public = false; 
                 }
-                success("BATCH_COMPLETE.");
-                setSelectedSongIds([]);
-                await fetchDashboardData();
-            } catch (err) { error(err.message); } finally { setLoading(false); }
+
+                await supabase.from('songs').update(updateBody).eq('id', id);
+            }
+            success("BATCH_COMPLETE.");
+            setSelectedSongIds([]);
+            await fetchDashboardData();
+        } catch (err) { error(err.message); } finally { setLoading(false); }
     };
 
     const handleSelectAll = (filteredSongs) => {
@@ -873,15 +889,14 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
 
             // 2. Logic Filter theo Tab (QUAN TRỌNG NHẤT)
             if (approvalFilter === 'pending') {
-                // Hiện những bài chưa được duyệt (is_verified = false) và chưa bị từ chối
                 return song.is_verified === false && song.is_denied === false;
             }
             if (approvalFilter === 'approved') {
-                // Hiện những bài đã duyệt (is_verified = true)
-                return song.is_verified === true;
+                // Một bài được coi là Approved khi Verified là true VÀ Denied phải là false
+                return song.is_verified === true && song.is_denied === false;
             }
             if (approvalFilter === 'denied') {
-                // Hiện những bài đã bị từ chối
+                // Một bài đã bị từ chối thì chỉ cần check is_denied
                 return song.is_denied === true;
             }
             return true;

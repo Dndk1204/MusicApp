@@ -114,6 +114,7 @@ const ArtistPage = ({ params }) => {
                     .select('*') 
                     .ilike('author', name) 
                     .eq('is_public', true)
+                    .not('is_denied', 'is', true)
                     .order('created_at', { ascending: false });
 
                 _localSongs = (localData || []).map(song => ({

@@ -38,7 +38,8 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
                 const { data: topSongsDB } = await supabase
                     .from('songs')
                     .select('*')
-                    .eq('is_public', true) 
+                    .eq('is_public', true)
+                    .not('is_denied', 'is', true)
                     .order('play_count', { ascending: false })
                     .limit(10);
 
@@ -50,7 +51,8 @@ const TrendingHero = ({ songs: initialSongs, artists: initialArtists }) => {
                 const { data: allSongStats } = await supabase
                     .from('songs')
                     .select('author, play_count')
-                    .eq('is_public', true); 
+                    .eq('is_public', true)
+                    .not('is_denied', 'is', true);
 
                 const { data: allFollows } = await supabase
                     .from('following_artists')
