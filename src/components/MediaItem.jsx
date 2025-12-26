@@ -4,7 +4,8 @@ import Image from "next/image";
 import useLoadImage from "@/hooks/useLoadImage";
 import Link from "next/link";
 // Import Scanline để đồng bộ hiệu ứng (nếu muốn), hoặc chỉ dùng CSS thuần cho nhẹ
-import { ScanlineOverlay } from "@/components/CyberComponents"; 
+import { ScanlineOverlay } from "@/components/CyberComponents";
+import LikeButton from "./LikeButton";
 
 const formatDuration = (sec) => {
   if (!sec || sec === "--:--") return "";
@@ -62,13 +63,13 @@ const MediaItem = ({ data, onClick }) => {
         <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 bg-[length:100%_2px,3px_100%] pointer-events-none opacity-50"></div>
       </Link>
 
-      <div className="flex flex-col gap-y-0.5 overflow-hidden">
+      <div className="flex flex-col gap-y-0.5 overflow-hidden flex-1">
         {/* 2. TÊN BÀI HÁT: Mono + Uppercase */}
-        <Link 
+        <Link
             href="/now-playing"
             className="
-                text-xs font-bold font-mono uppercase truncate cursor-pointer 
-                text-neutral-900 dark:text-white 
+                text-xs font-bold font-mono uppercase truncate cursor-pointer
+                text-neutral-900 dark:text-white
                 hover:text-emerald-600 dark:hover:text-emerald-500
                 hover:underline decoration-emerald-500 underline-offset-2
                 transition-colors
@@ -76,13 +77,13 @@ const MediaItem = ({ data, onClick }) => {
         >
             {data.title}
         </Link>
-        
+
         {/* 3. TÊN NGHỆ SĨ & THỜI GIAN */}
         <div className="flex items-center gap-2">
             <Link
                 href={`/artist/${encodeURIComponent(data.author)}?source=${sourceParam}`} // THÊM PARAM SOURCE
                 className="
-                    text-[10px] font-mono truncate cursor-pointer 
+                    text-[10px] font-mono truncate cursor-pointer
                     text-neutral-500 dark:text-neutral-400
                     hover:text-neutral-900 dark:hover:text-white
                     transition-colors
@@ -100,6 +101,11 @@ const MediaItem = ({ data, onClick }) => {
               </>
             )}
         </div>
+      </div>
+
+      {/* 4. LIKE BUTTON */}
+      <div className="shrink-0">
+        <LikeButton songId={data.id} size={16} />
       </div>
     </div>
   );
