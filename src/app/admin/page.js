@@ -4,15 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
-import { 
-    ShieldAlert, UploadCloud, Users, Trash2, TrendingUp, 
+import {
+    ShieldAlert, UploadCloud, Users, Trash2, TrendingUp,
     Search, Loader2, RefreshCw, Music, ArrowLeft, Eraser, Mic2, Heart,
     Globe, Lock, Star, ArchiveRestore, Skull, Activity, List, User,
     CheckCircle2, XCircle, Clock, Eye, ShieldCheck, ChevronDown, MessageSquare
 } from "lucide-react";
 import useUI from "@/hooks/useUI";
-import useUploadModal from "@/hooks/useUploadModal"; 
-import UploadModal from "@/components/UploadModal"; 
+import useUploadModal from "@/hooks/useUploadModal";
+import UploadModal from "@/components/UploadModal";
 
 // Import các Cyber Components
 import { GlitchButton, CyberButton, GlitchText, CyberCard, NeonButton, ScanlineOverlay } from "@/components/CyberComponents";
@@ -20,6 +20,129 @@ import { GlitchButton, CyberButton, GlitchText, CyberCard, NeonButton, ScanlineO
 // Import Component đã tách ra
 import ActivityStream from "@/components/ActivityStream";
 import TrackDetailModal from "@/components/TrackDetailModal";
+
+// --- LIKED USERS MODAL COMPONENT ---
+const LikedUsersModal = ({ song, isOpen, onClose }) => {
+    const [likedUsers, setLikedUsers] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (isOpen && song?.id) {
+            fetchLikedUsers();
+        }
+    }, [isOpen, song]);
+
+    const fetchLikedUsers = async () => {
+        if (!song?.id) return;
+
+        setLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('song_likes')
+                .select(`
+                    user_id,
+                    created_at,
+                    profiles:user_id (
+                        id,
+                        full_name,
+                        avatar_url,
+                        role,
+                        created_at
+                    )
+                `)
+                .eq('song_id', song.id)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            // Filter out users without profile data (deleted users)
+            const validUsers = (data || []).filter(like => like.profiles);
+            setLikedUsers(validUsers);
+        } catch (error) {
+            console.error("Error fetching liked users:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-white/10 rounded-none max-w-2xl w-full max-h-[80vh] overflow-hidden">
+                {/* HEADER */}
+                <div className="p-6 border-b border-neutral-300 dark:border-white/10 flex justify-between items-center">
+                    <div>
+                        <h2 className="text-xl font-bold font-mono text-neutral-900 dark:text-white uppercase tracking-wide">
+                            <GlitchText text="Liked Users" />
+                        </h2>
+                        <p className="text-sm text-neutral-500 dark:text-neutral-400 font-mono mt-1">
+                            {song?.title} - {likedUsers.length} likes
+                        </p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors p-2"
+                    >
+                        <XCircle size={24} />
+                    </button>
+                </div>
+
+                {/* CONTENT */}
+                <div className="p-6 overflow-y-auto max-h-[60vh]">
+                    {loading ? (
+                        <div className="flex items-center justify-center py-12">
+                            <Loader2 className="animate-spin text-neutral-400" size={32} />
+                            <span className="ml-2 text-neutral-500 font-mono">Loading...</span>
+                        </div>
+                    ) : likedUsers.length === 0 ? (
+                        <div className="text-center py-12">
+                            <Heart size={48} className="text-neutral-300 mx-auto mb-4" />
+                            <p className="text-neutral-500 font-mono">No likes yet</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {likedUsers.map((like) => (
+                                <div key={like.user_id} className="flex items-center gap-4 p-4 border border-neutral-200 dark:border-white/5 rounded-none hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors">
+                                    <div className="w-12 h-12 rounded-none bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 overflow-hidden flex items-center justify-center">
+                                        {like.profiles.avatar_url ? (
+                                            <img src={like.profiles.avatar_url} alt={like.profiles.full_name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <User size={20} className="text-neutral-400" />
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="font-bold text-neutral-900 dark:text-white truncate">
+                                                {like.profiles.full_name || 'Unknown User'}
+                                            </span>
+                                            <span className={`
+                                                inline-block px-2 py-0.5 text-[10px] rounded-none border font-bold uppercase
+                                                ${like.profiles.role === 'admin'
+                                                    ? 'border-red-500/30 text-red-600 bg-red-500/5'
+                                                    : 'border-emerald-500/30 text-emerald-600 bg-emerald-500/5'}
+                                            `}>
+                                                {like.profiles.role || 'user'}
+                                            </span>
+                                        </div>
+                                        <div className="text-xs text-neutral-500 dark:text-neutral-400 font-mono">
+                                            Liked on {new Date(like.created_at).toLocaleDateString('en-GB')} at {new Date(like.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-xs text-neutral-400 font-mono">
+                                            User ID: {String(like.user_id).slice(0, 8)}...
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 // --- COMPONENT SKELETON (CYBER STYLE) ---
 const AdminSkeleton = () => (
@@ -61,7 +184,7 @@ const [resetting, setResetting] = useState(false);
 const [restoring, setRestoring] = useState(false); 
 
 const [currentView, setCurrentView] = useState('dashboard');
-const [stats, setStats] = useState({ totalUsers: 0, totalSongs: 0, totalArtists: 0, totalComments: 0, commentsToday: 0, topSongs: [], topSearchedArtists: [], topCommentedSongs: [], topCommenters: [], pendingCount: 0 });
+const [stats, setStats] = useState({ totalUsers: 0, totalSongs: 0, totalArtists: 0, totalComments: 0, commentsToday: 0, topSongs: [], topSearchedArtists: [], topCommentedSongs: [], topCommenters: [], topLikedSongs: [], pendingCount: 0 });
 
 const [usersList, setUsersList] = useState([]);
 const [allSongsList, setAllSongsList] = useState([]); 
@@ -76,6 +199,8 @@ const [songSortType, setSongSortType] = useState('date');
 const [onlineUsers, setOnlineUsers] = useState(new Set());
 const [selectedSong, setSelectedSong] = useState(null);
 const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
+const [selectedSongForLikes, setSelectedSongForLikes] = useState(null);
+const [isLikedUsersModalOpen, setIsLikedUsersModalOpen] = useState(false);
 const [selectedSongIds, setSelectedSongIds] = useState([]);
 // Quản lý tab phê duyệt (mặc định hiện các bài đang chờ)
 const [approvalFilter, setApprovalFilter] = useState('pending');
@@ -111,9 +236,9 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
         const { count: userCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
         const { count: songCount } = await supabase.from('songs').select('*', { count: 'exact', head: true });
         const { data: topSongs } = await supabase.from('songs').select('id, title, author, play_count, image_url').order('play_count', { ascending: false }).limit(10);
-        
+
         const { data: allUsers } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-        const { data: allSongs } = await supabase.from('songs').select('*').order('created_at', { ascending: false }).range(0, 1999); 
+        const { data: allSongs } = await supabase.from('songs').select('*').order('created_at', { ascending: false }).range(0, 1999);
 
         const pendingCount = (allSongs || []).filter(s => !s.is_verified && !s.is_denied).length;
         const { data: allSearchLogs } = await supabase.from('artist_search_counts').select('*').order('search_count', { ascending: false });
@@ -157,6 +282,19 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
             })
             .sort((a, b) => b.count - a.count)
             .slice(0, 5);
+
+        // Get top liked songs using like_count column from songs table
+        const topLikedSongs = (allSongs || [])
+            .filter(song => song.like_count > 0)
+            .map(song => ({
+                song_id: song.id,
+                count: song.like_count,
+                title: song.title || 'Unknown',
+                author: song.author || 'Unknown',
+                image_url: song.image_url || null
+            }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 10);
         
         const artistMap = {};
         (dbArtists || []).forEach(a => {
@@ -176,13 +314,13 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
 
         const mergedArtists = Object.values(artistMap).sort((a, b) => b.followers - a.followers);
 
-        setStats({ totalUsers: userCount || 0, totalSongs: songCount || 0, totalArtists: mergedArtists.length, totalComments: totalComments, commentsToday: commentsToday, topSongs: topSongs || [], topSearchedArtists: [], topCommentedSongs, topCommenters, pendingCount: pendingCount });
-        
+        setStats({ totalUsers: userCount || 0, totalSongs: songCount || 0, totalArtists: mergedArtists.length, totalComments: totalComments, commentsToday: commentsToday, topSongs: topSongs || [], topSearchedArtists: [], topCommentedSongs, topCommenters, topLikedSongs, pendingCount: pendingCount });
+
         setUsersList(allUsers || []);
         setAllSongsList(allSongs || []);
         setAllArtistsList(allSearchLogs || []);
-        setFullArtistsList(mergedArtists || []); 
-        setPopularArtistsList(mergedArtists.slice(0, 5) || []); 
+        setFullArtistsList(mergedArtists || []);
+        setPopularArtistsList(mergedArtists.slice(0, 5) || []);
 
     } catch (err) {
         console.error("System Error:", err);
@@ -319,6 +457,10 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
     .filter((song) => (song.title || "").toLowerCase().includes(songSearchTerm.toLowerCase()) || (song.author || "").toLowerCase().includes(songSearchTerm.toLowerCase()))
     .sort((a, b) => {
         if (songSortType === 'plays') return (b.play_count || 0) - (a.play_count || 0);
+        if (songSortType === 'likes') {
+            // For likes sorting, use the like_count column directly from songs table
+            return (b.like_count || 0) - (a.like_count || 0);
+        }
         return new Date(b.created_at) - new Date(a.created_at);
     });
 
@@ -514,6 +656,9 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
         
         {currentView === 'dashboard' && (
             <div className="flex gap-3 flex-wrap">
+                <CyberButton onClick={() => uploadModal.onOpen()} className="flex items-center gap-2 text-xs py-2 px-4 h-auto rounded-none">
+                    <UploadCloud size={14}/> UPLOAD_SONG
+                </CyberButton>
                 <NeonButton onClick={handleSyncMusic} disabled={syncing} className="text-xs px-4 py-2 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-none">
                     {syncing ? <Loader2 className="animate-spin" size={14}/> : <RefreshCw size={14}/>} SYNC_API
                 </NeonButton>
@@ -612,34 +757,33 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
                             <button onClick={() => setCurrentView('admin_uploads')} className="flex-1 text-[9px] uppercase tracking-wider bg-yellow-500/10 hover:bg-yellow-500 text-yellow-600 dark:text-yellow-300 hover:!text-white px-2 py-1.5 rounded-none transition font-mono text-center flex items-center justify-center gap-1 border border-yellow-500/20">ADMIN_UPLOADS</button>
                             <button onClick={() => setCurrentView('user_uploads')} className="flex-1 text-[9px] uppercase tracking-wider bg-blue-500/10 hover:bg-blue-500 text-blue-600 dark:text-blue-300 hover:!text-white px-2 py-1.5 rounded-none transition font-mono text-center flex items-center justify-center gap-1 border border-blue-500/20">USER_UPLOADS</button>
                         </div>
+
                     </div>
                 </CyberCard>
             </div>
 
             {/* STATS TABLES */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                
-                {/* 1. TOP_5_STREAMED */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
                 <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-full">
-                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0 h-[52px]">
+                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0">
                         <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center"><TrendingUp size={16} className="text-emerald-500" /> Top_5_Streamed</h4>
                         <button onClick={() => { setSongSortType('plays'); setCurrentView('songs_list'); }} className="text-[9px] text-emerald-600 dark:text-emerald-500 hover:underline font-mono uppercase">VIEW_FULL</button>
                     </div>
                     <div className="p-0 overflow-y-auto custom-scrollbar">
                         {stats.topSongs.slice(0, 5).map((s, i) => (
-                            <div key={s.id} className="group flex justify-between items-center text-xs font-mono px-3 h-[60px] border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-emerald-500/5 dark:hover:bg-emerald-500/10 transition-colors relative">
+                            <div key={s.id} className="group flex justify-between items-center text-xs font-mono p-3 border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-emerald-500/5 dark:hover:bg-emerald-500/10 transition-colors relative">
                                 <div className="flex items-center gap-3 overflow-hidden">
                                     <span className={`text-[10px] font-bold w-6 shrink-0 ${i < 3 ? 'text-emerald-600 dark:text-emerald-400' : 'text-neutral-400'}`}>#{String(i + 1).padStart(2, '0')}</span>
                                     <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 shrink-0 relative flex items-center justify-center overflow-hidden">
                                         {s.image_url ? <img src={s.image_url} alt={s.title} className="w-full h-full object-cover" /> : <Music size={14} className="text-neutral-400" />}
                                         <ScanlineOverlay />
                                     </div>
-                                    <div className="flex flex-col min-w-0 justify-center">
-                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors leading-tight">{s.title}</span>
-                                        <span className="truncate text-[10px] text-neutral-500 dark:text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300 leading-tight h-[14px] flex items-center">{s.author}</span>
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{s.title}</span>
+                                        <span className="truncate text-[10px] text-neutral-500 dark:text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300">{s.author}</span>
                                     </div>
                                 </div>
-                                <div className="shrink-0">
+                                <div className="flex items-center gap-2 pl-2 shrink-0">
                                     <span className="text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-500/20 px-2 py-0.5 text-[10px]">{s.play_count}</span>
                                 </div>
                             </div>
@@ -647,33 +791,26 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
                     </div>
                 </CyberCard>
 
-                {/* 2. TOP_5_ARTISTS */}
                 <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-full">
-                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0 h-[52px]">
+                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0">
                         <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center"><Mic2 size={16} className="text-pink-500" /> Top_5_Artists</h4>
                         <button onClick={() => setCurrentView('db_artists_list')} className="text-[9px] text-pink-600 dark:text-pink-500 hover:underline font-mono uppercase">VIEW_FULL</button>
                     </div>
                     <div className="p-0 overflow-y-auto custom-scrollbar">
                         {popularArtistsList.slice(0, 5).map((artist, i) => (
-                            <div key={i} className="group flex justify-between items-center text-xs font-mono px-3 h-[60px] border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-pink-500/5 dark:hover:bg-pink-500/10 transition-colors relative">
+                            <div key={i} className="group flex justify-between items-center text-xs font-mono p-3 border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-pink-500/5 dark:hover:bg-pink-500/10 transition-colors relative">
                                 <div className="flex items-center gap-3 overflow-hidden">
                                     <span className={`text-[10px] font-bold w-6 shrink-0 ${i < 3 ? 'text-pink-600 dark:text-pink-400' : 'text-neutral-400'}`}>#{String(i + 1).padStart(2, '0')}</span>
                                     <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 shrink-0 relative flex items-center justify-center overflow-hidden">
                                         {artist.image_url ? <img src={artist.image_url} alt={artist.originalName} className="w-full h-full object-cover" /> : <User size={14} className="text-neutral-400" />}
                                         <ScanlineOverlay />
                                     </div>
-                                    <div className="flex flex-col min-w-0 justify-center">
-                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors leading-tight">{artist.originalName}</span>
-                                        <div className="h-[14px] flex items-center mt-0.5">
-                                            {!artist.inDB ? (
-                                                <span className="text-[8px] text-red-500 dark:text-red-400 border border-red-500/30 px-1 leading-none">SYNC_REQ</span>
-                                            ) : (
-                                                <span className="text-[9px] text-neutral-400 opacity-50 italic">VERIFIED</span>
-                                            )}
-                                        </div>
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors">{artist.originalName}</span>
+                                        {!artist.inDB && <span className="text-[8px] text-red-500 dark:text-red-400 border border-red-500/30 px-1 w-fit mt-0.5">SYNC_REQ</span>}
                                     </div>
                                 </div>
-                                <div className="shrink-0">
+                                <div className="flex items-center gap-2 pl-2 shrink-0">
                                     <span className="text-pink-700 dark:text-pink-400 font-bold bg-pink-100 dark:bg-pink-900/30 border border-pink-200 dark:border-pink-500/20 px-2 py-0.5 text-[10px] flex items-center gap-1"><Heart size={8} fill="currentColor" /> {artist.followers}</span>
                                 </div>
                             </div>
@@ -728,6 +865,35 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
                         </div>
                     </div>
                 </CyberCard>
+
+                {/* LIKES METRICS */}
+                <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-full">
+                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0">
+                        <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center"><Heart size={16} className="text-red-500" /> Top_5_Liked</h4>
+                        <button onClick={() => { setSongSortType('likes'); setCurrentView('songs_list'); }} className="text-[9px] text-red-600 dark:text-red-500 hover:underline font-mono uppercase">VIEW_FULL</button>
+                    </div>
+                    <div className="p-0 overflow-y-auto custom-scrollbar">
+                        {stats.topLikedSongs?.slice(0, 5).map((s, i) => (
+                            <div key={s.song_id} className="group flex justify-between items-center text-xs font-mono p-3 border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-red-500/5 dark:hover:bg-red-500/10 transition-colors relative">
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                    <span className={`text-[10px] font-bold w-6 shrink-0 ${i < 3 ? 'text-red-600 dark:text-red-400' : 'text-neutral-400'}`}>#{String(i + 1).padStart(2, '0')}</span>
+                                    <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 shrink-0 relative flex items-center justify-center overflow-hidden">
+                                        {s.image_url ? <img src={s.image_url} alt={s.title} className="w-full h-full object-cover" /> : <Music size={14} className="text-neutral-400" />}
+                                        <ScanlineOverlay />
+                                    </div>
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">{s.title}</span>
+                                        <span className="truncate text-[10px] text-neutral-500 dark:text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300">{s.author}</span>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 pl-2 shrink-0">
+                                    <span className="text-red-700 dark:text-red-400 font-bold bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-500/20 px-2 py-0.5 text-[10px] flex items-center gap-1"><Heart size={8} fill="currentColor" /> {s.count}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </CyberCard>
+
             </div>
 
             {/* USER TABLE */}
@@ -847,22 +1013,24 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
                     <ArrowLeft size={14}/> RETURN_TO_BASE
                 </button>
 
-                <div className="flex items-center gap-4 w-full md:w-auto">
-                    <div className="flex bg-neutral-200 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none p-1 shrink-0">
-                        <button onClick={() => setSongSortType('plays')} className={`px-3 py-1 text-[10px] rounded-none font-mono uppercase transition ${songSortType === 'plays' ? 'bg-purple-600 text-white' : 'text-neutral-500 hover:text-black dark:hover:text-white'}`}>Top_Plays</button>
-                        <button onClick={() => setSongSortType('date')} className={`px-3 py-1 text-[10px] rounded-none font-mono uppercase transition ${songSortType === 'date' ? 'bg-purple-600 text-white' : 'text-neutral-500 hover:text-black dark:hover:text-white'}`}>Newest_Uploads</button>
+                {songSortType !== 'likes' && (
+                    <div className="flex items-center gap-4 w-full md:w-auto">
+                        <div className="flex bg-neutral-200 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none p-1 shrink-0">
+                            <button onClick={() => setSongSortType('plays')} className={`px-3 py-1 text-[10px] rounded-none font-mono uppercase transition ${songSortType === 'plays' ? 'bg-purple-600 text-white' : 'text-neutral-500 hover:text-black dark:hover:text-white'}`}>Top_Plays</button>
+                            <button onClick={() => setSongSortType('date')} className={`px-3 py-1 text-[10px] rounded-none font-mono uppercase transition ${songSortType === 'date' ? 'bg-purple-600 text-white' : 'text-neutral-500 hover:text-black dark:hover:text-white'}`}>Newest_Uploads</button>
+                        </div>
+                        {currentView === 'songs_list' && <GlitchButton onClick={handleCleanupSongs} disabled={cleaning} className="bg-red-500/10 border-red-500/50 text-red-600 dark:text-red-400 dark:hover:!text-white px-4 py-2 text-xs rounded-none shrink-0">{cleaning ? <Loader2 className="animate-spin" size={14}/> : <Eraser size={14}/>} CLEANUP</GlitchButton>}
+                        <div className="relative w-full md:w-80">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" size={14}/>
+                            <input
+                                value={songSearchTerm}
+                                onChange={(e) => setSongSearchTerm(e.target.value)}
+                                placeholder="SEARCH_TRACK_DB..."
+                                className="w-full bg-neutral-100 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none pl-10 pr-4 py-2 text-xs font-mono text-neutral-900 dark:text-white outline-none focus:border-purple-500 transition-colors uppercase"
+                            />
+                        </div>
                     </div>
-                    {currentView === 'songs_list' && <GlitchButton onClick={handleCleanupSongs} disabled={cleaning} className="bg-red-500/10 border-red-500/50 text-red-600 dark:text-red-400 dark:hover:!text-white px-4 py-2 text-xs rounded-none shrink-0">{cleaning ? <Loader2 className="animate-spin" size={14}/> : <Eraser size={14}/>} CLEANUP</GlitchButton>}
-                    <div className="relative w-full md:w-80">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" size={14}/>
-                        <input 
-                            value={songSearchTerm} 
-                            onChange={(e) => setSongSearchTerm(e.target.value)} 
-                            placeholder="SEARCH_TRACK_DB..." 
-                            className="w-full bg-neutral-100 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none pl-10 pr-4 py-2 text-xs font-mono text-neutral-900 dark:text-white outline-none focus:border-purple-500 transition-colors uppercase"
-                        />
-                    </div>
-                </div>
+                )}
             </div>
 
             <CyberCard className="bg-white dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none overflow-hidden backdrop-blur-sm">
@@ -876,79 +1044,140 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
                     {/* min-w-[800px] đảm bảo bảng không bị bóp quá hẹp trên mobile, gây tràn text */}
                     <table className="w-full min-w-[800px] text-left text-xs font-mono text-neutral-600 dark:text-neutral-400 table-fixed">
                         <thead className="bg-neutral-200 dark:bg-black/40 text-neutral-700 dark:text-neutral-500 uppercase tracking-widest sticky top-0 z-10 backdrop-blur-md border-b border-neutral-300 dark:border-white/10">
-                            <tr>
-                                <th className="px-6 py-3 w-[30%]">Track_ID</th>
-                                <th className="px-6 py-3 w-[20%]">Artist</th>
-                                <th className="px-6 py-3 w-[15%]">Uploader</th>
-                                <th className="px-6 py-3 w-[15%]">Status</th>
-                                <th className="px-6 py-3 w-[10%]">Plays</th>
-                                <th className="px-6 py-3 w-[10%] text-right">Cmd</th>
-                            </tr>
+                            {songSortType === 'likes' ? (
+                                <tr>
+                                    <th className="px-6 py-3 w-[40%]">Track_ID</th>
+                                    <th className="px-6 py-3 w-[30%]">Artist</th>
+                                    <th className="px-6 py-3 w-[15%]">Likes</th>
+                                    <th className="px-6 py-3 w-[15%] text-right">Action</th>
+                                </tr>
+                            ) : (
+                                <tr>
+                                    <th className="px-6 py-3 w-[25%]">Track_ID</th>
+                                    <th className="px-6 py-3 w-[18%]">Artist</th>
+                                    <th className="px-6 py-3 w-[12%]">Uploader</th>
+                                    <th className="px-6 py-3 w-[12%]">Status</th>
+                                    <th className="px-6 py-3 w-[8%]">Plays</th>
+                                    <th className="px-6 py-3 w-[8%]">Likes</th>
+                                    <th className="px-6 py-3 w-[10%] text-right">Cmd</th>
+                                </tr>
+                            )}
                         </thead>
                         <tbody className="divide-y divide-neutral-200 dark:divide-white/5">
                             {filteredSongs.map((song) => {
                                 const uploader = getUploaderInfo(song.user_id);
                                 return (
                                     <tr key={song.id} className="hover:bg-neutral-50 dark:hover:bg-white/5 transition group">
-                                        <td className="px-6 py-3 align-middle">
-                                            <div className="flex items-center gap-3 min-w-0">
-                                                <div className="w-8 h-8 rounded-none bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 overflow-hidden shrink-0 relative">
-                                                    {song.image_url ? (
-                                                        <img src={song.image_url} className="w-full h-full object-cover" alt=""/>
+                                        {songSortType === 'likes' ? (
+                                            <>
+                                                <td className="px-6 py-3 align-middle">
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        <div className="w-8 h-8 rounded-none bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 overflow-hidden shrink-0 relative">
+                                                            {song.image_url ? (
+                                                                <img src={song.image_url} className="w-full h-full object-cover" alt=""/>
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center text-neutral-400"><Music size={12}/></div>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex flex-col min-w-0 overflow-hidden">
+                                                            <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold block" title={song.title}>
+                                                                {song.title}
+                                                            </span>
+                                                            <span className="text-[10px] text-neutral-500 truncate opacity-60">
+                                                                ID: {String(song.id).slice(0, 8)}...
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-3 align-middle uppercase truncate max-w-[150px]" title={song.author}>
+                                                    {song.author}
+                                                </td>
+                                                <td className="px-6 py-3 align-middle whitespace-nowrap">
+                                                    <span className="text-red-600 dark:text-red-500 font-bold bg-red-500/10 px-2 flex items-center gap-1">
+                                                        <Heart size={10} fill="currentColor" /> {song.like_count || 0}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-3 text-right align-middle shrink-0">
+                                                    <button
+                                                        onClick={() => { setSelectedSongForLikes(song); setIsLikedUsersModalOpen(true); }}
+                                                        className="p-2 text-neutral-400 hover:text-red-500 transition-colors"
+                                                    >
+                                                        <Eye size={14} />
+                                                    </button>
+                                                </td>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <td className="px-6 py-3 align-middle">
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        <div className="w-8 h-8 rounded-none bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 overflow-hidden shrink-0 relative">
+                                                            {song.image_url ? (
+                                                                <img src={song.image_url} className="w-full h-full object-cover" alt=""/>
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center text-neutral-400"><Music size={12}/></div>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex flex-col min-w-0 overflow-hidden">
+                                                            <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold block" title={song.title}>
+                                                                {song.title}
+                                                            </span>
+                                                            <span className="text-[10px] text-neutral-500 truncate opacity-60">
+                                                                ID: {String(song.id).slice(0, 8)}...
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-3 align-middle uppercase truncate max-w-[150px]" title={song.author}>
+                                                    {song.author}
+                                                </td>
+                                                <td className="px-6 py-3 align-middle">
+                                                    <div className="max-w-[120px] truncate">
+                                                        <span className={`text-[9px] px-2 py-0.5 rounded-none border font-bold uppercase ${uploader.role === 'admin' ? 'border-yellow-500/30 text-yellow-600 bg-yellow-500/5' : 'border-blue-500/30 text-blue-600 bg-blue-500/5'}`}>
+                                                            {uploader.name}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-3 align-middle font-bold text-[10px] uppercase whitespace-nowrap">
+                                                    {song.is_denied ? (
+                                                        <span className="text-red-500 flex items-center gap-1"><Lock size={12}/> DENIED</span>
+                                                    ) : song.is_public ? (
+                                                        <span className="text-emerald-500 flex items-center gap-1"><Globe size={12}/> PUB</span>
                                                     ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-neutral-400"><Music size={12}/></div>
+                                                        <span className="text-amber-500 flex items-center gap-1"><Clock size={12}/> PEND</span>
                                                     )}
-                                                </div>
-                                                <div className="flex flex-col min-w-0 overflow-hidden">
-                                                    <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold block" title={song.title}>
-                                                        {song.title}
+                                                </td>
+                                                <td className="px-6 py-3 align-middle whitespace-nowrap">
+                                                    <span className="text-emerald-600 dark:text-emerald-500 font-bold bg-emerald-500/10 px-2">
+                                                        {song.play_count}
                                                     </span>
-                                                    <span className="text-[10px] text-neutral-500 truncate opacity-60">
-                                                        ID: {String(song.id).slice(0, 8)}...
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-3 align-middle uppercase truncate max-w-[150px]" title={song.author}>
-                                            {song.author}
-                                        </td>
-                                        <td className="px-6 py-3 align-middle">
-                                            <div className="max-w-[120px] truncate">
-                                                <span className={`text-[9px] px-2 py-0.5 rounded-none border font-bold uppercase ${uploader.role === 'admin' ? 'border-yellow-500/30 text-yellow-600 bg-yellow-500/5' : 'border-blue-500/30 text-blue-600 bg-blue-500/5'}`}>
-                                                    {uploader.name}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-3 align-middle font-bold text-[10px] uppercase whitespace-nowrap">
-                                            {song.is_denied ? (
-                                                <span className="text-red-500 flex items-center gap-1"><Lock size={12}/> DENIED</span>
-                                            ) : song.is_public ? (
-                                                <span className="text-emerald-500 flex items-center gap-1"><Globe size={12}/> PUB</span>
-                                            ) : (
-                                                <span className="text-amber-500 flex items-center gap-1"><Clock size={12}/> PEND</span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-3 align-middle whitespace-nowrap">
-                                            <span className="text-emerald-600 dark:text-emerald-500 font-bold bg-emerald-500/10 px-2">
-                                                {song.play_count}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-3 text-right align-middle shrink-0">
-                                            <div className="flex justify-end items-center gap-1">
-                                                <button 
-                                                    onClick={() => { setSelectedSong(song); setIsTrackModalOpen(true); }} 
-                                                    className="p-2 text-neutral-400 hover:text-emerald-500 transition-colors"
-                                                >
-                                                    <Eye size={14} />
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleDeleteSong(song.id)} 
-                                                    className="p-2 text-neutral-400 hover:text-red-500 transition-colors"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            </div>
-                                        </td>
+                                                </td>
+                                                <td className="px-6 py-3 align-middle whitespace-nowrap">
+                                                    {song.like_count > 0 ? (
+                                                        <span className="text-red-600 dark:text-red-500 font-bold bg-red-500/10 px-2 flex items-center gap-1">
+                                                            <Heart size={10} fill="currentColor" /> {song.like_count}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-neutral-400 font-mono text-[10px]">0</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-3 text-right align-middle shrink-0">
+                                                    <div className="flex justify-end items-center gap-1">
+                                                        <button
+                                                            onClick={() => { setSelectedSong(song); setIsTrackModalOpen(true); }}
+                                                            className="p-2 text-neutral-400 hover:text-emerald-500 transition-colors"
+                                                        >
+                                                            <Eye size={14} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteSong(song.id)}
+                                                            className="p-2 text-neutral-400 hover:text-red-500 transition-colors"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </>
+                                        )}
                                     </tr>
                                 );
                             })}
@@ -1188,17 +1417,25 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
     </div>
     )}
 
+
+
       <div className="mt-10 p-4 border border-yellow-500/20 bg-yellow-500/5 rounded-none flex items-center gap-3">
          <ShieldAlert className="text-yellow-600 dark:text-yellow-500" size={20} />
          <p className="text-xs text-yellow-700 dark:text-yellow-500/80 font-mono tracking-widest">WARNING: RESTRICTED AREA. UNAUTHORIZED ACTIONS ARE LOGGED.</p>
       </div>
 
-      <TrackDetailModal 
+      <TrackDetailModal
             song={selectedSong}
             isOpen={isTrackModalOpen}
             onClose={() => setIsTrackModalOpen(false)}
             onUpdate={handleUpdateSong}
             getUploaderInfo={getUploaderInfo}
+        />
+
+      <LikedUsersModal
+            song={selectedSongForLikes}
+            isOpen={isLikedUsersModalOpen}
+            onClose={() => setIsLikedUsersModalOpen(false)}
         />
     </div>
   );
