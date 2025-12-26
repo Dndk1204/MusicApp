@@ -146,7 +146,7 @@ const NowPlayingPage = () => {
   
   const [queueSongs, setQueueSongs] = useState([]);
   // --- REF CHO CONTAINER QUEUE ---
-  const queueContainerRef = useRef(null); // <--- THÊM REF NÀY
+  const queueContainerRef = useRef(null); 
 
   const [audioSettings, setAudioSettings] = useState({ bass: 0, mid: 0, treble: 0, volume: 100 });
   const [loading, setLoading] = useState(true);
@@ -175,9 +175,13 @@ const NowPlayingPage = () => {
   useEffect(() => {
       const handleResize = () => {
           if (window.innerWidth >= 1024) {
-              setActiveTab('equalizer');
+              // Mặc định tab cho desktop
+              if (activeTab === 'visual') setActiveTab('equalizer');
           }
       };
+      // Init check
+      if (window.innerWidth >= 1024) setActiveTab('comments');
+      
       window.addEventListener('resize', handleResize);
       return () => window.removeEventListener('resize', handleResize);
   }, []); 
@@ -212,11 +216,22 @@ const NowPlayingPage = () => {
         const minDelay = new Promise(resolve => setTimeout(resolve, 800));
         if (!player.activeId) { setSong(null); await minDelay; setLoading(false); return; }
         try {
-            const { data: dbSong } = await supabase.from('songs').select(`*, profiles (full_name, role, avatar_url)`).eq('id', player.activeId).maybeSingle();
+            const { data: dbSong } = await supabase.from('songs').select('*').eq('id', player.activeId).maybeSingle();
             if (dbSong) {
                 let uploaderName = "Unknown User"; let uploaderRole = "user"; let uploaderAvatar = null;
-                if (dbSong.profiles) { uploaderName = dbSong.profiles.full_name || "Anonymous User"; uploaderRole = dbSong.profiles.role; uploaderAvatar = dbSong.profiles.avatar_url; }
-                else { uploaderName = "System Admin"; uploaderRole = "admin"; }
+                if (dbSong.user_id) {
+                  const { data: profile } = await supabase.from('profiles').select('full_name, role, avatar_url').eq('id', dbSong.user_id).maybeSingle();
+                  if (profile) {
+                    uploaderName = profile.full_name || "Anonymous User";
+                    uploaderRole = profile.role;
+                    uploaderAvatar = profile.avatar_url;
+                  } else {
+                    uploaderName = "Anonymous User";
+                  }
+                } else {
+                  uploaderName = "System";
+                  uploaderRole = "system";
+                }
                 setSong({ id: dbSong.id, title: dbSong.title, author: dbSong.author, image_path: dbSong.image_url, song_url: dbSong.song_url, uploader: uploaderName, uploader_role: uploaderRole, uploader_avatar: uploaderAvatar, uploader_id: dbSong.user_id, is_public: dbSong.is_public, source: 'database', lyric_url: dbSong.lyric_url, lyrics: dbSong.lyrics });
             } else {
                 if (typeof window !== 'undefined' && window.__SONG_MAP__ && window.__SONG_MAP__[player.activeId]) {
@@ -239,12 +254,6 @@ const NowPlayingPage = () => {
     };
     updateSong();
   }, [player.activeId, isMounted]);
-
-  useEffect(() => {
-    if (player.activeId) {
-      setActiveTab('comments');
-    }
-  }, [player.activeId]);
 
   // --- FIX TRIỆT ĐỂ: AUTO SCROLL QUEUE KHÔNG ĐẨY NAVBAR ---
   useEffect(() => {
@@ -282,6 +291,13 @@ const NowPlayingPage = () => {
   }, [loading, song?.id, queueSongs.length, activeTab]);
 
   useEffect(() => { if (song) { setRawLyrics(null); setParsedLyrics([]); setActiveLineIndex(-1); setLoadingLyrics(false); } }, [song?.id]);
+
+  // Set default tab to comments on desktop when song changes
+  useEffect(() => {
+    if (song && window.innerWidth >= 1024) {
+      setActiveTab('comments');
+    }
+  }, [song?.id]);
 
   useEffect(() => {
     if (activeTab === 'lyrics' && song) {
@@ -465,7 +481,11 @@ const NowPlayingPage = () => {
                          onClick={() => router.push(`/user/${song.uploader_id}`)}
                          className={`font-bold flex items-center gap-2 hover:opacity-80 transition-opacity ${song.uploader_role === 'admin' ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'}`}
                      >
-                         {song.uploader_role === 'admin' ? <ShieldCheck size={14} className="text-yellow-500"/> : <UserCheck size={14} className="text-blue-500"/>}
+                         {song.uploader_avatar ? (
+                             <img src={song.uploader_avatar} alt="Avatar" className="w-4 h-4 rounded-full border border-neutral-300 dark:border-white/20" />
+                         ) : (
+                             song.uploader_role === 'admin' ? <ShieldCheck size={14} className="text-yellow-500"/> : <UserCheck size={14} className="text-blue-500"/>
+                         )}
                          <span className="text-sm uppercase">{song.uploader}</span>
                      </button>
                  ) : (
@@ -513,7 +533,7 @@ const NowPlayingPage = () => {
               <button onClick={() => setActiveTab('queue')} className={`flex-1 py-3 flex justify-center items-center border-r border-white/10 rounded-none transition-colors ${activeTab==='queue' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><ListMusic size={20}/></button>
               <button onClick={() => setActiveTab('lyrics')} className={`flex-1 py-3 flex justify-center items-center border-r border-white/10 rounded-none transition-colors ${activeTab==='lyrics' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><Mic2 size={20}/></button>
               <button onClick={() => setActiveTab('equalizer')} className={`flex-1 py-3 flex justify-center items-center border-r border-white/10 rounded-none transition-colors ${activeTab==='equalizer' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><Sliders size={20}/></button>
-              <button onClick={() => setActiveTab('info')} className={`flex-1 py-3 flex justify-center items-center rounded-none transition-colors ${activeTab==='info' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><Info size={20}/></button>
+              <button onClick={() => setActiveTab('info')} className={`flex-1 py-3 flex justify-center items-center border-r border-white/10 rounded-none transition-colors ${activeTab==='info' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><Info size={20}/></button>
               <button
                 onClick={() => setActiveTab('comments')}
                 className={`flex-1 py-3 flex justify-center items-center rounded-none transition-colors ${
@@ -557,11 +577,12 @@ const NowPlayingPage = () => {
                             <div className="flex items-center gap-3">
                                <div className="w-8 h-8 shrink-0 relative cursor-none">
                                    <HoverImagePreview 
-                                        src={queueSong.image_path} 
-                                        alt={queueSong.title}
-                                        className="w-full h-full"
-                                        previewSize={160}
-                                        fallbackIcon="disc"
+                                            src={queueSong.image_path} 
+                                            alt={queueSong.title}
+                                            audioSrc={queueSong.song_url} 
+                                            className="w-full h-full"
+                                            previewSize={160}
+                                            fallbackIcon="disc"
                                    >
                                         <img
                                            src={queueSong.image_path}

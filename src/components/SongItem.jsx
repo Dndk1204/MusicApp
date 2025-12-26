@@ -9,6 +9,7 @@ import usePlayer from "@/hooks/usePlayer";
 
 import { ScanlineOverlay, CyberCard } from "./CyberComponents";
 import HoverImagePreview from "@/components/HoverImagePreview";
+import LikeButton from "./LikeButton";
 
 const formatDuration = (sec) => {
   if (!sec || sec === "--:--") return "";
@@ -127,7 +128,7 @@ const SongItem = ({ data, onClick }) => {
             </p>
 
             <div className="flex items-center justify-between w-full border-t border-dashed border-neutral-300 dark:border-white/10 pt-2 mt-1">
-              <div className="flex items-center gap-2 truncate max-w-[70%]">
+              <div className="flex items-center gap-2 truncate max-w-[60%]">
                 <span className={`w-1 h-1 shrink-0 ${isActive ? 'bg-emerald-500 animate-ping' : 'bg-neutral-400'}`}></span>
                 <Link
                   href={`/artist/${encodeURIComponent(data.author)}?source=${sourceParam}`}
@@ -137,10 +138,13 @@ const SongItem = ({ data, onClick }) => {
                   {data.author}
                 </Link>
               </div>
-              
-              <span className={`text-[10px] font-mono shrink-0 ${isActive ? 'text-emerald-500/70' : 'text-neutral-400 dark:text-neutral-500'}`}>
+
+              <div className="flex items-center gap-2">
+                <LikeButton songId={data.id} size={14} />
+                <span className={`text-[10px] font-mono shrink-0 ${isActive ? 'text-emerald-500/70' : 'text-neutral-400 dark:text-neutral-500'}`}>
                   {formatDuration(data.duration)}
-              </span>
+                </span>
+              </div>
             </div>
           </div>
       </div>
