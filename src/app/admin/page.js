@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 import { 
-  ShieldAlert, UploadCloud, Users, Trash2, TrendingUp, 
-  Search, Loader2, RefreshCw, Music, ArrowLeft, Eraser, Mic2, Heart,
-  Globe, Lock, Star, ArchiveRestore, Skull, Activity, List, User,
-  CheckCircle2, XCircle, Clock, Eye, ShieldCheck, ChevronDown
+    ShieldAlert, UploadCloud, Users, Trash2, TrendingUp, 
+    Search, Loader2, RefreshCw, Music, ArrowLeft, Eraser, Mic2, Heart,
+    Globe, Lock, Star, ArchiveRestore, Skull, Activity, List, User,
+    CheckCircle2, XCircle, Clock, Eye, ShieldCheck, ChevronDown, MessageSquare
 } from "lucide-react";
 import useUI from "@/hooks/useUI";
 import useUploadModal from "@/hooks/useUploadModal"; 
@@ -61,7 +61,7 @@ const [resetting, setResetting] = useState(false);
 const [restoring, setRestoring] = useState(false); 
 
 const [currentView, setCurrentView] = useState('dashboard');
-const [stats, setStats] = useState({ totalUsers: 0, totalSongs: 0, totalArtists: 0, topSongs: [], topSearchedArtists: [], pendingCount: 0 });
+const [stats, setStats] = useState({ totalUsers: 0, totalSongs: 0, totalArtists: 0, totalComments: 0, commentsToday: 0, topSongs: [], topSearchedArtists: [], topCommentedSongs: [], topCommenters: [], pendingCount: 0 });
 
 const [usersList, setUsersList] = useState([]);
 const [allSongsList, setAllSongsList] = useState([]); 
@@ -120,6 +120,43 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
         
         const { data: dbArtists } = await supabase.from('artists').select('*');
         const { data: allFollows } = await supabase.from('following_artists').select('artist_name, artist_image');
+
+        // --- COMMENTS METRICS ---
+        const { data: allComments } = await supabase.from('song_comments').select('id, song_id, user_id, created_at').order('created_at', { ascending: false }).range(0, 1999);
+        const totalComments = (allComments || []).length;
+        const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+        const commentsToday = (allComments || []).filter(c => new Date(c.created_at) >= todayStart).length;
+
+        // Aggregate comment counts per song
+        const commentCountBySong = {};
+        (allComments || []).forEach(c => {
+            const sid = c.song_id || 'unknown';
+            commentCountBySong[sid] = (commentCountBySong[sid] || 0) + 1;
+        });
+
+        // Map to song details (from allSongs if available)
+        const topCommentedSongs = Object.entries(commentCountBySong)
+            .map(([song_id, count]) => {
+                const song = (allSongs || []).find(s => String(s.id) === String(song_id));
+                return { song_id, count, title: song?.title || 'Unknown', image_url: song?.image_url || null };
+            })
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5);
+
+        // Top commenters
+        const commentCountByUser = {};
+        (allComments || []).forEach(c => {
+            const uid = c.user_id || 'guest';
+            commentCountByUser[uid] = (commentCountByUser[uid] || 0) + 1;
+        });
+
+        const topCommenters = Object.entries(commentCountByUser)
+            .map(([user_id, count]) => {
+                const u = (allUsers || []).find(x => String(x.id) === String(user_id));
+                return { user_id, count, name: u?.full_name || 'Unknown' };
+            })
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5);
         
         const artistMap = {};
         (dbArtists || []).forEach(a => {
@@ -139,7 +176,7 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
 
         const mergedArtists = Object.values(artistMap).sort((a, b) => b.followers - a.followers);
 
-        setStats({ totalUsers: userCount || 0, totalSongs: songCount || 0, totalArtists: mergedArtists.length, topSongs: topSongs || [], topSearchedArtists: [], pendingCount: pendingCount });
+        setStats({ totalUsers: userCount || 0, totalSongs: songCount || 0, totalArtists: mergedArtists.length, totalComments: totalComments, commentsToday: commentsToday, topSongs: topSongs || [], topSearchedArtists: [], topCommentedSongs, topCommenters, pendingCount: pendingCount });
         
         setUsersList(allUsers || []);
         setAllSongsList(allSongs || []);
@@ -259,7 +296,7 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
         supabase.removeChannel(profileSubscription);
     };
     }, []);
-
+    
   // --- FILTER LOGIC ---
   let displayedSongs = allSongsList;
   let songViewTitle = "Full_Database_Tracks";
@@ -374,7 +411,6 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
             // 3. QUAN TRỌNG: Sửa lỗi "new_lyrics_content column not found"
             // Xóa tất cả các field "tạm" không tồn tại trong bảng 'songs' của Database
             delete finalUpdates.new_lyrics_content;
-
             // Nếu admin đánh dấu Deny, đảm bảo bài hát không còn public và không được coi là verified
             if (finalUpdates.is_denied === true) {
                 finalUpdates.is_public = false;
@@ -400,35 +436,26 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
     };
 
     const handleBulkAction = async (action) => {
-        if (selectedSongIds.length === 0) return;
-        const isApprove = action === 'approve';
-        if (!await confirm(`Execute ${action} for ${selectedSongIds.length} signals?`, "BULK_PROTOCOL")) return;
+            if (selectedSongIds.length === 0) return;
+            const isApprove = action === 'approve';
+            if (!await confirm(`Execute ${action} for ${selectedSongIds.length} signals?`, "BULK_PROTOCOL")) return;
 
-        setLoading(true);
-        try {
-            for (const id of selectedSongIds) {
-                const song = allSongsList.find(s => s.id === id);
-                
-                // CẬP NHẬT logic đồng bộ: Nếu Approve thì Denied phải False và ngược lại
-                let updateBody = { 
-                    is_verified: isApprove, 
-                    is_denied: !isApprove, // Nếu isApprove=true thì is_denied=false
-                    pending_action: null 
-                };
-                
-                if (isApprove) {
-                    updateBody.is_public = song.pending_action !== 'set_private';
-                } else {
-                    // Nếu Deny thì thường bài hát nên chuyển về Private
-                    updateBody.is_public = false; 
+            setLoading(true);
+            try {
+                for (const id of selectedSongIds) {
+                    const song = allSongsList.find(s => s.id === id);
+                    let updateBody = { is_verified: isApprove, is_denied: !isApprove, pending_action: null };
+                    
+                    if (isApprove) {
+                        updateBody.is_public = song.pending_action !== 'set_private';
+                    }
+
+                    await supabase.from('songs').update(updateBody).eq('id', id);
                 }
-
-                await supabase.from('songs').update(updateBody).eq('id', id);
-            }
-            success("BATCH_COMPLETE.");
-            setSelectedSongIds([]);
-            await fetchDashboardData();
-        } catch (err) { error(err.message); } finally { setLoading(false); }
+                success("BATCH_COMPLETE.");
+                setSelectedSongIds([]);
+                await fetchDashboardData();
+            } catch (err) { error(err.message); } finally { setLoading(false); }
     };
 
     const handleSelectAll = (filteredSongs) => {
@@ -593,7 +620,7 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
             </div>
 
             {/* STATS TABLES */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                 <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-full">
                     <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0">
                         <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center"><TrendingUp size={16} className="text-emerald-500" /> Top_5_Streamed</h4>
@@ -645,6 +672,45 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
                                 </div>
                             </div>
                         ))}
+                    </div>
+                </CyberCard>
+
+                {/* COMMENTS METRICS */}
+                <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-full">
+                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0">
+                        <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center"><MessageSquare size={16} className="text-sky-500" /> Comments</h4>
+                            <button onClick={() => router.push('/admin/comments')} className="text-[9px] text-sky-600 dark:text-sky-400 hover:underline font-mono uppercase">VIEW_COMMENTS</button>
+                    </div>
+                    <div className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <div>
+                                <p className="text-[10px] text-neutral-500 font-mono">Total Comments</p>
+                                <p className="text-2xl font-bold text-sky-700 dark:text-sky-400">{stats.totalComments || 0}</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-neutral-500 font-mono">Today</p>
+                                <p className="text-xl font-bold text-emerald-600">{stats.commentsToday || 0}</p>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-dashed border-neutral-200 dark:border-white/5 pt-3">
+                            <h5 className="text-[10px] uppercase font-mono text-neutral-500 mb-2">Top Commented Songs</h5>
+                            {stats.topCommentedSongs?.length > 0 ? (
+                                stats.topCommentedSongs.map((t, i) => (
+                                    <div key={t.song_id} className="flex items-center justify-between text-xs font-mono py-2">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <span className={`text-[10px] font-bold w-6 shrink-0 ${i < 3 ? 'text-sky-600' : 'text-neutral-400'}`}>#{String(i+1).padStart(2,'0')}</span>
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="truncate font-bold text-neutral-800 dark:text-neutral-200">{t.title}</span>
+                                                <span className="text-[10px] text-neutral-500">{t.count} comments</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-xs text-neutral-500 italic">No comments yet.</p>
+                            )}
+                        </div>
                     </div>
                 </CyberCard>
             </div>
@@ -889,14 +955,15 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
 
             // 2. Logic Filter theo Tab (QUAN TRỌNG NHẤT)
             if (approvalFilter === 'pending') {
+                // Hiện những bài chưa được duyệt (is_verified = false) và chưa bị từ chối
                 return song.is_verified === false && song.is_denied === false;
             }
             if (approvalFilter === 'approved') {
-                // Một bài được coi là Approved khi Verified là true VÀ Denied phải là false
-                return song.is_verified === true && song.is_denied === false;
+                // Hiện những bài đã duyệt (is_verified = true)
+                return song.is_verified === true;
             }
             if (approvalFilter === 'denied') {
-                // Một bài đã bị từ chối thì chỉ cần check is_denied
+                // Hiện những bài đã bị từ chối
                 return song.is_denied === true;
             }
             return true;
