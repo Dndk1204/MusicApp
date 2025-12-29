@@ -137,7 +137,7 @@ const UserSongCard = ({
                         </div>
                         <div className="flex gap-2 mt-1">
                             <CyberButton onClick={saveEdit} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold py-1 flex items-center justify-center gap-1 rounded-none"><Save size={10}/> SAVE</CyberButton>
-                            <GlitchButton onClick={cancelEditing} className="flex-1 bg-neutral-700 hover:!text-white text-[10px] font-bold py-1 flex items-center justify-center gap-1 rounded-none"><X size={10}/> CANCEL</GlitchButton>
+                            <GlitchButton onClick={cancelEditing} className="flex-1 bg-neutral-700 hover:!text-red-600 dark:hover:!text-white text-[10px] hover:bg-red-500/10 font-bold py-1 flex items-center justify-center gap-1 rounded-none"><X size={10}/> CANCEL</GlitchButton>
                         </div>
                     </div>
                 ) : (
@@ -339,7 +339,7 @@ const MyUploadsPage = () => {
                                 </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                    <button onClick={onOpen} className="group relative flex flex-col flex-1 items-center justify-center py-[9.15rem] gap-4 border border-dashed border-neutral-400 dark:border-white/20 hover:border-emerald-500 bg-transparent hover:bg-emerald-500/5 transition-all cursor-pointer aspect-auto">
+                                    <button onClick={onOpen} className="group relative flex flex-col flex-1 items-center justify-center gap-4 border border-dashed border-neutral-400 dark:border-white/20 hover:border-emerald-500 bg-transparent hover:bg-emerald-500/5 transition-all cursor-pointer aspect-auto">
                                         <div className="w-16 h-16 bg-neutral-200 dark:bg-white/5 group-hover:bg-emerald-500 group-hover:text-black flex items-center justify-center text-neutral-400 border border-neutral-300 dark:border-white/10 rounded-none transition-colors"><Upload size={32}/></div>
                                         <div className="text-center">
                                             <p className="text-sm font-bold font-mono uppercase text-neutral-600 dark:text-neutral-300 group-hover:text-emerald-500 tracking-wider">INITIATE_UPLOAD</p>

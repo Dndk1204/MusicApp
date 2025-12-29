@@ -175,34 +175,34 @@
   }
 
   @media (hover: hover) and (pointer: fine) {
-  /* Ẩn con trỏ trên toàn bộ trang web */
-  html, body, * {
-    cursor: none !important;
-  }
+    /* Ẩn con trỏ trên toàn bộ trang web */
+    html, body, * {
+      cursor: none !important;
+    }
   }
 
-@keyframes tv-static-anim {
-  /* Giảm số lượng keyframe để trình duyệt đỡ mệt */
-  0% { transform: translate(0,0) }
-  25% { transform: translate(-2%,-3%) }
-  50% { transform: translate(3%, 2%) }
-  75% { transform: translate(-1%, -1%) }
-  100% { transform: translate(0,0) }
-}
+  @keyframes tv-static-anim {
+    /* Giảm số lượng keyframe để trình duyệt đỡ mệt */
+    0% { transform: translate(0,0) }
+    25% { transform: translate(-2%,-3%) }
+    50% { transform: translate(3%, 2%) }
+    75% { transform: translate(-1%, -1%) }
+    100% { transform: translate(0,0) }
+  }
 
-.noise-container {
-  position: absolute;
-  inset: -100%; /* Giảm từ 200% xuống 100% cho nhẹ */
-  width: 300%;
-  height: 300%;
-  /* Giảm numOctaves từ 3 xuống 1 (Đây là thứ gây lag nhất) */
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='1' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  animation: tv-static-anim 0.15s steps(2) infinite; /* Tăng steps lên chút */
-  pointer-events: none;
-  opacity: 0.12;
-  will-change: transform; /* Ép chạy bằng phần cứng */
-}
+  .noise-container {
+    position: absolute;
+    inset: -100%; /* Giảm từ 200% xuống 100% cho nhẹ */
+    width: 300%;
+    height: 300%;
+    /* Giảm numOctaves từ 3 xuống 1 (Đây là thứ gây lag nhất) */
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='1' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    animation: tv-static-anim 0.15s steps(2) infinite; /* Tăng steps lên chút */
+    pointer-events: none;
+    opacity: 0.12;
+    will-change: transform; /* Ép chạy bằng phần cứng */
+  }
 
   /* Thêm class để tắt hiệu ứng khi reboot */
   .stop-animation {

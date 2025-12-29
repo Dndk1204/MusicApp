@@ -12,6 +12,7 @@ import SongSection from "@/components/SongSection";
 import FollowButton from "@/components/FollowButton";
 import { CyberCard, ScanlineOverlay, VerticalGlitchText } from "@/components/CyberComponents";
 import BackButton from "@/components/BackButton";
+import SongGrid from "@/components/SongGrid";
 
 // --- SKELETON LOADER ---
 const ArtistSkeleton = () => (
@@ -346,7 +347,7 @@ const ArtistPage = ({ params }) => {
         {activeTab === 'songs' && (
             <>
                 {displaySongs.length > 0 ? (
-                    <SongSection title="" songs={displaySongs} /> 
+                    <SongGrid songs={displaySongs} />
                 ) : (
                     <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-50 border border-dashed border-neutral-300 dark:border-white/10">
                         <Music size={40} className="text-neutral-400"/>

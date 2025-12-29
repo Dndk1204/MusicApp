@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
-import { Play, Clock, Music2, ArrowLeft } from "lucide-react";
+import { Play, Clock, Music2, ArrowLeft, FileMusic, Shuffle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import usePlayer from "@/hooks/usePlayer";
 import useUI from "@/hooks/useUI";
@@ -11,7 +11,6 @@ import { CyberCard, HoloButton, ScanlineOverlay, HorizontalGlitchText } from "@/
 import { useAuth } from "@/components/AuthWrapper";
 import { useModal } from "@/context/ModalContext";
 import HoverImagePreview from "@/components/HoverImagePreview";
-import BackButton from "@/components/BackButton";
 
 // --- SKELETON LOADER COMPONENT ---
 const TunedTracksSkeleton = () => (
@@ -94,6 +93,25 @@ export default function TunedTracksPage() {
         return null;
       });
 
+      const handleShufflePlay = (songs) => {
+        if (!songs.length) return;
+        if (!isAuthenticated) { openModal(); return; }
+
+        // Xáo trộn mảng bằng thuật toán đơn giản
+        const shuffled = [...songs].sort(() => Math.random() - 0.5);
+        const ids = shuffled.map(s => Number(s.id));
+
+        if (typeof window !== 'undefined') {
+          const songMap = {};
+          shuffled.forEach(s => songMap[s.id] = s);
+          window.__SONG_MAP__ = { ...window.__SONG_MAP__, ...songMap };
+        }
+
+        player.setIds(ids);
+        player.setId(ids[0]); // Bắt đầu phát bài đầu tiên sau khi xáo trộn
+        alert?.success("SHUFFLE_MODE_ACTIVATED");
+      };
+
       const apiSongs = await Promise.all(apiPromises);
       const apiSongsMap = new Map(apiSongs.filter(s => s).map(s => [String(s.id), s]));
 
@@ -163,7 +181,7 @@ export default function TunedTracksPage() {
       <div className="flex flex-col md:flex-row items-center md:items-end gap-6 md:gap-8 mb-10 relative z-10 animate-in slide-in-from-bottom-5 duration-700">
         <CyberCard className="p-0 shrink-0 border border-neutral-300 dark:border-white/10">
           <div className="relative w-48 h-48 md:w-64 md:h-64 overflow-hidden group bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center">
-            <span className="text-6xl opacity-30 font-mono">🎛️</span>
+            <span className="text-6xl opacity-30 font-mono"><FileMusic size={70} /></span>
             <ScanlineOverlay />
           </div>
         </CyberCard>
@@ -188,9 +206,22 @@ export default function TunedTracksPage() {
       </div>
 
       <div className="flex gap-4 mb-10 z-20 relative justify-center md:justify-start">
-        <HoloButton onClick={() => handlePlayCollection(Object.values(songsTuned).flat())} className="px-8 bg-emerald-500/10 border-emerald-500/50 text-emerald-600 dark:text-emerald-400 hover:!bg-emerald-500 hover:!text-white">
-          <Play size={18} fill="currentColor" className="mr-2" /> PLAY_ALL
-        </HoloButton>
+          <HoloButton 
+              onClick={() => handlePlayCollection(Object.values(songsTuned).flat())}
+              className="px-4 py-2 !font-extrabold md:px-8 md:py-1 bg-emerald-500/10 !border-emerald-500/50 dark:hover:!bg-emerald-500/20 !text-emerald-600 dark:!text-emerald-400 hover:!bg-emerald-500 hover:!text-white dark:hover:!text-white flex-1 md:flex-none justify-center"
+          >
+              {/* Thêm shrink-0 */}
+              <Play size={14} fill="currentColor" className="mr-1 shrink-0" />
+              <span className="text-[1rem] md:text-xs whitespace-nowrap">PLAY_ALL</span>
+          </HoloButton>
+          <HoloButton 
+              onClick={() => handleShufflePlay(allTracks)}
+              className="px-4 py-2 md:px-8 md:py-1 bg-purple-500/10 !border-purple-500/30 text-purple-600 dark:!text-purple-400 hover:bg-purple-500 hover:!text-white flex-1 md:flex-none justify-center"
+          >
+              {/* Thêm shrink-0 */}
+              <Shuffle size={14} className="mr-1 shrink-0" />
+              <span className="text-[1rem] md:text-xs whitespace-nowrap">SHUFFLE</span>
+          </HoloButton>
       </div>
 
       <div className="space-y-12">

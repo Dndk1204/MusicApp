@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Howler } from "howler"; 
 import { 
+  X,
   Info, 
   Loader2, 
   Save, 
@@ -16,7 +17,8 @@ import {
   Mic2,
   AlertTriangle,
   ListMusic,
-  MessageSquare
+  MessageSquare,
+  LayoutGrid
 } from "lucide-react";
 
 // --- IMPORTS ---
@@ -29,8 +31,9 @@ import useUI from "@/hooks/useUI";
 import { GlitchText, CyberButton, GlitchButton, ScanlineOverlay } from "@/components/CyberComponents";
 // Import Hover Preview
 import HoverImagePreview from "@/components/HoverImagePreview";
-
 import SongComments from "@/components/comments/SongComments";
+import { motion, AnimatePresence } from "framer-motion";
+import MobileRadialNav from "@/components/MobileRadialNav";
 
 // ==================================================================================
 // --- 1. SRT PARSER ---
@@ -131,6 +134,7 @@ const NowPlayingPage = () => {
   const { alert } = useUI();
   const fromPage = searchParams.get('from'); 
   const { initAudioNodes, setBass, setMid, setTreble, initAnalyzer } = useAudioFilters();
+  const [isNavExpanded, setIsNavExpanded] = useState(false);
 
   const [song, setSong] = useState(null);
   const [realDuration, setRealDuration] = useState(0); 
@@ -386,7 +390,48 @@ const NowPlayingPage = () => {
     fetchQueueSongs();
   }, [player.ids, player.activeId]);
 
-  useEffect(() => { if (parsedLyrics.length > 0) { const index = parsedLyrics.findIndex((line, i) => { const nextLine = parsedLyrics[i + 1]; return seek >= line.time && (!nextLine || seek < nextLine.time); }); if (index !== -1 && index !== activeLineIndex) { setActiveLineIndex(index); const element = document.getElementById(`lyric-line-${index}`); if (element) { element.scrollIntoView({ behavior: 'smooth', block: 'center' }); } } } }, [seek, parsedLyrics]);
+  useEffect(() => {
+    if (parsedLyrics.length > 0) {
+      const index = parsedLyrics.findIndex((line, i) => {
+        const nextLine = parsedLyrics[i + 1];
+        return seek >= line.time && (!nextLine || seek < nextLine.time);
+      });
+
+      if (index !== -1 && index !== activeLineIndex) {
+        setActiveLineIndex(index);
+        const element = document.getElementById(`lyric-line-${index}`);
+        
+        // --- THAY ĐỔI TẠI ĐÂY ---
+        // Thay vì dùng element.scrollIntoView()
+        // Chúng ta sẽ tìm cái div chứa scroll của lyrics
+        const container = lyricsContainerRef.current?.querySelector('.overflow-y-auto');
+        
+        if (container && element) {
+          const containerHeight = container.offsetHeight;
+          const elementOffset = element.offsetTop;
+          const elementHeight = element.offsetHeight;
+
+          // Tính toán vị trí cuộn sao cho dòng hiện tại nằm giữa container
+          const scrollToPosition = elementOffset - (containerHeight / 2) + (elementHeight / 2);
+
+          container.scrollTo({
+            top: scrollToPosition,
+            behavior: 'smooth'
+          });
+        }
+        // -------------------------
+      }
+    }
+  }, [seek, parsedLyrics]);
+
+  const NavTab = ({ icon, active, onClick }) => (
+    <button 
+        onClick={onClick}
+        className={`p-3 transition-colors ${active ? 'text-emerald-500' : 'text-neutral-400'}`}
+    >
+        {icon}
+    </button>
+  );
 
   const applySettings = useCallback((settings) => { setAudioSettings(prev => ({...prev, ...settings})); const handlers = audioHandlers.current; if (settings.bass !== undefined && handlers.setBass) handlers.setBass(settings.bass); if (settings.mid !== undefined && handlers.setMid) handlers.setMid(settings.mid); if (settings.treble !== undefined && handlers.setTreble) handlers.setTreble(settings.treble); }, []);
 
@@ -430,13 +475,13 @@ const NowPlayingPage = () => {
 
   return (
     // MAIN CONTAINER: Padding bottom lớn để không bị che bởi Floating Nav
-    <div className="w-full min-h-[85vh] lg:h-[70vh] grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 pb-[120px] lg:pb-[100px] overflow-y-auto lg:overflow-hidden bg-neutral-100 dark:bg-black transition-colors animate-in fade-in duration-500 relative">
+    <div className="w-full min-h-[72.5vh] lg:h-[72.5vh] grid grid-cols-1 mt-3 lg:grid-cols-12 gap-4 p-4 pb-[60px] lg:pb-[40px] overflow-y-auto lg:overflow-hidden bg-neutral-100 dark:bg-black transition-colors animate-in fade-in duration-500 relative">
 
       {/* --- CỘT TRÁI (VISUAL & INFO) --- */}
       {/* ALWAYS VISIBLE ON MOBILE (order-1, flex) */}
       <div className="lg:col-span-6 flex flex-col items-center justify-center relative perspective-1000 min-h-[50vh] lg:h-full border-r border-dashed border-neutral-300 dark:border-white/10 lg:pr-4 order-1">
           
-          <div className="relative flex items-center justify-center scale-90 md:scale-100 mt-4 lg:mt-0">
+          <div className="relative flex items-center justify-center scale-80 md:scale-90 mt-4 lg:mt-0">
               {/* FUI Circle */}
               <div className={`relative w-[220px] h-[220px] md:w-[350px] md:h-[350px] flex items-center justify-center transition-all duration-1000 ${isPlaying ? 'animate-[spin_12s_linear_infinite]' : ''}`}>
                  <div className="absolute inset-0 rounded-full border border-dashed border-emerald-500/30"></div>
@@ -455,17 +500,15 @@ const NowPlayingPage = () => {
               </div>
           </div>
 
-          <div className="mt-4 lg:mt-2 text-center z-20 space-y-2 max-w-lg w-full flex flex-col items-center">
-             {/* Title - Đã xóa Marquee, dùng GlitchText tĩnh */}
+          <div className="text-center z-20 space-y-2 max-w-lg w-full flex flex-col items-center">
              <div className="w-full px-4 overflow-hidden">
-                <h1 className="text-2xl md:text-5xl font-black text-neutral-900 dark:text-white tracking-tighter uppercase font-mono w-full truncate text-center">
+                <h1 className="text-2xl md:text-4xl font-black text-neutral-900 dark:text-white tracking-tighter uppercase font-mono w-full truncate text-center">
                     <GlitchText text={song.title} />
                 </h1>
              </div>
 
              <div className="flex items-center justify-center gap-2 w-full px-4 lg:px-12">
                  <span className="w-4 md:w-8 h-px bg-emerald-500 shrink-0"></span>
-                 {/* Author - Đã xóa Marquee, dùng text tĩnh */}
                  <div className="overflow-hidden max-w-[200px] md:max-w-[300px]">
                     <p className="text-xs md:text-base font-bold font-mono text-emerald-600 dark:text-emerald-500 tracking-[0.3em] uppercase truncate text-center">
                         {song.author}
@@ -474,7 +517,7 @@ const NowPlayingPage = () => {
                  <span className="w-4 md:w-8 h-px bg-emerald-500 shrink-0"></span>
              </div>
 
-             <div className="flex items-center justify-center gap-2 mt-4 text-xs font-mono text-neutral-500 dark:text-neutral-400 bg-white/50 dark:bg-white/5 px-4 py-2 border border-neutral-300 dark:border-white/10 mx-auto backdrop-blur-sm w-fit mb-4 lg:mb-0">
+             <div className="flex items-center justify-center gap-2 text-xs font-mono text-neutral-500 dark:text-neutral-400 bg-white/50 dark:bg-white/5 px-4 py-2 border border-neutral-300 dark:border-white/10 mx-auto backdrop-blur-sm w-fit mb-4 lg:mb-0">
                  <span className="uppercase tracking-widest opacity-70 border-r border-neutral-400 dark:border-white/20 pr-2 mr-2">UPLOADED_BY</span>
                  {song.uploader_id ? (
                      <button
@@ -495,13 +538,13 @@ const NowPlayingPage = () => {
                      </span>
                  )}
              </div>
-             <div className="col-span-2 p-3 bg-neutral-100 dark:bg-white/5 border border-neutral-200 dark:border-white/5 flex flex-col">
-                <p className="text-[9px] text-neutral-500 uppercase tracking-widest mb-1">UNIQUE_TRACK_ID</p>
+             <div className="col-span-2 px-3 py-0.5 bg-neutral-100 dark:bg-white/5 border border-neutral-200 dark:border-white/5 flex flex-col">
+                <p className="text-[9px] text-neutral-500 uppercase tracking-widest mb-0.5">UNIQUE_TRACK_ID</p>
                 <p className="truncate text-emerald-600 dark:text-emerald-500 font-mono text-[10px]">{song.id}</p>
             </div>
           </div>
           
-          <button onClick={() => router.back()} className="absolute top-0 left-0 lg:hidden p-4 text-neutral-500 hover:text-emerald-500 z-50"><ArrowLeft size={24} /></button>
+          <button onClick={() => router.back()} className="absolute top-0 left-0 z-20 mb-6 group flex items-center gap-2 px-3 py-3 backdrop-blur-md border border-neutral-300 dark:border-white/10 hover:border-emerald-500 hover:bg-emerald-500 hover:text-white transition-all duration-300 font-mono text-[10px] font-bold tracking-widest uppercase"><ArrowLeft size={24} className="group-hover:-translate-x-1 transition-transform" /></button>
           
           {fromPage && (
             <div className="hidden lg:block absolute top-[9rem] right-[13.6rem] z-50 pointer-events-none select-none animate-in fade-in zoom-in-95 duration-500">
@@ -526,26 +569,11 @@ const NowPlayingPage = () => {
           )}
       </div>
 
-      {/* --- MOBILE TABS NAVIGATION (FLOATING, SQUARE, Z-INDEX 99999) --- */}
-      <div className="lg:hidden flex fixed bottom-2 left-1/2 -translate-x-1/2 w-[100%] max-w-md justify-center z-[99999]">
-          <div className="flex w-full bg-neutral-900/95 dark:bg-black/95 backdrop-blur-xl border border-neutral-500/50 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
-              <button onClick={() => setActiveTab('visual')} className={`flex-1 py-3 flex justify-center items-center border-r border-white/10 rounded-none transition-colors ${activeTab==='visual' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><Activity size={20}/></button>
-              <button onClick={() => setActiveTab('queue')} className={`flex-1 py-3 flex justify-center items-center border-r border-white/10 rounded-none transition-colors ${activeTab==='queue' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><ListMusic size={20}/></button>
-              <button onClick={() => setActiveTab('lyrics')} className={`flex-1 py-3 flex justify-center items-center border-r border-white/10 rounded-none transition-colors ${activeTab==='lyrics' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><Mic2 size={20}/></button>
-              <button onClick={() => setActiveTab('equalizer')} className={`flex-1 py-3 flex justify-center items-center border-r border-white/10 rounded-none transition-colors ${activeTab==='equalizer' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><Sliders size={20}/></button>
-              <button onClick={() => setActiveTab('info')} className={`flex-1 py-3 flex justify-center items-center border-r border-white/10 rounded-none transition-colors ${activeTab==='info' ? 'text-emerald-500 bg-white/5' : 'text-neutral-400'}`}><Info size={20}/></button>
-              <button
-                onClick={() => setActiveTab('comments')}
-                className={`flex-1 py-3 flex justify-center items-center rounded-none transition-colors ${
-                    activeTab === 'comments'
-                    ? 'text-emerald-500 bg-white/5'
-                    : 'text-neutral-400'
-                }`}
-                >
-                <MessageSquare size={20} />
-              </button>
-          </div>
-      </div>
+      {/* --- MOBILE TABS NAVIGATION (DRAGGABLE) --- */}
+      <MobileRadialNav 
+          activeTab={activeTab} 
+          setActiveTab={setActiveTab} 
+      />
 
       {/* --- CỘT GIỮA (QUEUE) --- */}
       <div className={`lg:col-span-3 flex flex-col h-[50vh] lg:h-[103%] w-full lg:w-[80%] bg-white/60 dark:bg-black/30 backdrop-blur-xl border border-neutral-200 dark:border-white/10 rounded-none overflow-hidden shadow-xl z-20 relative lg:-translate-x-10 order-2 ${activeTab === 'queue' ? 'flex' : 'hidden lg:flex'}`}>

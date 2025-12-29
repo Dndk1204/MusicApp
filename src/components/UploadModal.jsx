@@ -251,11 +251,11 @@ const UploadModal = () => {
                 {/* Visibility Toggle */}
                 {!isAdmin && (
                     <div className="flex p-1 rounded-none border border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-black/40">
-                        <label className={`flex-1 flex items-center justify-center gap-2 p-3 md:p-2 rounded-none cursor-pointer transition-all border border-transparent ${isPublic === "true" ? 'bg-white dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold border-emerald-500 shadow-sm' : 'text-neutral-500'}`}>
+                        <label className={`flex-1 flex items-center justify-center gap-2 p-3 md:p-2 rounded-none cursor-pointer transition-all border border-transparent ${isPublic === "true" ? 'bg-emerald-700/20 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold border-emerald-500 shadow-sm' : 'text-neutral-500'}`}>
                             <input type="radio" value="true" checked={isPublic === "true"} onChange={(e) => setIsPublic(e.target.value)} className="hidden" />
                             <Globe size={14}/> <span className="text-[10px] font-mono uppercase">Public</span>
                         </label>
-                        <label className={`flex-1 flex items-center justify-center gap-2 p-3 md:p-2 rounded-none cursor-pointer transition-all border border-transparent ${isPublic === "false" ? 'bg-white dark:bg-red-500/20 text-red-700 dark:text-red-400 font-bold border-red-500 shadow-sm' : 'text-neutral-500'}`}>
+                        <label className={`flex-1 flex items-center justify-center gap-2 p-3 md:p-2 rounded-none cursor-pointer transition-all border border-transparent ${isPublic === "false" ? 'bg-red-700/20 dark:bg-red-500/20 text-red-700 dark:text-red-400 font-bold border-red-500 shadow-sm' : 'text-neutral-500'}`}>
                             <input type="radio" value="false" checked={isPublic === "false"} onChange={(e) => setIsPublic(e.target.value)} className="hidden" />
                             <Lock size={14}/> <span className="text-[10px] font-mono uppercase">Private</span>
                         </label>

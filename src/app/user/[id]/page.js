@@ -145,97 +145,155 @@ const EditProfileModal = ({ user, email, onClose, onUpdate }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center p-0 md:p-4 bg-neutral-900/90 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="w-full h-[90vh] md:h-auto md:max-w-2xl bg-black border-t-2 md:border-2 border-emerald-500/50 shadow-[0_0_60px_rgba(16,185,129,0.15)] relative flex flex-col max-h-[90vh] overflow-y-auto custom-scrollbar rounded-t-2xl md:rounded-none">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-transparent to-emerald-500 z-30"></div>
-                <div className="p-5 border-b border-white/10 flex justify-between items-center bg-neutral-900 sticky top-0 z-20">
-                    <div>
-                        <h2 className="text-xl font-bold font-mono text-white flex items-center gap-2 uppercase tracking-wider">
-                            <Edit3 size={20} className="text-emerald-500"/> CONFIG_PROFILE
-                        </h2>
-                        <p className="text-[10px] text-neutral-500 font-mono tracking-widest mt-1">:: ROOT_ACCESS ::</p>
-                    </div>
-                    <button onClick={onClose} className="text-neutral-500 hover:text-red-500 transition hover:rotate-90"><X size={24}/></button>
+    <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center p-0 md:p-4 bg-neutral-100/90 dark:bg-neutral-900/90 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="w-full h-[90vh] md:h-auto md:max-w-2xl bg-white dark:bg-black border-t-2 md:border-2 border-emerald-600/50 dark:border-emerald-500/50 shadow-[0_0_40px_rgba(0,0,0,0.1)] dark:shadow-[0_0_60px_rgba(16,185,129,0.15)] relative flex flex-col max-h-[90vh] overflow-y-auto custom-scrollbar rounded-t-2xl md:rounded-none">
+            
+            {/* Thanh hiệu ứng trên cùng */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-transparent to-emerald-500 z-30"></div>
+            
+            {/* Header: Đổi bg và border */}
+            <div className="p-5 border-b border-neutral-200 dark:border-white/10 flex justify-between items-center bg-neutral-50 dark:bg-neutral-900 sticky top-0 z-20">
+                <div>
+                    <h2 className="text-xl font-bold font-mono text-neutral-900 dark:text-white flex items-center gap-2 uppercase tracking-wider">
+                        <Edit3 size={20} className="text-emerald-600 dark:text-emerald-500"/> CONFIG_PROFILE
+                    </h2>
+                    <p className="text-[10px] text-neutral-500 font-mono tracking-widest mt-1">:: ROOT_ACCESS ::</p>
                 </div>
+                <button onClick={onClose} className="text-neutral-400 hover:text-red-500 transition hover:rotate-90">
+                    <X size={24}/>
+                </button>
+            </div>
+            
+            {/* Body Content */}
+            <div className="p-6 space-y-8 bg-white dark:bg-black/50 pb-32 md:pb-6">
                 
-                <div className="p-6 space-y-8 bg-black/50 pb-32 md:pb-6">
-                    {/* 1. Banner Edit */}
-                    <div className="space-y-2 group">
-                        <label className="text-[10px] font-mono uppercase tracking-widest text-emerald-600 font-bold flex items-center gap-2"><LayoutGrid size={12}/> Banner_Config</label>
-                        <label className="relative h-32 md:h-40 w-full bg-neutral-900/50 border-2 border-dashed border-neutral-700 group-hover:border-emerald-500/50 transition-colors overflow-hidden cursor-pointer block">
-                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileChange(e, 'banner')} />
-                            {bannerPreview ? (
-                                <img src={bannerPreview} className="w-full h-full object-cover opacity-70 group-hover:opacity-40 transition-opacity" alt="Banner"/>
+                {/* 1. Banner Edit */}
+                <div className="space-y-2 group">
+                    <label className="text-[10px] font-mono uppercase tracking-widest text-emerald-700 dark:text-emerald-600 font-bold flex items-center gap-2">
+                        <LayoutGrid size={12}/> Banner_Config
+                    </label>
+                    <label className="relative h-32 md:h-40 w-full bg-neutral-100 dark:bg-neutral-900/50 border-2 border-dashed border-neutral-300 dark:border-neutral-700 group-hover:border-emerald-500/50 transition-colors overflow-hidden cursor-pointer block">
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileChange(e, 'banner')} />
+                        {bannerPreview ? (
+                            <img src={bannerPreview} className="w-full h-full object-cover opacity-80 dark:opacity-70 group-hover:opacity-40 transition-opacity" alt="Banner"/>
+                        ) : (
+                            <div className="absolute inset-0 flex items-center justify-center text-neutral-300 dark:text-neutral-700">
+                                <LayoutGrid size={48} strokeWidth={1} />
+                            </div>
+                        )}
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-black/40 backdrop-blur-sm">
+                            <div className="bg-white dark:bg-black text-emerald-600 dark:text-emerald-500 border border-emerald-500 px-6 py-3 text-xs font-mono font-bold hover:bg-emerald-500 hover:text-white dark:hover:text-black transition-all flex items-center gap-2">
+                                <Camera size={16}/> CHANGE_BANNER
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
+                <div className="flex flex-col md:flex-row gap-8">
+                    {/* 2. Avatar Edit */}
+                    <div className="space-y-2 group shrink-0 flex flex-col items-center md:items-start">
+                        <label className="text-[10px] font-mono uppercase tracking-widest text-emerald-700 dark:text-emerald-600 font-bold flex items-center gap-2">
+                            <User size={12}/> Avatar_ID
+                        </label>
+                        <label className="relative w-32 h-32 bg-neutral-100 dark:bg-neutral-900 border-2 border-dashed border-neutral-300 dark:border-neutral-600 group-hover:border-emerald-500/50 transition-colors overflow-hidden cursor-pointer block rounded-full md:rounded-none shadow-inner">
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileChange(e, 'avatar')} />
+                            {avatarPreview ? (
+                                <img src={avatarPreview} className="w-full h-full object-cover" alt="Avatar"/>
                             ) : (
-                                <div className="absolute inset-0 flex items-center justify-center text-neutral-700"><LayoutGrid size={48} strokeWidth={1} /></div>
-                            )}
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-black/40 backdrop-blur-sm">
-                                <div className="bg-black text-emerald-500 border border-emerald-500 px-6 py-3 text-xs font-mono font-bold hover:bg-emerald-500 hover:text-black transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-                                    <Camera size={16}/> CHANGE_BANNER
+                                <div className="absolute inset-0 flex items-center justify-center text-neutral-400 dark:text-neutral-600">
+                                    <User size={40} />
                                 </div>
+                            )}
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60">
+                                <Camera size={32} className="text-emerald-500" />
                             </div>
                         </label>
                     </div>
 
-                    <div className="flex flex-col md:flex-row gap-8">
-                        {/* 2. Avatar Edit */}
-                        <div className="space-y-2 group shrink-0 flex flex-col items-center md:items-start">
-                            <label className="text-[10px] font-mono uppercase tracking-widest text-emerald-600 font-bold flex items-center gap-2"><User size={12}/> Avatar_ID</label>
-                            <label className="relative w-32 h-32 bg-neutral-900 border-2 border-dashed border-neutral-600 group-hover:border-emerald-500/50 transition-colors overflow-hidden cursor-pointer block rounded-full md:rounded-none">
-                                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileChange(e, 'avatar')} />
-                                {avatarPreview ? (
-                                    <img src={avatarPreview} className="w-full h-full object-cover" alt="Avatar"/>
-                                ) : (
-                                    <div className="absolute inset-0 flex items-center justify-center text-neutral-600"><User size={40} /></div>
-                                )}
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60">
-                                    <Camera size={32} className="text-emerald-500" />
-                                </div>
+                    {/* 3. Text Inputs */}
+                    <div className="flex-1 space-y-4 w-full">
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-mono pb-1 uppercase tracking-widest text-neutral-400 dark:text-neutral-500 font-bold flex items-center gap-2">
+                                <Mail size={12}/> Email_Address (LOCKED)
                             </label>
-                        </div>
-
-                        {/* 3. Text Inputs */}
-                        <div className="flex-1 space-y-4 w-full">
-                            <div className="space-y-1">
-                                <label className="text-[10px] font-mono pb-1 uppercase tracking-widest text-neutral-500 font-bold flex items-center gap-2"><Mail size={12}/> Email_Address (LOCKED)</label>
-                                <div className="relative">
-                                    <input value={email || ""} readOnly className="w-full bg-neutral-900 border border-neutral-800 p-3 pl-4 text-sm font-mono text-neutral-500 cursor-not-allowed rounded-none" />
-                                    <Lock size={16} className="absolute right-3 top-4 text-neutral-600"/>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-mono uppercase tracking-widest text-neutral-400 font-bold">Display_Name</label>
-                                    <input value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full bg-black border border-neutral-700 p-3 pl-4 text-sm font-mono text-white focus:border-emerald-500 outline-none transition-all rounded-none placeholder:text-neutral-700" placeholder="ENTER_NAME..."/>
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-mono uppercase tracking-widest text-neutral-400 font-bold">Phone_Number</label>
-                                    <input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-black border border-neutral-700 p-3 pl-4 text-sm font-mono text-white focus:border-emerald-500 outline-none transition-all rounded-none placeholder:text-neutral-700" placeholder="+84..."/>
-                                </div>
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-[10px] font-mono uppercase tracking-widest text-neutral-400 font-bold flex items-center gap-2"><FileText size={12}/> Bio_Data</label>
-                                <div className="relative group">
-                                    <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={4} className="w-full bg-black border border-neutral-700 p-3 text-xs font-mono text-neutral-300 focus:border-emerald-500 outline-none transition-all rounded-none placeholder:text-neutral-700 resize-none leading-relaxed" placeholder="ENTER_BIO_DESCRIPTION..."/>
-                                    <span className="absolute bottom-2 right-2 text-[9px] text-neutral-600 font-mono">{bio.length} CHARS</span>
-                                </div>
+                            <div className="relative">
+                                <input 
+                                    value={email || ""} 
+                                    readOnly 
+                                    className="w-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-3 pl-4 text-sm font-mono text-neutral-400 dark:text-neutral-500 cursor-not-allowed rounded-none" 
+                                />
+                                <Lock size={16} className="absolute right-3 top-4 text-neutral-300 dark:text-neutral-600"/>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <div className="p-4 border-t border-white/10 bg-neutral-900 flex flex-col md:flex-row gap-4 justify-between items-center sticky bottom-0 z-20">
-                    <span className="text-[9px] text-neutral-500 font-mono tracking-widest hidden md:block">:: READY_TO_WRITE ::</span>
-                    <div className="flex gap-3 w-full md:w-auto">
-                        <GlitchButton onClick={onClose} className="px-4 md:px-6 py-3 md:py-2 text-xs border-red-600 text-red-400 hover:text-white flex-1 md:flex-initial text-center justify-center">DISCARD</GlitchButton>
-                        <CyberButton onClick={handleSave} disabled={isLoading} className="px-4 md:px-6 py-3 md:py-2 text-xs flex-1 md:flex-initial justify-center">
-                            {isLoading ? <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={14}/> WRITING...</span> : <span className="flex items-center gap-2"><Save size={14}/> COMMIT</span>}
-                        </CyberButton>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 dark:text-neutral-400 font-bold">Display_Name</label>
+                                <input 
+                                    value={fullName} 
+                                    onChange={(e) => setFullName(e.target.value)} 
+                                    className="w-full bg-neutral-50 dark:bg-black border border-neutral-200 dark:border-neutral-700 p-3 pl-4 text-sm font-mono text-neutral-900 dark:text-white focus:border-emerald-500 outline-none transition-all rounded-none placeholder:text-neutral-300 dark:placeholder:text-neutral-800" 
+                                    placeholder="ENTER_NAME..."
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 dark:text-neutral-400 font-bold">Phone_Number</label>
+                                <input 
+                                    value={phone} 
+                                    onChange={(e) => setPhone(e.target.value)} 
+                                    className="w-full bg-neutral-50 dark:bg-black border border-neutral-200 dark:border-neutral-700 p-3 pl-4 text-sm font-mono text-neutral-900 dark:text-white focus:border-emerald-500 outline-none transition-all rounded-none placeholder:text-neutral-300 dark:placeholder:text-neutral-800" 
+                                    placeholder="+84..."
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 dark:text-neutral-400 font-bold flex items-center gap-2">
+                                <FileText size={12}/> Bio_Data
+                            </label>
+                            <div className="relative group">
+                                <textarea 
+                                    value={bio} 
+                                    onChange={(e) => setBio(e.target.value)} 
+                                    rows={4} 
+                                    className="w-full bg-neutral-50 dark:bg-black border border-neutral-200 dark:border-neutral-700 p-3 text-xs font-mono text-neutral-700 dark:text-neutral-300 focus:border-emerald-500 outline-none transition-all rounded-none placeholder:text-neutral-300 dark:placeholder:text-neutral-800 resize-none leading-relaxed" 
+                                    placeholder="ENTER_BIO_DESCRIPTION..."
+                                />
+                                <span className="absolute bottom-2 right-2 text-[9px] text-neutral-400 dark:text-neutral-600 font-mono">
+                                    {bio.length} CHARS
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-neutral-200 dark:border-white/10 bg-neutral-50 dark:bg-neutral-900 flex flex-col md:flex-row gap-4 justify-between items-center sticky bottom-0 z-20">
+                <span className="text-[9px] text-neutral-400 dark:text-neutral-500 font-mono tracking-widest hidden md:block uppercase">:: READY_TO_COMMIT ::</span>
+                <div className="flex gap-3 w-full md:w-auto">
+                    <GlitchButton 
+                        onClick={onClose} 
+                        className="px-4 md:px-6 py-3 md:py-2 text-xs font-mono font-bold border border-red-200 dark:border-red-900/50 text-red-500 hover:bg-red-500/10 dark:hover:text-white transition-all flex-1 md:flex-initial text-center justify-center uppercase"
+                    >
+                        Discard
+                    </GlitchButton>
+                    <CyberButton 
+                        onClick={handleSave} 
+                        disabled={isLoading} 
+                        className="px-4 md:px-6 py-3 md:py-2 text-xs flex-1 md:flex-initial justify-center"
+                    >
+                        {isLoading ? (
+                            <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={14}/> WRITING...</span>
+                        ) : (
+                            <span className="flex items-center gap-2"><Save size={14}/> COMMIT_CHANGES</span>
+                        )}
+                    </CyberButton>
+                </div>
+            </div>
         </div>
-    );
+    </div>
+);
 }
 
 // --- COMPONENT: ARTIST CARD (WITH HOVER PREVIEW) ---

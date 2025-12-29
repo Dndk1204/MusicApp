@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
@@ -8,11 +8,10 @@ import {
     ShieldAlert, UploadCloud, Users, Trash2, TrendingUp,
     Search, Loader2, RefreshCw, Music, ArrowLeft, Eraser, Mic2, Heart,
     Globe, Lock, Star, ArchiveRestore, Skull, Activity, List, User,
-    CheckCircle2, XCircle, Clock, Eye, ShieldCheck, ChevronDown, MessageSquare
+    CheckCircle2, XCircle, Clock, Eye, ShieldCheck, ChevronDown, MessageSquare,
+    X
 } from "lucide-react";
 import useUI from "@/hooks/useUI";
-import useUploadModal from "@/hooks/useUploadModal";
-import UploadModal from "@/components/UploadModal";
 
 // Import các Cyber Components
 import { GlitchButton, CyberButton, GlitchText, CyberCard, NeonButton, ScanlineOverlay } from "@/components/CyberComponents";
@@ -68,78 +67,131 @@ const LikedUsersModal = ({ song, isOpen, onClose }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-white/10 rounded-none max-w-2xl w-full max-h-[80vh] overflow-hidden">
-                {/* HEADER */}
-                <div className="p-6 border-b border-neutral-300 dark:border-white/10 flex justify-between items-center">
-                    <div>
-                        <h2 className="text-xl font-bold font-mono text-neutral-900 dark:text-white uppercase tracking-wide">
-                            <GlitchText text="Liked Users" />
-                        </h2>
-                        <p className="text-sm text-neutral-500 dark:text-neutral-400 font-mono mt-1">
-                            {song?.title} - {likedUsers.length} likes
-                        </p>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors p-2"
-                    >
-                        <XCircle size={24} />
-                    </button>
-                </div>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-300">
+        
+        {/* Backdrop (Tối ưu cho cả 2 chế độ) */}
+        <div 
+            className="absolute inset-0 bg-neutral-900/80 dark:bg-black/90 backdrop-blur-sm transition-opacity"
+            onClick={onClose}
+        />
+        
+        {/* Modal Container (Cyber Brutalism) */}
+        <div className="
+            relative z-10 w-[95%] md:w-full max-w-2xl overflow-hidden
+            bg-white dark:bg-black 
+            border-2 border-neutral-400 dark:border-white/20 
+            shadow-[0_0_50px_rgba(0,0,0,0.5)] dark:shadow-[0_0_50px_rgba(255,255,255,0.05)]
+            rounded-none
+        ">
+            <ScanlineOverlay />
+            
+            {/* Decoration Corners (4 góc Emerald đặc trưng) */}
+            <div className="absolute top-0 left-0 w-3 h-3 border-t-4 border-l-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
+            <div className="absolute top-0 right-0 w-3 h-3 border-t-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
+            <div className="absolute bottom-0 left-0 w-3 h-3 border-b-4 border-l-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
+            <div className="absolute bottom-0 right-0 w-3 h-3 border-b-4 border-r-4 border-emerald-600 dark:border-emerald-500 pointer-events-none z-30"></div>
 
-                {/* CONTENT */}
-                <div className="p-6 overflow-y-auto max-h-[60vh]">
-                    {loading ? (
-                        <div className="flex items-center justify-center py-12">
-                            <Loader2 className="animate-spin text-neutral-400" size={32} />
-                            <span className="ml-2 text-neutral-500 font-mono">Loading...</span>
-                        </div>
-                    ) : likedUsers.length === 0 ? (
-                        <div className="text-center py-12">
-                            <Heart size={48} className="text-neutral-300 mx-auto mb-4" />
-                            <p className="text-neutral-500 font-mono">No likes yet</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {likedUsers.map((like) => (
-                                <div key={like.user_id} className="flex items-center gap-4 p-4 border border-neutral-200 dark:border-white/5 rounded-none hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors">
-                                    <div className="w-12 h-12 rounded-none bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 overflow-hidden flex items-center justify-center">
-                                        {like.profiles.avatar_url ? (
-                                            <img src={like.profiles.avatar_url} alt={like.profiles.full_name} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <User size={20} className="text-neutral-400" />
-                                        )}
+            {/* Header Section */}
+            <div className="bg-neutral-100 dark:bg-neutral-900 border-b border-neutral-300 dark:border-white/10 p-5 md:p-6 text-center relative shrink-0">
+                {/* Top Glow Line */}
+                <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-transparent via-emerald-500 to-transparent"></div>
+                
+                {/* Icon Section */}
+                <div className="w-12 h-12 mx-auto flex items-center justify-center mb-3 bg-neutral-200 dark:bg-white/5 border border-neutral-400 dark:border-white/20 rounded-none shadow-inner">
+                    <Heart size={24} className="text-red-600 dark:text-red-500 animate-pulse" fill="currentColor" />
+                </div>
+                
+                {/* Title Section */}
+                <h2 className="text-lg md:text-xl font-bold font-mono tracking-widest text-neutral-900 dark:text-white uppercase">
+                    <GlitchText text="LIKED_USERS" />
+                </h2>
+                
+                <p className="text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase mt-1 text-black dark:text-emerald-400/80">
+                    :: TRACK: {song?.title || "UNKNOWN_SOURCE"} | COUNT: {likedUsers.length} ::
+                </p>
+
+                {/* Close Button */}
+                <button 
+                    className="absolute top-2 right-2 p-2 text-neutral-400 hover:text-red-500 transition hover:rotate-90 duration-300" 
+                    onClick={onClose}
+                >
+                    <X size={24} />
+                </button>
+            </div>
+
+            {/* Content Section */}
+            <div className="p-4 md:p-6 overflow-y-auto max-h-[60vh] bg-neutral-50/50 dark:bg-black/80 custom-scrollbar relative">
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-20 gap-4">
+                        <Loader2 className="animate-spin text-emerald-500" size={40} />
+                        <span className="text-[10px] text-emerald-500 font-mono tracking-[0.3em] uppercase">ACCESSING_USER_DB...</span>
+                    </div>
+                ) : likedUsers.length === 0 ? (
+                    <div className="text-center py-20 border-2 border-dashed border-neutral-300 dark:border-white/5">
+                        <Heart size={48} className="text-neutral-300 dark:text-neutral-800 mx-auto mb-4 opacity-20" />
+                        <p className="text-[10px] text-neutral-500 font-mono uppercase tracking-widest">NO_SIGNALS_DETECTED</p>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {likedUsers.map((like) => (
+                            <div 
+                            key={like.user_id} 
+                            className="flex items-center gap-4 p-3 border-2 border-neutral-200 dark:border-white/5 bg-white dark:bg-black/40 hover:border-emerald-500/30 transition-all group"
+                            >
+                                {/* Avatar Square Style */}
+                                <div className="w-12 h-12 rounded-none bg-neutral-200 dark:bg-neutral-800 border-2 border-neutral-300 dark:border-white/10 overflow-hidden flex items-center justify-center relative shrink-0">
+                                    {like.profiles.avatar_url ? (
+                                        <img src={like.profiles.avatar_url} alt={like.profiles.full_name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
+                                    ) : (
+                                        <User size={20} className="text-neutral-400" />
+                                    )}
+                                    <ScanlineOverlay />
+                                </div>
+
+                                {/* Info */}
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="font-bold text-neutral-900 dark:text-white truncate font-mono text-sm uppercase">
+                                            {like.profiles.full_name || 'NULL_USER'}
+                                        </span>
+                                        <span className={`
+                                            inline-block px-2 py-0.5 text-[9px] rounded-none border-2 font-black uppercase tracking-tighter
+                                            ${like.profiles.role === 'admin'
+                                                ? 'border-red-500/30 text-red-600 bg-red-500/5'
+                                                : 'border-emerald-500/30 text-emerald-600 bg-emerald-500/5'}
+                                        `}>
+                                            {like.profiles.role || 'user'}
+                                        </span>
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="font-bold text-neutral-900 dark:text-white truncate">
-                                                {like.profiles.full_name || 'Unknown User'}
-                                            </span>
-                                            <span className={`
-                                                inline-block px-2 py-0.5 text-[10px] rounded-none border font-bold uppercase
-                                                ${like.profiles.role === 'admin'
-                                                    ? 'border-red-500/30 text-red-600 bg-red-500/5'
-                                                    : 'border-emerald-500/30 text-emerald-600 bg-emerald-500/5'}
-                                            `}>
-                                                {like.profiles.role || 'user'}
-                                            </span>
-                                        </div>
-                                        <div className="text-xs text-neutral-500 dark:text-neutral-400 font-mono">
-                                            Liked on {new Date(like.created_at).toLocaleDateString('en-GB')} at {new Date(like.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="text-xs text-neutral-400 font-mono">
-                                            User ID: {String(like.user_id).slice(0, 8)}...
-                                        </div>
+                                    <div className="text-[9px] text-black dark:!text-neutral-400 font-mono uppercase tracking-tight">
+                                        TIMESTAMP: {new Date(like.created_at).toLocaleString('en-GB')}
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+
+                                {/* User ID Tag */}
+                                <div className="hidden md:block text-right">
+                                    <div className="text-[8px] text-black !font-extrabold font-mono dark:!text-neutral-400 bg-neutral-100 dark:bg-white/5 px-2 py-1 border border-neutral-300 dark:border-white/10">
+                                        SID: {String(like.user_id).slice(0, 8)}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
+
+            {/* Footer Section */}
+            <div className="p-4 bg-neutral-100 dark:bg-neutral-900 border-t-2 border-neutral-300 dark:border-white/10 flex justify-end shrink-0 relative">
+                <div className="absolute top-0 left-0 w-full h-[1px] bg-emerald-500/20"></div>
+                <GlitchButton 
+                    onClick={onClose}
+                    className="px-8 py-2 text-xs !border-neutral-900/60 dark:!border-red-500 !text-neutral-900 dark:!text-red-500 hover:!bg-red-500 dark:hover:!bg-neutral-900/10 dark:hover:!text-white hover:!text-white"
+                >
+                    CLOSE_MANIFEST
+                </GlitchButton>
+            </div>
+
+        </div>
         </div>
     );
 };
@@ -171,7 +223,6 @@ const AdminSkeleton = () => (
 const AdminDashboard = () => {
 const router = useRouter();
 const { alert, confirm } = useUI();
-const uploadModal = useUploadModal(); 
 
 const success = (msg) => alert(msg, 'success', 'SUCCESS');
 const error = (msg) => alert(msg, 'error', 'ERROR');
@@ -327,10 +378,6 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
         error("Failed to load dashboard data");
     }
   };
-
-  useEffect(() => {
-      if (!uploadModal.isOpen) fetchDashboardData();
-  }, [uploadModal.isOpen]);
 
   // --- PRESENCE LOGIC ---
     useEffect(() => {
@@ -600,6 +647,15 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
             } catch (err) { error(err.message); } finally { setLoading(false); }
     };
 
+    const totalMetrics = useMemo(() => {
+        return allSongsList.reduce((acc, song) => {
+            return {
+            totalPlays: acc.totalPlays + (song.play_count || 0),
+            totalLikes: acc.totalLikes + (song.like_count || 0),
+            };
+        }, { totalPlays: 0, totalLikes: 0 });
+    }, [allSongsList]);
+
     const handleSelectAll = (filteredSongs) => {
         if (selectedSongIds.length === filteredSongs.length && filteredSongs.length > 0) {
         setSelectedSongIds([]);
@@ -643,8 +699,6 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
 
   return (
     <div className="h-full w-full p-6 pb-[120px] overflow-y-auto bg-neutral-100 dark:bg-black text-neutral-900 dark:text-neutral-200 transition-colors duration-500 relative">
-      <UploadModal />
-      
       {/* HEADER */}
       <div className="mb-4 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-neutral-300 dark:border-white/10 pb-4">
         <div>
@@ -656,9 +710,6 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
         
         {currentView === 'dashboard' && (
             <div className="flex gap-3 flex-wrap">
-                <CyberButton onClick={() => uploadModal.onOpen()} className="flex items-center gap-2 text-xs py-2 px-4 h-auto rounded-none">
-                    <UploadCloud size={14}/> UPLOAD_SONG
-                </CyberButton>
                 <NeonButton onClick={handleSyncMusic} disabled={syncing} className="text-xs px-4 py-2 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-none">
                     {syncing ? <Loader2 className="animate-spin" size={14}/> : <RefreshCw size={14}/>} SYNC_API
                 </NeonButton>
@@ -763,661 +814,740 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
             </div>
 
             {/* STATS TABLES */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-                <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-full">
-                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0">
-                        <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center"><TrendingUp size={16} className="text-emerald-500" /> Top_5_Streamed</h4>
-                        <button onClick={() => { setSongSortType('plays'); setCurrentView('songs_list'); }} className="text-[9px] text-emerald-600 dark:text-emerald-500 hover:underline font-mono uppercase">VIEW_FULL</button>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6 mb-8">
+                {/* 1. TOP_STREAMED */}
+                <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-[418px]">
+                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0 h-[52px]">
+                        <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center">
+                            <TrendingUp size={16} className="text-emerald-500" /> Top_Plays
+                        </h4>
+                        <button onClick={() => { setSongSortType('plays'); setCurrentView('songs_list'); }} className="text-[9px] text-emerald-600 dark:text-emerald-500 hover:underline font-mono uppercase">VIEW_ALL</button>
                     </div>
-                    <div className="p-0 overflow-y-auto custom-scrollbar">
-                        {stats.topSongs.slice(0, 5).map((s, i) => (
-                            <div key={s.id} className="group flex justify-between items-center text-xs font-mono p-3 border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-emerald-500/5 dark:hover:bg-emerald-500/10 transition-colors relative">
+                    
+                    {/* Phần thân: flex-1 kết hợp min-h-0 giúp đẩy footer xuống dưới cùng */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
+                        {stats.topSongs?.slice(0, 5).map((s, i) => (
+                            <div key={s.id} className="group flex justify-between items-center text-xs font-mono px-3 h-[64px] border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-emerald-500/10 transition-all cursor-crosshair">
                                 <div className="flex items-center gap-3 overflow-hidden">
                                     <span className={`text-[10px] font-bold w-6 shrink-0 ${i < 3 ? 'text-emerald-600 dark:text-emerald-400' : 'text-neutral-400'}`}>#{String(i + 1).padStart(2, '0')}</span>
-                                    <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 shrink-0 relative flex items-center justify-center overflow-hidden">
-                                        {s.image_url ? <img src={s.image_url} alt={s.title} className="w-full h-full object-cover" /> : <Music size={14} className="text-neutral-400" />}
+                                    <div className="w-9 h-9 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 shrink-0 relative flex items-center justify-center overflow-hidden">
+                                        {s.image_url ? <img src={s.image_url} alt="" className="w-full h-full object-cover" /> : <Music size={14} className="text-neutral-400" />}
                                         <ScanlineOverlay />
                                     </div>
                                     <div className="flex flex-col min-w-0">
-                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{s.title}</span>
-                                        <span className="truncate text-[10px] text-neutral-500 dark:text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300">{s.author}</span>
+                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-emerald-500 transition-colors leading-tight">{s.title}</span>
+                                        <span className="truncate text-[10px] text-neutral-500 opacity-70 leading-tight">{s.author}</span>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 pl-2 shrink-0">
-                                    <span className="text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-500/20 px-2 py-0.5 text-[10px]">{s.play_count}</span>
-                                </div>
+                                <span className="text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-500/20 px-2 py-0.5 text-[10px] shrink-0">{s.play_count}</span>
                             </div>
                         ))}
+                    </div>
+
+                    <div className="mt-auto p-2 border-t border-neutral-300 dark:border-white/10 bg-neutral-100/50 dark:bg-white/5 flex justify-around items-center shrink-0 h-[44px]">
+                        <div className="text-center"><p className="text-[8px] text-neutral-500 uppercase font-mono">Stream_Sum</p><p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{totalMetrics.totalPlays.toLocaleString()}</p></div>
+                        <div className="h-4 w-[1px] bg-neutral-300 dark:border-white/10"></div>
+                        <div className="text-center"><p className="text-[8px] text-neutral-500 uppercase font-mono">Realtime</p><p className="text-xs font-bold text-emerald-500 animate-pulse">LIVE</p></div>
                     </div>
                 </CyberCard>
 
-                <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-full">
-                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0">
-                        <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center"><Mic2 size={16} className="text-pink-500" /> Top_5_Artists</h4>
-                        <button onClick={() => setCurrentView('db_artists_list')} className="text-[9px] text-pink-600 dark:text-pink-500 hover:underline font-mono uppercase">VIEW_FULL</button>
+                {/* 2. TOP_ARTISTS */}
+                <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-[418px]">
+                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0 h-[52px]">
+                        <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center"><Mic2 size={16} className="text-pink-500" /> Top_Artists</h4>
+                        <button onClick={() => setCurrentView('db_artists_list')} className="text-[9px] text-pink-600 dark:text-pink-500 hover:underline font-mono uppercase">VIEW_ALL</button>
                     </div>
-                    <div className="p-0 overflow-y-auto custom-scrollbar">
+                    
+                    <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
                         {popularArtistsList.slice(0, 5).map((artist, i) => (
-                            <div key={i} className="group flex justify-between items-center text-xs font-mono p-3 border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-pink-500/5 dark:hover:bg-pink-500/10 transition-colors relative">
+                            <div key={i} className="group flex justify-between items-center text-xs font-mono px-3 h-[64px] border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-pink-500/10 transition-all cursor-crosshair">
                                 <div className="flex items-center gap-3 overflow-hidden">
                                     <span className={`text-[10px] font-bold w-6 shrink-0 ${i < 3 ? 'text-pink-600 dark:text-pink-400' : 'text-neutral-400'}`}>#{String(i + 1).padStart(2, '0')}</span>
-                                    <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 shrink-0 relative flex items-center justify-center overflow-hidden">
-                                        {artist.image_url ? <img src={artist.image_url} alt={artist.originalName} className="w-full h-full object-cover" /> : <User size={14} className="text-neutral-400" />}
+                                    <div className="w-9 h-9 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 shrink-0 relative overflow-hidden flex items-center justify-center">
+                                        {artist.image_url ? <img src={artist.image_url} alt="" className="w-full h-full object-cover" /> : <User size={14} className="text-neutral-400" />}
                                         <ScanlineOverlay />
                                     </div>
                                     <div className="flex flex-col min-w-0">
-                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors">{artist.originalName}</span>
-                                        {!artist.inDB && <span className="text-[8px] text-red-500 dark:text-red-400 border border-red-500/30 px-1 w-fit mt-0.5">SYNC_REQ</span>}
+                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-pink-500 transition-colors leading-tight">{artist.originalName}</span>
+                                        {!artist.inDB && <span className="text-[8px] text-red-500 border border-red-500/30 px-1 w-fit mt-0.5">PENDING</span>}
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 pl-2 shrink-0">
-                                    <span className="text-pink-700 dark:text-pink-400 font-bold bg-pink-100 dark:bg-pink-900/30 border border-pink-200 dark:border-pink-500/20 px-2 py-0.5 text-[10px] flex items-center gap-1"><Heart size={8} fill="currentColor" /> {artist.followers}</span>
-                                </div>
+                                <span className="text-pink-700 dark:text-pink-400 font-bold bg-pink-100 dark:bg-pink-900/30 border border-pink-500/20 px-2 py-0.5 text-[10px] flex items-center gap-1 shrink-0"><Heart size={8} fill="currentColor" /> {artist.followers}</span>
                             </div>
                         ))}
+                    </div>
+
+                    <div className="mt-auto p-2 border-t border-neutral-300 dark:border-white/10 bg-neutral-100/50 dark:bg-white/5 flex justify-around items-center shrink-0 h-[44px]">
+                        <div className="text-center"><p className="text-[8px] text-neutral-500 uppercase font-mono">Total_Entities</p><p className="text-xs font-bold text-pink-600 dark:text-pink-400">{stats.totalArtists || 0}</p></div>
+                        <div className="h-4 w-[1px] bg-neutral-300 dark:border-white/10"></div>
+                        <div className="text-center"><p className="text-[8px] text-neutral-500 uppercase font-mono">Sync_Req</p><p className="text-xs font-bold text-orange-500">{stats.totalArtists - stats.popularArtistsInDB || 0}</p></div>
                     </div>
                 </CyberCard>
 
                 {/* 3. TOP_COMMENTED */}
-                <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-full">
+                <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-[418px]">
                     <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0 h-[52px]">
-                        <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center"><MessageSquare size={16} className="text-sky-500" /> Top_Commented</h4>
-                        <button onClick={() => router.push('/admin/comments')} className="text-[9px] text-sky-600 dark:text-sky-400 hover:underline font-mono uppercase">VIEW_FULL</button>
+                        <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center"><MessageSquare size={16} className="text-sky-500" /> Top_Comments</h4>
+                        <button onClick={() => router.push('/admin/comments')} className="text-[9px] text-sky-600 dark:text-sky-400 hover:underline font-mono uppercase">VIEW_ALL</button>
                     </div>
-                    <div className="p-0 overflow-y-auto custom-scrollbar flex-1">
-                        {stats.topCommentedSongs?.length > 0 ? (
-                            stats.topCommentedSongs.map((t, i) => (
-                                <div key={t.song_id} className="group flex justify-between items-center text-xs font-mono px-3 h-[60px] border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-sky-500/5 dark:hover:bg-sky-500/10 transition-colors relative">
-                                    <div className="flex items-center gap-3 overflow-hidden">
-                                        <span className={`text-[10px] font-bold w-6 shrink-0 ${i < 3 ? 'text-sky-600 dark:text-sky-400' : 'text-neutral-400'}`}>#{String(i + 1).padStart(2, '0')}</span>
-                                        <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 shrink-0 relative flex items-center justify-center overflow-hidden">
-                                            {t.image_url ? <img src={t.image_url} alt={t.title} className="w-full h-full object-cover" /> : <Music size={14} className="text-neutral-400" />}
-                                            <ScanlineOverlay />
-                                        </div>
-                                        <div className="flex flex-col min-w-0 justify-center">
-                                            <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors leading-tight">{t.title}</span>
-                                            <span className="truncate text-[10px] text-neutral-500 dark:text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300 uppercase italic opacity-70 leading-tight h-[14px] flex items-center">
-                                                SID: {String(t.song_id).slice(0,6)}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="shrink-0">
-                                        <span className="text-sky-700 dark:text-sky-400 font-bold bg-sky-100 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-500/20 px-2 py-0.5 text-[10px]">{t.count}</span>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="flex-1 flex items-center justify-center text-[10px] font-mono text-neutral-500 uppercase tracking-widest animate-pulse h-[300px]">
-                                NO_COMMENT_SIGNALS
-                            </div>
-                        )}
-                    </div>
-                    {/* FOOTER BAR */}
-                    <div className="mt-auto p-2 border-t border-neutral-300 dark:border-white/10 bg-neutral-100/50 dark:bg-white/5 flex justify-around items-center shrink-0 h-[42px]">
-                        <div className="text-center">
-                            <p className="text-[8px] text-neutral-500 uppercase font-mono">Grand_Total</p>
-                            <p className="text-xs font-bold text-sky-600 dark:text-sky-400">{stats.totalComments || 0}</p>
-                        </div>
-                        <div className="h-4 w-[1px] bg-neutral-300 dark:bg-white/10"></div>
-                        <div className="text-center">
-                            <p className="text-[8px] text-neutral-500 uppercase font-mono">Today_Logs</p>
-                            <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">+{stats.commentsToday || 0}</p>
-                        </div>
-                    </div>
-                </CyberCard>
-
-                {/* LIKES METRICS */}
-                <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-full">
-                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0">
-                        <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center"><Heart size={16} className="text-red-500" /> Top_5_Liked</h4>
-                        <button onClick={() => { setSongSortType('likes'); setCurrentView('songs_list'); }} className="text-[9px] text-red-600 dark:text-red-500 hover:underline font-mono uppercase">VIEW_FULL</button>
-                    </div>
-                    <div className="p-0 overflow-y-auto custom-scrollbar">
-                        {stats.topLikedSongs?.slice(0, 5).map((s, i) => (
-                            <div key={s.song_id} className="group flex justify-between items-center text-xs font-mono p-3 border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-red-500/5 dark:hover:bg-red-500/10 transition-colors relative">
+                    
+                    <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
+                        {stats.topCommentedSongs?.map((t, i) => (
+                            <div key={t.song_id} className="group flex justify-between items-center text-xs font-mono px-3 h-[64px] border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-sky-500/10 transition-all cursor-crosshair">
                                 <div className="flex items-center gap-3 overflow-hidden">
-                                    <span className={`text-[10px] font-bold w-6 shrink-0 ${i < 3 ? 'text-red-600 dark:text-red-400' : 'text-neutral-400'}`}>#{String(i + 1).padStart(2, '0')}</span>
-                                    <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 shrink-0 relative flex items-center justify-center overflow-hidden">
-                                        {s.image_url ? <img src={s.image_url} alt={s.title} className="w-full h-full object-cover" /> : <Music size={14} className="text-neutral-400" />}
+                                    <span className={`text-[10px] font-bold w-6 shrink-0 ${i < 3 ? 'text-sky-600 dark:text-sky-400' : 'text-neutral-400'}`}>#{String(i + 1).padStart(2, '0')}</span>
+                                    <div className="w-9 h-9 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 shrink-0 relative overflow-hidden">
+                                        {t.image_url ? <img src={t.image_url} alt="" className="w-full h-full object-cover" /> : <Music size={14} className="text-neutral-400" />}
                                         <ScanlineOverlay />
                                     </div>
                                     <div className="flex flex-col min-w-0">
-                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">{s.title}</span>
-                                        <span className="truncate text-[10px] text-neutral-500 dark:text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300">{s.author}</span>
+                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:text-sky-500 transition-colors leading-tight">{t.title}</span>
+                                        <span className="text-[9px] opacity-70 uppercase leading-tight mt-0.5">ID:{String(t.song_id).slice(0,6)}</span>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 pl-2 shrink-0">
-                                    <span className="text-red-700 dark:text-red-400 font-bold bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-500/20 px-2 py-0.5 text-[10px] flex items-center gap-1"><Heart size={8} fill="currentColor" /> {s.count}</span>
-                                </div>
+                                <span className="text-sky-700 dark:text-sky-400 font-bold bg-sky-100 dark:bg-sky-900/30 border border-sky-500/20 px-2 py-0.5 text-[10px] shrink-0">{t.count}</span>
                             </div>
                         ))}
                     </div>
+
+                    <div className="mt-auto p-2 border-t border-neutral-300 dark:border-white/10 bg-neutral-100/50 dark:bg-white/5 flex justify-around items-center shrink-0 h-[44px]">
+                        <div className="text-center"><p className="text-[8px] text-neutral-500 uppercase font-mono">Grand_Total</p><p className="text-xs font-bold text-sky-600 dark:text-sky-400">{stats.totalComments || 0}</p></div>
+                        <div className="h-4 w-[1px] bg-neutral-300 dark:border-white/10"></div>
+                        <div className="text-center"><p className="text-[8px] text-neutral-500 uppercase font-mono">New_Today</p><p className="text-xs font-bold text-emerald-600">+{stats.commentsToday || 0}</p></div>
+                    </div>
                 </CyberCard>
 
+                {/* 4. TOP_LIKED - Đã sửa lỗi Footer không xuống đáy */}
+                <CyberCard className="bg-white/60 dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none p-0 backdrop-blur-md overflow-hidden flex flex-col h-[418px]">
+                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center shrink-0 h-[52px]">
+                        <h4 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex gap-2 items-center"><Heart size={16} className="text-red-500" /> Top_Liked</h4>
+                        <button onClick={() => { setSongSortType('likes'); setCurrentView('songs_list'); }} className="text-[9px] text-red-600 dark:text-red-500 hover:underline font-mono uppercase">VIEW_ALL</button>
+                    </div>
+
+                    {/* CỰC KỲ QUAN TRỌNG: flex-1 min-h-0 đảm bảo phần này chiếm hết diện tích còn lại */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
+                        {stats.topLikedSongs?.slice(0, 5).map((s, i) => (
+                            <div key={s.song_id} className="group flex justify-between items-center text-xs font-mono px-3 h-[64px] border-b border-dashed border-neutral-200 dark:border-white/5 hover:bg-red-500/10 transition-all cursor-crosshair">
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                    <span className={`text-[10px] font-bold w-6 shrink-0 ${i < 3 ? 'text-red-600 dark:text-red-400' : 'text-neutral-400'}`}>#{String(i + 1).padStart(2, '0')}</span>
+                                    <div className="w-9 h-9 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 shrink-0 relative overflow-hidden">
+                                        {s.image_url ? <img src={s.image_url} alt="" className="w-full h-full object-cover" /> : <Music size={14} className="text-neutral-400" />}
+                                        <ScanlineOverlay />
+                                    </div>
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold group-hover:!text-red-500 transition-colors leading-tight">{s.title}</span>
+                                        <span className="truncate text-[10px] text-neutral-500 opacity-70 leading-tight">{s.author}</span>
+                                    </div>
+                                </div>
+                                <span className="text-red-700 dark:text-red-400 font-bold bg-red-100 dark:bg-red-900/30 border border-red-500/20 px-2 py-0.5 text-[10px] flex items-center gap-1 shrink-0"><Heart size={8} fill="currentColor" /> {s.count}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* mt-auto là chốt chặn cuối cùng để footer luôn hít đáy */}
+                    <div className="mt-auto p-2 border-t border-neutral-300 dark:border-white/10 bg-neutral-100/50 dark:bg-white/5 flex justify-around items-center shrink-0 h-[44px]">
+                        <div className="text-center"><p className="text-[8px] text-neutral-500 uppercase font-mono">Hearts_Sum</p><p className="text-xs font-bold text-red-600 dark:text-red-400">{totalMetrics.totalLikes.toLocaleString()}</p></div>
+                        <div className="h-4 w-[1px] bg-neutral-300 dark:border-white/10"></div>
+                        <div className="text-center"><p className="text-[8px] text-neutral-500 uppercase font-mono">Trending</p><p className="text-xs font-bold text-orange-600 dark:text-orange-400">HOT</p></div>
+                    </div>
+                </CyberCard>
             </div>
 
             {/* USER TABLE */}
             <CyberCard className="bg-white dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none overflow-hidden backdrop-blur-sm">
-                <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center">
-                    <h3 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex items-center gap-2"><List size={16} className="text-yellow-600 dark:text-yellow-500"/> User_Manifest_Log</h3>
-                    <span className="text-[10px] text-neutral-500 font-mono bg-white dark:bg-black px-2 border border-neutral-300 dark:border-white/10">Count: {usersList.length}</span>
+                {/* Header: Tối ưu khoảng cách trên mobile */}
+                <div className="p-3 md:p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center">
+                    <h3 className="text-neutral-900 dark:text-white font-mono text-xs md:text-sm uppercase tracking-wider flex items-center gap-2">
+                        <List size={16} className="text-yellow-600 dark:text-yellow-500" /> 
+                        <span className="hidden xs:inline">User_Manifest_Log</span>
+                        <span className="xs:hidden">Users</span>
+                    </h3>
+                    <span className="text-[9px] md:text-[10px] text-neutral-500 font-mono bg-white dark:bg-black px-2 py-0.5 border border-neutral-300 dark:border-white/10">
+                        COUNT: {usersList.length}
+                    </span>
                 </div>
-                <div className="overflow-x-auto max-h-[400px]">
-                    <table className="w-full text-left text-xs font-mono text-neutral-600 dark:text-neutral-400">
-                        <thead className="bg-neutral-200 dark:bg-black/40 text-neutral-700 dark:text-neutral-500 uppercase tracking-widest sticky top-0 backdrop-blur-md border-b border-neutral-300 dark:border-white/10">
-                            <tr>
-                                <th className="px-6 py-3">Identity</th>
-                                <th className="px-6 py-3 w-36 text-center">Role</th>
-                                <th className="px-6 py-3">Status</th>
-                                <th className="px-6 py-3">Date_Joined</th>
-                                <th className="px-6 py-3 text-right">Cmd</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-neutral-200 dark:divide-white/5">
-                            {usersList.map((user) => {
-                                const isOnline = Array.from(onlineUsers).some(id => String(id) === String(user.id));
-                                return (
-                                    <tr key={user.id} className="hover:bg-neutral-50 dark:hover:bg-white/5 transition">
-                                        <td className="px-6 py-3 flex items-center gap-3 align-middle">
-                                            <div className="w-8 h-8 rounded-none bg-neutral-300 dark:bg-neutral-800 border border-neutral-400 dark:border-white/10 overflow-hidden flex items-center justify-center shrink-0 relative">
-                                                {user.avatar_url ? <img src={user.avatar_url} className="w-full h-full object-cover"/> : <User size={12}/>}
+
+                <div className="max-h-[500px] overflow-y-auto custom-scrollbar">
+                    {/* 1. MOBILE VIEW: Hiển thị dạng Card (Ẩn khi màn hình >= md) */}
+                    <div className="block md:hidden divide-y divide-neutral-200 dark:divide-white/5">
+                        {usersList.map((user) => {
+                            const isOnline = Array.from(onlineUsers).some(id => String(id) === String(user.id));
+                            return (
+                                <div key={user.id} className="p-4 flex flex-col gap-3 hover:bg-neutral-50 dark:hover:bg-white/5 transition">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-neutral-300 dark:bg-neutral-800 border border-neutral-400 dark:border-white/10 relative flex items-center justify-center shrink-0">
+                                                {user.avatar_url ? <img src={user.avatar_url} className="w-full h-full object-cover" alt="" /> : <User size={16} />}
+                                                {/* Dot trạng thái ngay góc avatar cho gọn */}
+                                                <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 border-2 border-white dark:border-neutral-900 rounded-full ${isOnline ? 'bg-emerald-500 shadow-[0_0_5px_#10b981]' : 'bg-neutral-400'}`}></div>
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="text-neutral-800 dark:text-neutral-200 font-bold">{user.full_name || "Unknown"}</span>
+                                                <span className="text-neutral-800 dark:text-neutral-200 font-bold text-sm leading-tight">{user.full_name || "Unknown"}</span>
+                                                <span className="text-[10px] text-neutral-500 font-mono uppercase mt-1">Joined: {new Date(user.created_at).toLocaleDateString('en-GB')}</span>
                                             </div>
-                                        </td>
-                                        <td className="px-6 py-3 align-middle text-center">
-                                            <div className="flex items-center justify-center gap-2">
-                                                {/* Role Badge (Giữ nguyên logic của bạn) */}
-                                                <span className={`
-                                                    inline-block min-w-[72px] px-2 py-0.5 rounded-none text-[9px] uppercase border font-bold font-mono tracking-wider
-                                                    ${user.role === 'admin' 
-                                                    ? 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400 shadow-[0_0_10px_rgba(239,68,68,0.1)]' 
-                                                    : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.1)]'}
-                                                `}>
-                                                    {user.role}
-                                                </span>
+                                        </div>
+                                        {user.role !== 'admin' && (
+                                            <button onClick={() => handleDeleteUser(user.id)} className="text-neutral-400 hover:text-red-500 p-1">
+                                                <Trash2 size={16} />
+                                            </button>
+                                        )}
+                                    </div>
 
-                                                {/* Custom Select Container */}
-                                                <div className="relative group">
-                                                    <select
-                                                    value={user.role}
-                                                    onChange={(e) => handleChangeUserRole(user.id, e.target.value)}
-                                                    className="
-                                                        appearance-none /* Ẩn mũi tên mặc định của trình duyệt */
-                                                        text-[10px] font-mono font-bold uppercase tracking-widest
-                                                        rounded-none /* Góc vuông tuyệt đối */
-                                                        pl-3 pr-8 py-1.5 
-                                                        border border-neutral-300 dark:border-white/20 
-                                                        bg-white dark:bg-black/60 
-                                                        text-neutral-900 dark:text-neutral-200 
-                                                        cursor-pointer 
-                                                        transition-all duration-300
-                                                        /* Hiệu ứng Focus & Hover */
-                                                        focus:outline-none 
-                                                        focus:border-emerald-500 
-                                                        focus:ring-1 focus:ring-emerald-500/50
-                                                        hover:border-emerald-500/50
-                                                        dark:hover:bg-neutral-900
-                                                    "
-                                                    >
-                                                    <option value="user" className="bg-white text-black dark:bg-black dark:text-white">USER</option>
-                                                    <option value="admin" className="bg-white text-black dark:bg-black dark:text-white">ADMIN</option>
-                                                    </select>
+                                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-dashed border-neutral-200 dark:border-white/10">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`px-2 py-0.5 text-[9px] font-bold font-mono border ${user.role === 'admin' ? 'bg-red-500/10 border-red-500/30 text-red-500' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500'}`}>
+                                                {user.role}
+                                            </span>
+                                        </div>
+                                        {/* Dropdown Role cho Mobile */}
+                                        <div className="relative group min-w-[100px]">
+                                            {/* Label ẩn hoặc icon nhỏ phía trước nếu cần, ở đây tập trung vào select */}
+                                            <select
+                                                value={user.role}
+                                                onChange={(e) => handleChangeUserRole(user.id, e.target.value)}
+                                                className="
+                                                    appearance-none w-full
+                                                    bg-neutral-100/50 dark:bg-white/5 
+                                                    border border-neutral-300 dark:border-white/10
+                                                    group-hover:border-emerald-500/50 
+                                                    focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20
+                                                    text-neutral-800 dark:text-emerald-400
+                                                    text-[10px] font-mono font-bold uppercase tracking-tighter
+                                                    px-3 py-1.5 rounded-none
+                                                    cursor-pointer transition-all duration-300
+                                                    outline-none
+                                                "
+                                            >
+                                                <option value="user" className="bg-white dark:bg-[#0a0a0a] text-neutral-800 dark:text-white">
+                                                    // ACCESS: USER
+                                                </option>
+                                                <option value="admin" className="bg-white dark:bg-[#0a0a0a] text-red-500 font-bold">
+                                                    // ACCESS: ADMIN
+                                                </option>
+                                            </select>
 
-                                                    {/* Custom Arrow Icon (Sử dụng Lucide ChevronDown) */}
-                                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400 group-hover:text-emerald-500 transition-colors">
-                                                    <ChevronDown size={14} />
+                                            {/* Custom Arrow với hiệu ứng của theme */}
+                                            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none 
+                                                            text-neutral-400 group-hover:text-emerald-500 transition-colors">
+                                                <ChevronDown size={12} strokeWidth={3} />
+                                            </div>
+
+                                            {/* Đường line trang trí phía dưới (Glow effect khi hover) */}
+                                            <div className="absolute bottom-0 left-0 w-0 h-[1px] bg-emerald-500 
+                                                            group-hover:w-full transition-all duration-500 shadow-[0_0_8px_#10b981]"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* 2. DESKTOP VIEW: Bảng Table chuẩn (Ẩn khi màn hình < md) */}
+                    <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full text-left text-xs font-mono text-neutral-600 dark:text-neutral-400 border-collapse">
+                            <thead className="bg-neutral-200 dark:bg-black/40 text-neutral-700 dark:text-neutral-500 uppercase tracking-widest sticky top-0 backdrop-blur-md border-b border-neutral-300 dark:border-white/10 z-10">
+                                <tr>
+                                    <th className="px-6 py-4">Identity</th>
+                                    <th className="px-6 py-4 text-center">Role_Configuration</th>
+                                    <th className="px-6 py-4">Status</th>
+                                    <th className="px-6 py-4">Date_Joined</th>
+                                    <th className="px-6 py-4 text-right">Cmd</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-neutral-200 dark:divide-white/5">
+                                {usersList.map((user) => {
+                                    const isOnline = Array.from(onlineUsers).some(id => String(id) === String(user.id));
+                                    return (
+                                        <tr key={user.id} className="hover:bg-neutral-50 dark:hover:bg-white/5 transition group">
+                                            <td className="px-6 py-3 flex items-center gap-3">
+                                                <div className="w-8 h-8 bg-neutral-300 dark:bg-neutral-800 border border-neutral-400 dark:border-white/10 overflow-hidden shrink-0 relative">
+                                                    {user.avatar_url ? <img src={user.avatar_url} className="w-full h-full object-cover" /> : <User size={12} className="m-auto mt-2"/>}
+                                                </div>
+                                                <span className="text-neutral-800 dark:text-neutral-200 font-bold truncate max-w-[150px]">{user.full_name || "Unknown"}</span>
+                                            </td>
+                                            <td className="px-6 py-3">
+                                                <div className="flex items-center justify-center gap-3">
+                                                    <span className={`min-w-[60px] text-center px-2 py-0.5 text-[9px] uppercase border font-bold ${user.role === 'admin' ? 'border-red-500/30 text-red-600' : 'border-emerald-500/30 text-emerald-600'}`}>
+                                                        {user.role}
+                                                    </span>
+                                                    <div className="relative group min-w-[100px]">
+                                                        {/* Label ẩn hoặc icon nhỏ phía trước nếu cần, ở đây tập trung vào select */}
+                                                        <select
+                                                            value={user.role}
+                                                            onChange={(e) => handleChangeUserRole(user.id, e.target.value)}
+                                                            className="
+                                                                !appearance-none w-full
+                                                                bg-neutral-100/50 dark:bg-white/5 
+                                                                border border-neutral-300 dark:border-white/10
+                                                                group-hover:border-emerald-500/50 
+                                                                focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20
+                                                                text-neutral-800 dark:text-emerald-400
+                                                                text-[10px] font-mono font-bold uppercase tracking-tighter
+                                                                px-3 py-1.5 rounded-none
+                                                                cursor-pointer transition-all duration-300
+                                                                outline-none
+                                                            "
+                                                        >
+                                                            <option value="user" className="bg-white dark:bg-[#0a0a0a] text-neutral-800 dark:text-white">
+                                                            // ACCESS: USER
+                                                            </option>
+                                                            <option value="admin" className="bg-white dark:bg-[#0a0a0a] text-red-500 font-bold">
+                                                            // ACCESS: ADMIN
+                                                            </option>
+                                                        </select>
+
+                                                        {/* Custom Arrow với hiệu ứng của theme */}
+                                                        <div className="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none 
+                                                                        text-neutral-400 group-hover:text-emerald-500 transition-colors">
+                                                            <ChevronDown size={12} strokeWidth={3} />
+                                                        </div>
+
+                                                        {/* Đường line trang trí phía dưới (Glow effect khi hover) */}
+                                                        <div className="absolute bottom-0 left-0 w-0 h-[1px] bg-emerald-500 
+                                                                        group-hover:w-full transition-all duration-500 shadow-[0_0_8px_#10b981]"></div>
                                                     </div>
                                                 </div>
+                                            </td>
+                                            <td className="px-6 py-3">
+                                                <div className={`flex items-center gap-1.5 font-bold text-[9px] ${isOnline ? 'text-emerald-500' : 'text-neutral-400'}`}>
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-neutral-400'}`}></div>
+                                                    {isOnline ? 'ONLINE' : 'OFFLINE'}
                                                 </div>
-                                        </td>
-                                        <td className="px-6 py-3 align-middle">
-                                            {isOnline ? (
-                                                <div className="flex items-center gap-1.5 text-emerald-500">
-                                                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_5px_#10b981]"></div>
-                                                    <span className="text-[9px] font-bold tracking-wider">ONLINE</span>
-                                                </div>
-                                            ) : (
-                                                <div className="flex items-center gap-1.5 text-neutral-400">
-                                                    <div className="w-2 h-2 bg-neutral-400 rounded-full"></div>
-                                                    <span className="text-[9px] font-bold tracking-wider">OFFLINE</span>
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-3 opacity-60 align-middle">{new Date(user.created_at).toLocaleDateString('en-GB')}</td>
-                                        <td className="px-6 py-3 text-right align-middle">
-                                            {user.role !== 'admin' && (
-                                                <button onClick={() => handleDeleteUser(user.id)} className="text-neutral-500 hover:text-red-500 transition p-2"><Trash2 size={14} /></button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                                            </td>
+                                            <td className="px-6 py-3 opacity-60 text-[10px]">{new Date(user.created_at).toLocaleDateString('en-GB')}</td>
+                                            <td className="px-6 py-3 text-right">
+                                                {user.role !== 'admin' && (
+                                                    <button onClick={() => handleDeleteUser(user.id)} className="opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-red-500 transition p-2">
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </CyberCard>
         </div>
       )}
 
-    {/* SONG TABLES */}
-    {isSongTableView && (
-        /* Thêm w-full và overflow-hidden ở div bao ngoài cùng */
-        <div className="w-full overflow-hidden animate-in fade-in slide-in-from-bottom-4 p-2 duration-500">
-            <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
-                <button 
-                    onClick={() => { setCurrentView('dashboard'); setSongSearchTerm(""); }} 
-                    className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white font-mono text-xs uppercase tracking-widest border border-transparent hover:border-neutral-500 px-3 py-1 transition-all"
-                >
-                    <ArrowLeft size={14}/> RETURN_TO_BASE
-                </button>
-
-                {songSortType !== 'likes' && (
-                    <div className="flex items-center gap-4 w-full md:w-auto">
-                        <div className="flex bg-neutral-200 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none p-1 shrink-0">
-                            <button onClick={() => setSongSortType('plays')} className={`px-3 py-1 text-[10px] rounded-none font-mono uppercase transition ${songSortType === 'plays' ? 'bg-purple-600 text-white' : 'text-neutral-500 hover:text-black dark:hover:text-white'}`}>Top_Plays</button>
-                            <button onClick={() => setSongSortType('date')} className={`px-3 py-1 text-[10px] rounded-none font-mono uppercase transition ${songSortType === 'date' ? 'bg-purple-600 text-white' : 'text-neutral-500 hover:text-black dark:hover:text-white'}`}>Newest_Uploads</button>
-                        </div>
-                        {currentView === 'songs_list' && <GlitchButton onClick={handleCleanupSongs} disabled={cleaning} className="bg-red-500/10 border-red-500/50 text-red-600 dark:text-red-400 dark:hover:!text-white px-4 py-2 text-xs rounded-none shrink-0">{cleaning ? <Loader2 className="animate-spin" size={14}/> : <Eraser size={14}/>} CLEANUP</GlitchButton>}
-                        <div className="relative w-full md:w-80">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" size={14}/>
-                            <input
-                                value={songSearchTerm}
-                                onChange={(e) => setSongSearchTerm(e.target.value)}
-                                placeholder="SEARCH_TRACK_DB..."
-                                className="w-full bg-neutral-100 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none pl-10 pr-4 py-2 text-xs font-mono text-neutral-900 dark:text-white outline-none focus:border-purple-500 transition-colors uppercase"
-                            />
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            <CyberCard className="bg-white dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none overflow-hidden backdrop-blur-sm">
-                <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center">
-                    <h3 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex items-center gap-2">{songViewIcon} {songViewTitle}</h3>
-                    <span className="text-[10px] text-neutral-500 font-mono bg-white dark:bg-black px-2 border border-neutral-300 dark:border-white/10 shrink-0">Records: {filteredSongs.length}</span>
-                </div>
-
-                {/* Container cuộn ngang: Ép w-full và overflow-x-auto */}
-                <div className="w-full overflow-x-auto custom-scrollbar max-h-[600px]">
-                    {/* min-w-[800px] đảm bảo bảng không bị bóp quá hẹp trên mobile, gây tràn text */}
-                    <table className="w-full min-w-[800px] text-left text-xs font-mono text-neutral-600 dark:text-neutral-400 table-fixed">
-                        <thead className="bg-neutral-200 dark:bg-black/40 text-neutral-700 dark:text-neutral-500 uppercase tracking-widest sticky top-0 z-10 backdrop-blur-md border-b border-neutral-300 dark:border-white/10">
-                            {songSortType === 'likes' ? (
-                                <tr>
-                                    <th className="px-6 py-3 w-[40%]">Track_ID</th>
-                                    <th className="px-6 py-3 w-[30%]">Artist</th>
-                                    <th className="px-6 py-3 w-[15%]">Likes</th>
-                                    <th className="px-6 py-3 w-[15%] text-right">Action</th>
-                                </tr>
-                            ) : (
-                                <tr>
-                                    <th className="px-6 py-3 w-[25%]">Track_ID</th>
-                                    <th className="px-6 py-3 w-[18%]">Artist</th>
-                                    <th className="px-6 py-3 w-[12%]">Uploader</th>
-                                    <th className="px-6 py-3 w-[12%]">Status</th>
-                                    <th className="px-6 py-3 w-[8%]">Plays</th>
-                                    <th className="px-6 py-3 w-[8%]">Likes</th>
-                                    <th className="px-6 py-3 w-[10%] text-right">Cmd</th>
-                                </tr>
-                            )}
-                        </thead>
-                        <tbody className="divide-y divide-neutral-200 dark:divide-white/5">
-                            {filteredSongs.map((song) => {
-                                const uploader = getUploaderInfo(song.user_id);
-                                return (
-                                    <tr key={song.id} className="hover:bg-neutral-50 dark:hover:bg-white/5 transition group">
-                                        {songSortType === 'likes' ? (
-                                            <>
-                                                <td className="px-6 py-3 align-middle">
-                                                    <div className="flex items-center gap-3 min-w-0">
-                                                        <div className="w-8 h-8 rounded-none bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 overflow-hidden shrink-0 relative">
-                                                            {song.image_url ? (
-                                                                <img src={song.image_url} className="w-full h-full object-cover" alt=""/>
-                                                            ) : (
-                                                                <div className="w-full h-full flex items-center justify-center text-neutral-400"><Music size={12}/></div>
-                                                            )}
-                                                        </div>
-                                                        <div className="flex flex-col min-w-0 overflow-hidden">
-                                                            <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold block" title={song.title}>
-                                                                {song.title}
-                                                            </span>
-                                                            <span className="text-[10px] text-neutral-500 truncate opacity-60">
-                                                                ID: {String(song.id).slice(0, 8)}...
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-3 align-middle uppercase truncate max-w-[150px]" title={song.author}>
-                                                    {song.author}
-                                                </td>
-                                                <td className="px-6 py-3 align-middle whitespace-nowrap">
-                                                    <span className="text-red-600 dark:text-red-500 font-bold bg-red-500/10 px-2 flex items-center gap-1">
-                                                        <Heart size={10} fill="currentColor" /> {song.like_count || 0}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-3 text-right align-middle shrink-0">
-                                                    <button
-                                                        onClick={() => { setSelectedSongForLikes(song); setIsLikedUsersModalOpen(true); }}
-                                                        className="p-2 text-neutral-400 hover:text-red-500 transition-colors"
-                                                    >
-                                                        <Eye size={14} />
-                                                    </button>
-                                                </td>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <td className="px-6 py-3 align-middle">
-                                                    <div className="flex items-center gap-3 min-w-0">
-                                                        <div className="w-8 h-8 rounded-none bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 overflow-hidden shrink-0 relative">
-                                                            {song.image_url ? (
-                                                                <img src={song.image_url} className="w-full h-full object-cover" alt=""/>
-                                                            ) : (
-                                                                <div className="w-full h-full flex items-center justify-center text-neutral-400"><Music size={12}/></div>
-                                                            )}
-                                                        </div>
-                                                        <div className="flex flex-col min-w-0 overflow-hidden">
-                                                            <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold block" title={song.title}>
-                                                                {song.title}
-                                                            </span>
-                                                            <span className="text-[10px] text-neutral-500 truncate opacity-60">
-                                                                ID: {String(song.id).slice(0, 8)}...
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-3 align-middle uppercase truncate max-w-[150px]" title={song.author}>
-                                                    {song.author}
-                                                </td>
-                                                <td className="px-6 py-3 align-middle">
-                                                    <div className="max-w-[120px] truncate">
-                                                        <span className={`text-[9px] px-2 py-0.5 rounded-none border font-bold uppercase ${uploader.role === 'admin' ? 'border-yellow-500/30 text-yellow-600 bg-yellow-500/5' : 'border-blue-500/30 text-blue-600 bg-blue-500/5'}`}>
-                                                            {uploader.name}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-3 align-middle font-bold text-[10px] uppercase whitespace-nowrap">
-                                                    {song.is_denied ? (
-                                                        <span className="text-red-500 flex items-center gap-1"><Lock size={12}/> DENIED</span>
-                                                    ) : song.is_public ? (
-                                                        <span className="text-emerald-500 flex items-center gap-1"><Globe size={12}/> PUB</span>
-                                                    ) : (
-                                                        <span className="text-amber-500 flex items-center gap-1"><Clock size={12}/> PEND</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-3 align-middle whitespace-nowrap">
-                                                    <span className="text-emerald-600 dark:text-emerald-500 font-bold bg-emerald-500/10 px-2">
-                                                        {song.play_count}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-3 align-middle whitespace-nowrap">
-                                                    {song.like_count > 0 ? (
-                                                        <span className="text-red-600 dark:text-red-500 font-bold bg-red-500/10 px-2 flex items-center gap-1">
-                                                            <Heart size={10} fill="currentColor" /> {song.like_count}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-neutral-400 font-mono text-[10px]">0</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-3 text-right align-middle shrink-0">
-                                                    <div className="flex justify-end items-center gap-1">
-                                                        <button
-                                                            onClick={() => { setSelectedSong(song); setIsTrackModalOpen(true); }}
-                                                            className="p-2 text-neutral-400 hover:text-emerald-500 transition-colors"
-                                                        >
-                                                            <Eye size={14} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeleteSong(song.id)}
-                                                            className="p-2 text-neutral-400 hover:text-red-500 transition-colors"
-                                                        >
-                                                            <Trash2 size={14} />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </>
-                                        )}
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-            </CyberCard>
-        </div>
-    )}
-
-    {currentView === 'approval_module' && (() => {
-        // Tiền xử lý danh sách bài hát dựa trên Tab và Tìm kiếm
-        const currentFilteredSongs = allSongsList.filter(song => {
-            // 1. Logic tìm kiếm (giữ nguyên)
-            const matchesSearch = 
-                (song.title || "").toLowerCase().includes((songSearchTerm || "").toLowerCase()) || 
-                (song.author || "").toLowerCase().includes((songSearchTerm || "").toLowerCase());
-            if (!matchesSearch) return false;
-
-            // 2. Logic Filter theo Tab (QUAN TRỌNG NHẤT)
-            if (approvalFilter === 'pending') {
-                // Hiện những bài chưa được duyệt (is_verified = false) và chưa bị từ chối
-                return song.is_verified === false && song.is_denied === false;
-            }
-            if (approvalFilter === 'approved') {
-                // Hiện những bài đã duyệt (is_verified = true)
-                return song.is_verified === true;
-            }
-            if (approvalFilter === 'denied') {
-                // Hiện những bài đã bị từ chối
-                return song.is_denied === true;
-            }
-            return true;
-        });
-
-        return (
-            <div className="animate-in slide-in-from-bottom-4 duration-500 space-y-6">
-                {/* TOP BAR: Back Button & Search */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        {/* SONG TABLES */}
+        {isSongTableView && (
+            /* Thêm w-full và overflow-hidden ở div bao ngoài cùng */
+            <div className="w-full overflow-hidden animate-in fade-in slide-in-from-bottom-4 p-2 duration-500">
+                <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
                     <button 
-                        onClick={() => { setCurrentView('dashboard'); setSongSearchTerm(""); setSelectedSongIds([]); }} 
+                        onClick={() => { setCurrentView('dashboard'); setSongSearchTerm(""); }} 
                         className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white font-mono text-xs uppercase tracking-widest border border-transparent hover:border-neutral-500 px-3 py-1 transition-all"
                     >
                         <ArrowLeft size={14}/> RETURN_TO_BASE
                     </button>
 
-                    <div className="relative w-full md:w-80">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" size={14}/>
-                        <input 
-                            value={songSearchTerm} 
-                            onChange={(e) => setSongSearchTerm(e.target.value)} 
-                            placeholder="SEARCH_IN_PENDING..." 
-                            className="w-full bg-neutral-100 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none pl-10 pr-4 py-2 text-xs font-mono text-neutral-900 dark:text-white outline-none focus:border-emerald-500 transition-colors uppercase placeholder:text-[10px]"
-                        />
-                    </div>
-                </div>
-
-                {/* BULK TOOLBAR & FILTERS */}
-                <div className="flex flex-col md:flex-row gap-4 justify-between items-end md:items-center bg-neutral-100 dark:bg-white/5 p-2 border border-neutral-300 dark:border-white/10">
-                    <div className="flex gap-2">
-                        {['pending', 'approved', 'denied'].map((tab) => (
-                            <button 
-                                key={tab}
-                                onClick={() => { setApprovalFilter(tab); setSelectedSongIds([]); }}
-                                className={`px-4 py-2 text-[10px] font-mono uppercase transition-all ${
-                                    approvalFilter === tab 
-                                    ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]' 
-                                    : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-white'
-                                }`}
-                            >
-                                {tab}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Bulk Actions Menu */}
-                    <div className="flex items-center gap-3">
-                        <button 
-                            onClick={() => handleSelectAll(currentFilteredSongs)}
-                            className="text-[10px] font-mono uppercase text-emerald-600 dark:text-emerald-500 hover:underline"
-                        >
-                            {selectedSongIds.length === currentFilteredSongs.length ? "[ UNSELECT_ALL ]" : "[ SELECT_ALL_VISIBLE ]"}
-                        </button>
-                        
-                        {selectedSongIds.length > 0 && (
-                            <div className="flex gap-2 animate-in fade-in zoom-in duration-200">
-                                <button 
-                                    onClick={() => handleBulkAction('approve')}
-                                    className="bg-emerald-500 text-black px-3 py-1.5 text-[10px] font-bold uppercase hover:bg-emerald-400"
-                                >
-                                    APPROVE ({selectedSongIds.length})
-                                </button>
-                                <button 
-                                    onClick={() => handleBulkAction('deny')}
-                                    className="bg-red-600 text-white px-3 py-1.5 text-[10px] font-bold uppercase hover:bg-red-500"
-                                >
-                                    DENY
-                                </button>
+                    {songSortType !== 'likes' && (
+                        <div className="flex items-center gap-4 w-full md:w-auto">
+                            <div className="flex bg-neutral-200 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none p-1 shrink-0">
+                                <button onClick={() => setSongSortType('plays')} className={`px-3 py-1 text-[10px] rounded-none font-mono uppercase transition ${songSortType === 'plays' ? 'bg-purple-600 text-white' : 'text-neutral-500 hover:text-black dark:hover:text-white'}`}>Top_Plays</button>
+                                <button onClick={() => setSongSortType('date')} className={`px-3 py-1 text-[10px] rounded-none font-mono uppercase transition ${songSortType === 'date' ? 'bg-purple-600 text-white' : 'text-neutral-500 hover:text-black dark:hover:text-white'}`}>Newest_Uploads</button>
                             </div>
-                        )}
-                    </div>
+                            {currentView === 'songs_list' && <GlitchButton onClick={handleCleanupSongs} disabled={cleaning} className="bg-red-500/10 border-red-500/50 text-red-600 dark:text-red-400 dark:hover:!text-white px-4 py-2 text-xs rounded-none shrink-0">{cleaning ? <Loader2 className="animate-spin" size={14}/> : <Eraser size={14}/>} CLEANUP</GlitchButton>}
+                            <div className="relative w-full md:w-80">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" size={14}/>
+                                <input
+                                    value={songSearchTerm}
+                                    onChange={(e) => setSongSearchTerm(e.target.value)}
+                                    placeholder="SEARCH_TRACK_DB..."
+                                    className="w-full bg-neutral-100 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none pl-10 pr-4 py-2 text-xs font-mono text-neutral-900 dark:text-white outline-none focus:border-purple-500 transition-colors uppercase"
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                {/* Danh sách Card bài hát */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {currentFilteredSongs.map((song) => {
-                        const isSelected = selectedSongIds.includes(song.id);
-                        
-                        // Lấy thông tin nhãn yêu cầu (Action Label)
-                        const actionInfo = getActionLabel(song.pending_action);
-                        // Lấy thông tin người upload/ yêu cầu để hiển thị cho admin
-                        const requester = getUploaderInfo(song.user_id);
+                <CyberCard className="bg-white dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none overflow-hidden backdrop-blur-sm">
+                    <div className="p-4 border-b border-neutral-300 dark:border-white/10 bg-neutral-100 dark:bg-white/5 flex justify-between items-center">
+                        <h3 className="text-neutral-900 dark:text-white font-mono text-sm uppercase tracking-wider flex items-center gap-2">{songViewIcon} {songViewTitle}</h3>
+                        <span className="text-[10px] text-neutral-500 font-mono bg-white dark:bg-black px-2 border border-neutral-300 dark:border-white/10 shrink-0">Records: {filteredSongs.length}</span>
+                    </div>
 
-                        return (
-                            <div 
-                                key={song.id} 
-                                className={`relative bg-white dark:bg-neutral-900 border transition-all duration-300 p-4 group ${
-                                    isSelected 
-                                    ? 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.1)]' 
-                                    : 'border-neutral-300 dark:border-white/10 hover:border-neutral-400 dark:hover:border-white/30'
-                                }`}
+                    {/* Container cuộn ngang: Ép w-full và overflow-x-auto */}
+                    <div className="w-full overflow-x-auto custom-scrollbar max-h-[600px]">
+                        {/* min-w-[800px] đảm bảo bảng không bị bóp quá hẹp trên mobile, gây tràn text */}
+                        <table className="w-full min-w-[800px] text-left text-xs font-mono text-neutral-600 dark:text-neutral-400 table-fixed">
+                            <thead className="bg-neutral-200 dark:bg-black/40 text-neutral-700 dark:text-neutral-500 uppercase tracking-widest sticky top-0 z-10 backdrop-blur-md border-b border-neutral-300 dark:border-white/10">
+                                {songSortType === 'likes' ? (
+                                    <tr>
+                                        <th className="px-6 py-3 w-[40%]">Track_ID</th>
+                                        <th className="px-6 py-3 w-[30%]">Artist</th>
+                                        <th className="px-6 py-3 w-[15%]">Likes</th>
+                                        <th className="px-6 py-3 w-[15%] text-right">Action</th>
+                                    </tr>
+                                ) : (
+                                    <tr>
+                                        <th className="px-6 py-3 w-[25%]">Track_ID</th>
+                                        <th className="px-6 py-3 w-[18%]">Artist</th>
+                                        <th className="px-6 py-3 w-[12%]">Uploader</th>
+                                        <th className="px-6 py-3 w-[12%]">Status</th>
+                                        <th className="px-6 py-3 w-[8%]">Plays</th>
+                                        <th className="px-6 py-3 w-[8%]">Likes</th>
+                                        <th className="px-6 py-3 w-[10%] text-right">Cmd</th>
+                                    </tr>
+                                )}
+                            </thead>
+                            <tbody className="divide-y divide-neutral-200 dark:divide-white/5">
+                                {filteredSongs.map((song) => {
+                                    const uploader = getUploaderInfo(song.user_id);
+                                    return (
+                                        <tr key={song.id} className="hover:bg-neutral-50 dark:hover:bg-white/5 transition group">
+                                            {songSortType === 'likes' ? (
+                                                <>
+                                                    <td className="px-6 py-3 align-middle">
+                                                        <div className="flex items-center gap-3 min-w-0">
+                                                            <div className="w-8 h-8 rounded-none bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 overflow-hidden shrink-0 relative">
+                                                                {song.image_url ? (
+                                                                    <img src={song.image_url} className="w-full h-full object-cover" alt=""/>
+                                                                ) : (
+                                                                    <div className="w-full h-full flex items-center justify-center text-neutral-400"><Music size={12}/></div>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex flex-col min-w-0 overflow-hidden">
+                                                                <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold block" title={song.title}>
+                                                                    {song.title}
+                                                                </span>
+                                                                <span className="text-[10px] text-neutral-500 truncate opacity-60">
+                                                                    ID: {String(song.id).slice(0, 8)}...
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-3 align-middle uppercase truncate max-w-[150px]" title={song.author}>
+                                                        {song.author}
+                                                    </td>
+                                                    <td className="px-6 py-3 align-middle whitespace-nowrap">
+                                                        <span className="text-red-600 dark:text-red-500 font-bold bg-red-500/10 px-2 flex items-center gap-1">
+                                                            <Heart size={10} fill="currentColor" /> {song.like_count || 0}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-3 text-right align-middle shrink-0">
+                                                        <button
+                                                            onClick={() => { setSelectedSongForLikes(song); setIsLikedUsersModalOpen(true); }}
+                                                            className="p-2 text-neutral-400 hover:text-red-500 transition-colors"
+                                                        >
+                                                            <Eye size={14} />
+                                                        </button>
+                                                    </td>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <td className="px-6 py-3 align-middle">
+                                                        <div className="flex items-center gap-3 min-w-0">
+                                                            <div className="w-8 h-8 rounded-none bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/10 overflow-hidden shrink-0 relative">
+                                                                {song.image_url ? (
+                                                                    <img src={song.image_url} className="w-full h-full object-cover" alt=""/>
+                                                                ) : (
+                                                                    <div className="w-full h-full flex items-center justify-center text-neutral-400"><Music size={12}/></div>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex flex-col min-w-0 overflow-hidden">
+                                                                <span className="truncate text-neutral-800 dark:text-neutral-200 font-bold block" title={song.title}>
+                                                                    {song.title}
+                                                                </span>
+                                                                <span className="text-[10px] text-neutral-500 truncate opacity-60">
+                                                                    ID: {String(song.id).slice(0, 8)}...
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-3 align-middle uppercase truncate max-w-[150px]" title={song.author}>
+                                                        {song.author}
+                                                    </td>
+                                                    <td className="px-6 py-3 align-middle">
+                                                        <div className="max-w-[120px] truncate">
+                                                            <span className={`text-[9px] px-2 py-0.5 rounded-none border font-bold uppercase ${uploader.role === 'admin' ? 'border-yellow-500/30 text-yellow-600 bg-yellow-500/5' : 'border-blue-500/30 text-blue-600 bg-blue-500/5'}`}>
+                                                                {uploader.name}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-3 align-middle font-bold text-[10px] uppercase whitespace-nowrap">
+                                                        {song.is_denied ? (
+                                                            <span className="text-red-500 flex items-center gap-1"><Lock size={12}/> DENIED</span>
+                                                        ) : song.is_public ? (
+                                                            <span className="text-emerald-500 flex items-center gap-1"><Globe size={12}/> PUB</span>
+                                                        ) : (
+                                                            <span className="text-amber-500 flex items-center gap-1"><Clock size={12}/> PEND</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-3 align-middle whitespace-nowrap">
+                                                        <span className="text-emerald-600 dark:text-emerald-500 font-bold bg-emerald-500/10 px-2">
+                                                            {song.play_count}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-3 align-middle whitespace-nowrap">
+                                                        {song.like_count > 0 ? (
+                                                            <span className="text-red-600 dark:text-red-500 font-bold bg-red-500/10 px-2 flex items-center gap-1">
+                                                                <Heart size={10} fill="currentColor" /> {song.like_count}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-neutral-400 font-mono text-[10px]">0</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-3 text-right align-middle shrink-0">
+                                                        <div className="flex justify-end items-center gap-1">
+                                                            <button
+                                                                onClick={() => { setSelectedSong(song); setIsTrackModalOpen(true); }}
+                                                                className="p-2 text-neutral-400 hover:text-emerald-500 transition-colors"
+                                                            >
+                                                                <Eye size={14} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteSong(song.id)}
+                                                                className="p-2 text-neutral-400 hover:text-red-500 transition-colors"
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </>
+                                            )}
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </CyberCard>
+            </div>
+        )}
+
+        {currentView === 'approval_module' && (() => {
+            // Tiền xử lý danh sách bài hát dựa trên Tab và Tìm kiếm
+            const currentFilteredSongs = allSongsList.filter(song => {
+                // 1. Logic tìm kiếm (giữ nguyên)
+                const matchesSearch = 
+                    (song.title || "").toLowerCase().includes((songSearchTerm || "").toLowerCase()) || 
+                    (song.author || "").toLowerCase().includes((songSearchTerm || "").toLowerCase());
+                if (!matchesSearch) return false;
+
+                // 2. Logic Filter theo Tab (QUAN TRỌNG NHẤT)
+                if (approvalFilter === 'pending') {
+                    // Hiện những bài chưa được duyệt (is_verified = false) và chưa bị từ chối
+                    return song.is_verified === false && song.is_denied === false;
+                }
+                if (approvalFilter === 'approved') {
+                    // Hiện những bài đã duyệt (is_verified = true)
+                    return song.is_verified === true;
+                }
+                if (approvalFilter === 'denied') {
+                    // Hiện những bài đã bị từ chối
+                    return song.is_denied === true;
+                }
+                return true;
+            });
+
+            return (
+                <div className="animate-in slide-in-from-bottom-4 duration-500 space-y-6">
+                    {/* TOP BAR: Back Button & Search */}
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <button 
+                            onClick={() => { setCurrentView('dashboard'); setSongSearchTerm(""); setSelectedSongIds([]); }} 
+                            className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white font-mono text-xs uppercase tracking-widest border border-transparent hover:border-neutral-500 px-3 py-1 transition-all"
+                        >
+                            <ArrowLeft size={14}/> RETURN_TO_BASE
+                        </button>
+
+                        <div className="relative w-full md:w-80">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" size={14}/>
+                            <input 
+                                value={songSearchTerm} 
+                                onChange={(e) => setSongSearchTerm(e.target.value)} 
+                                placeholder="SEARCH_IN_PENDING..." 
+                                className="w-full bg-neutral-100 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none pl-10 pr-4 py-2 text-xs font-mono text-neutral-900 dark:text-white outline-none focus:border-emerald-500 transition-colors uppercase placeholder:text-[10px]"
+                            />
+                        </div>
+                    </div>
+
+                    {/* BULK TOOLBAR & FILTERS */}
+                    <div className="flex flex-col md:flex-row gap-4 justify-between items-end md:items-center bg-neutral-100 dark:bg-white/5 p-2 border border-neutral-300 dark:border-white/10">
+                        <div className="flex gap-2">
+                            {['pending', 'approved', 'denied'].map((tab) => (
+                                <button 
+                                    key={tab}
+                                    onClick={() => { setApprovalFilter(tab); setSelectedSongIds([]); }}
+                                    className={`px-4 py-2 text-[10px] font-mono uppercase transition-all ${
+                                        approvalFilter === tab 
+                                        ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]' 
+                                        : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-white'
+                                    }`}
+                                >
+                                    {tab}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Bulk Actions Menu */}
+                        <div className="flex items-center gap-3">
+                            <button 
+                                onClick={() => handleSelectAll(currentFilteredSongs)}
+                                className="text-[10px] font-mono uppercase text-emerald-600 dark:text-emerald-500 hover:underline"
                             >
-                                {/* 1. Bảng thông báo yêu cầu (Góc trên bên phải) */}
-                                <div className="absolute top-2 right-2 z-20 flex flex-col items-end gap-1">
-                                    <span className={`text-[8px] font-mono px-2 py-0.5 border font-bold tracking-tighter ${actionInfo.color} shadow-sm`}>
-                                        {actionInfo.label}
-                                    </span>
-                                    {/* Người yêu cầu (uploader) */}
-                                    <span className="text-[9px] font-mono text-neutral-700 dark:text-neutral-300 bg-white dark:bg-black/20 px-2 py-0.5 uppercase border border-neutral-200 dark:border-white/10">
-                                        Requested: {requester?.name || 'Unknown'}
-                                    </span>
-                                    {/* Badge trạng thái phụ để Admin biết hiện tại bài đang là gì */}
-                                    <span className="text-[7px] font-mono text-neutral-500 bg-neutral-100 dark:bg-white/5 px-1 uppercase border border-neutral-300 dark:border-white/10">
-                                        Current: {song.is_public ? 'Public' : 'Private'}
-                                    </span>
+                                {selectedSongIds.length === currentFilteredSongs.length ? "[ UNSELECT_ALL ]" : "[ SELECT_ALL_VISIBLE ]"}
+                            </button>
+                            
+                            {selectedSongIds.length > 0 && (
+                                <div className="flex gap-2 animate-in fade-in zoom-in duration-200">
+                                    <button 
+                                        onClick={() => handleBulkAction('approve')}
+                                        className="bg-emerald-500 text-black px-3 py-1.5 text-[10px] font-bold uppercase hover:bg-emerald-400"
+                                    >
+                                        APPROVE ({selectedSongIds.length})
+                                    </button>
+                                    <button 
+                                        onClick={() => handleBulkAction('deny')}
+                                        className="bg-red-600 text-white px-3 py-1.5 text-[10px] font-bold uppercase hover:bg-red-500"
+                                    >
+                                        DENY
+                                    </button>
                                 </div>
+                            )}
+                        </div>
+                    </div>
 
-                                {/* Checkbox Layer (Click vào phần trống của Card để chọn) */}
+                    {/* Danh sách Card bài hát */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {currentFilteredSongs.map((song) => {
+                            const isSelected = selectedSongIds.includes(song.id);
+                            
+                            // Lấy thông tin nhãn yêu cầu (Action Label)
+                            const actionInfo = getActionLabel(song.pending_action);
+                            // Lấy thông tin người upload/ yêu cầu để hiển thị cho admin
+                            const requester = getUploaderInfo(song.user_id);
+
+                            return (
                                 <div 
-                                    className="absolute top-0 left-0 w-full h-full z-10 cursor-pointer" 
-                                    onClick={() => {
-                                        setSelectedSongIds(prev => 
-                                            isSelected ? prev.filter(id => id !== song.id) : [...prev, song.id]
-                                        );
-                                    }}
-                                />
-
-                                <div className="flex gap-4 relative z-0">
-                                    {/* 2. Custom Checkbox UI */}
-                                    <div className={`absolute -top-2 -left-2 w-5 h-5 border flex items-center justify-center z-20 transition-colors ${
-                                        isSelected ? 'bg-emerald-500 border-emerald-500 text-black' : 'bg-white dark:bg-black border-neutral-400 dark:border-white/20'
-                                    }`}>
-                                        {isSelected && <CheckCircle2 size={14} />}
+                                    key={song.id} 
+                                    className={`relative bg-white dark:bg-neutral-900 border transition-all duration-300 p-4 group ${
+                                        isSelected 
+                                        ? 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.1)]' 
+                                        : 'border-neutral-300 dark:border-white/10 hover:border-neutral-400 dark:hover:border-white/30'
+                                    }`}
+                                >
+                                    {/* 1. Bảng thông báo yêu cầu (Góc trên bên phải) */}
+                                    <div className="absolute top-2 right-2 z-20 flex flex-col items-end gap-1">
+                                        <span className={`text-[8px] font-mono px-2 py-0.5 border font-bold tracking-tighter ${actionInfo.color} shadow-sm`}>
+                                            {actionInfo.label}
+                                        </span>
+                                        {/* Người yêu cầu (uploader) */}
+                                        <span className="text-[9px] font-mono text-neutral-700 dark:text-neutral-300 bg-white dark:bg-black/20 px-2 py-0.5 uppercase border border-neutral-200 dark:border-white/10">
+                                            Requested: {requester?.name || 'Unknown'}
+                                        </span>
+                                        {/* Badge trạng thái phụ để Admin biết hiện tại bài đang là gì */}
+                                        <span className="text-[7px] font-mono text-neutral-500 bg-neutral-100 dark:bg-white/5 px-1 uppercase border border-neutral-300 dark:border-white/10">
+                                            Current: {song.is_public ? 'Public' : 'Private'}
+                                        </span>
                                     </div>
 
-                                    <div className="w-16 h-16 bg-neutral-200 dark:bg-black border border-neutral-300 dark:border-white/10 overflow-hidden relative shrink-0">
-                                        <img src={song.image_url} className={`w-full h-full object-cover transition-all duration-500 ${isSelected ? 'grayscale-0 scale-110' : 'grayscale group-hover:grayscale-0'}`} />
-                                        <ScanlineOverlay />
-                                    </div>
+                                    {/* Checkbox Layer (Click vào phần trống của Card để chọn) */}
+                                    <div 
+                                        className="absolute top-0 left-0 w-full h-full z-10 cursor-pointer" 
+                                        onClick={() => {
+                                            setSelectedSongIds(prev => 
+                                                isSelected ? prev.filter(id => id !== song.id) : [...prev, song.id]
+                                            );
+                                        }}
+                                    />
 
-                                    <div className="min-w-0 flex-1 flex flex-col justify-center pr-16"> {/* pr-16 để tránh đè lên nhãn yêu cầu */}
-                                        <h4 className={`font-bold font-mono text-sm truncate uppercase tracking-tighter transition-colors ${isSelected ? 'text-emerald-500' : 'text-neutral-900 dark:text-white'}`}>
-                                            {song.title}
-                                        </h4>
-                                        <p className="text-neutral-500 text-[10px] font-mono truncate">{song.author}</p>
-                                        
-                                        <div className="mt-2 flex items-center gap-2">
-                                            <span className="text-[8px] text-neutral-400 font-mono bg-neutral-100 dark:bg-white/5 px-1 border border-neutral-200 dark:border-white/10">
-                                                ID: {String(song.id).slice(0, 8)}
-                                            </span>
+                                    <div className="flex gap-4 relative z-0">
+                                        {/* 2. Custom Checkbox UI */}
+                                        <div className={`absolute -top-2 -left-2 w-5 h-5 border flex items-center justify-center z-20 transition-colors ${
+                                            isSelected ? 'bg-emerald-500 border-emerald-500 text-black' : 'bg-white dark:bg-black border-neutral-400 dark:border-white/20'
+                                        }`}>
+                                            {isSelected && <CheckCircle2 size={14} />}
+                                        </div>
+
+                                        <div className="w-16 h-16 bg-neutral-200 dark:bg-black border border-neutral-300 dark:border-white/10 overflow-hidden relative shrink-0">
+                                            <img src={song.image_url} className={`w-full h-full object-cover transition-all duration-500 ${isSelected ? 'grayscale-0 scale-110' : 'grayscale group-hover:grayscale-0'}`} />
+                                            <ScanlineOverlay />
+                                        </div>
+
+                                        <div className="min-w-0 flex-1 flex flex-col justify-center pr-16"> {/* pr-16 để tránh đè lên nhãn yêu cầu */}
+                                            <h4 className={`font-bold font-mono text-sm truncate uppercase tracking-tighter transition-colors ${isSelected ? 'text-emerald-500' : 'text-neutral-900 dark:text-white'}`}>
+                                                {song.title}
+                                            </h4>
+                                            <p className="text-neutral-500 text-[10px] font-mono truncate">{song.author}</p>
+                                            
+                                            <div className="mt-2 flex items-center gap-2">
+                                                <span className="text-[8px] text-neutral-400 font-mono bg-neutral-100 dark:bg-white/5 px-1 border border-neutral-200 dark:border-white/10">
+                                                    ID: {String(song.id).slice(0, 8)}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
+
+                                    {/* 3. Nút Inspect - Nổi lên trên cùng (z-20) */}
+                                    <button 
+                                        onClick={(e) => { 
+                                            e.stopPropagation(); 
+                                            setSelectedSong(song); 
+                                            setIsTrackModalOpen(true); 
+                                        }}
+                                        className="relative z-20 w-full mt-4 bg-neutral-100 dark:bg-white/5 border border-neutral-300 dark:border-white/10 hover:bg-emerald-500/20 text-neutral-600 dark:text-neutral-400 hover:text-emerald-600 dark:hover:text-emerald-400 text-[10px] font-mono py-2 uppercase flex items-center justify-center gap-2 transition-all shadow-sm"
+                                    >
+                                        <Eye size={12}/> Inspect_Protocol
+                                    </button>
+                                    
+                                    {/* 4. Thanh trạng thái dọc ở cạnh trái (Màu sắc theo is_verified/is_denied) */}
+                                    <div className={`absolute top-0 left-0 w-[2px] h-full ${
+                                        song.is_denied ? 'bg-red-500' : song.is_verified ? 'bg-emerald-500' : 'bg-amber-500'
+                                    }`} />
                                 </div>
-
-                                {/* 3. Nút Inspect - Nổi lên trên cùng (z-20) */}
-                                <button 
-                                    onClick={(e) => { 
-                                        e.stopPropagation(); 
-                                        setSelectedSong(song); 
-                                        setIsTrackModalOpen(true); 
-                                    }}
-                                    className="relative z-20 w-full mt-4 bg-neutral-100 dark:bg-white/5 border border-neutral-300 dark:border-white/10 hover:bg-emerald-500/20 text-neutral-600 dark:text-neutral-400 hover:text-emerald-600 dark:hover:text-emerald-400 text-[10px] font-mono py-2 uppercase flex items-center justify-center gap-2 transition-all shadow-sm"
-                                >
-                                    <Eye size={12}/> Inspect_Protocol
-                                </button>
-                                
-                                {/* 4. Thanh trạng thái dọc ở cạnh trái (Màu sắc theo is_verified/is_denied) */}
-                                <div className={`absolute top-0 left-0 w-[2px] h-full ${
-                                    song.is_denied ? 'bg-red-500' : song.is_verified ? 'bg-emerald-500' : 'bg-amber-500'
-                                }`} />
-                            </div>
-                        );
-                    })}
-                </div>
-
-                {/* Empty State */}
-                {currentFilteredSongs.length === 0 && (
-                    <div className="py-20 text-center border border-dashed border-neutral-300 dark:border-white/10">
-                        <p className="font-mono text-neutral-500 uppercase text-xs tracking-widest">No_Signals_In_This_Sector</p>
+                            );
+                        })}
                     </div>
-                )}
-            </div>
-        );
-    })()}
 
-    {/* VIEW: DB ARTISTS LIST */}
-    {currentView === 'db_artists_list' && (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="flex justify-between items-center mb-4">
-            <button onClick={() => setCurrentView('dashboard')} className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white font-mono text-xs uppercase tracking-widest border border-transparent hover:border-neutral-500 px-3 py-1 transition-all"><ArrowLeft size={14}/> RETURN</button>
-            <div className="flex items-center gap-4">
-                <GlitchButton onClick={handleCleanupArtists} disabled={cleaning} className="bg-red-500/10 border-red-500/50 text-red-600 dark:text-red-400 dark:hover:!text-white px-4 py-2 text-xs rounded-none">{cleaning ? <Loader2 className="animate-spin" size={14}/> : <Eraser size={14}/>} CLEANUP_DB</GlitchButton>
-                <div className="relative w-64"><Search className="absolute left-2 top-2 text-neutral-500" size={12}/><input value={artistSearchTerm} onChange={(e) => setArtistSearchTerm(e.target.value)} placeholder="SEARCH_ARTIST..." className="w-full bg-neutral-100 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none pl-8 py-1.5 text-xs text-neutral-900 dark:text-white outline-none focus:border-pink-500 placeholder:text-[10px]"/></div>
+                    {/* Empty State */}
+                    {currentFilteredSongs.length === 0 && (
+                        <div className="py-20 text-center border border-dashed border-neutral-300 dark:border-white/10">
+                            <p className="font-mono text-neutral-500 uppercase text-xs tracking-widest">No_Signals_In_This_Sector</p>
+                        </div>
+                    )}
+                </div>
+            );
+        })()}
+
+        {/* VIEW: DB ARTISTS LIST */}
+        {currentView === 'db_artists_list' && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex justify-between items-center mb-4">
+                <button onClick={() => setCurrentView('dashboard')} className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white font-mono text-xs uppercase tracking-widest border border-transparent hover:border-neutral-500 px-3 py-1 transition-all"><ArrowLeft size={14}/> RETURN</button>
+                <div className="flex items-center gap-4">
+                    <GlitchButton onClick={handleCleanupArtists} disabled={cleaning} className="bg-red-500/10 border-red-500/50 text-red-600 dark:text-red-400 dark:hover:!text-white px-4 py-2 text-xs rounded-none">{cleaning ? <Loader2 className="animate-spin" size={14}/> : <Eraser size={14}/>} CLEANUP_DB</GlitchButton>
+                    <div className="relative w-64"><Search className="absolute left-2 top-2 text-neutral-500" size={12}/><input value={artistSearchTerm} onChange={(e) => setArtistSearchTerm(e.target.value)} placeholder="SEARCH_ARTIST..." className="w-full bg-neutral-100 dark:bg-black/40 border border-neutral-300 dark:border-white/10 rounded-none pl-8 py-1.5 text-xs text-neutral-900 dark:text-white outline-none focus:border-pink-500 placeholder:text-[10px]"/></div>
+                </div>
             </div>
+            <CyberCard className="bg-white dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none overflow-hidden backdrop-blur-sm">
+                <div className="overflow-x-auto max-h-[600px]">
+                    <table className="w-full text-left text-xs font-mono text-neutral-600 dark:text-neutral-400">
+                        <thead className="bg-neutral-200 dark:bg-black/40 text-neutral-700 dark:text-neutral-500 sticky top-0 backdrop-blur-md uppercase tracking-widest border-b border-neutral-300 dark:border-white/10"><tr><th className="px-4 py-3">Artist_Entity</th><th className="px-4 py-3">Follow_Count</th><th className="px-4 py-3 text-right">Cmd</th></tr></thead>
+                        <tbody className="divide-y divide-neutral-200 dark:divide-white/5">
+                            {filteredArtists.map((artist, i) => (
+                                <tr key={i} className="hover:bg-neutral-50 dark:hover:bg-white/5 transition">
+                                    <td className="px-4 py-3 flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-none bg-neutral-200 dark:bg-neutral-800 overflow-hidden border border-neutral-300 dark:border-white/10 relative flex items-center justify-center">
+                                            {artist.image_url ? <img src={artist.image_url} className="w-full h-full object-cover"/> : <User size={14} className="text-neutral-400"/>}
+                                        </div>
+                                        <div className="flex flex-col"><span className="text-neutral-800 dark:text-neutral-200 font-bold uppercase">{artist.originalName}</span>{!artist.inDB && <span className="text-[8px] text-red-500 dark:text-red-400 border border-red-500/20 px-1 w-fit">SYNC_REQ</span>}</div>
+                                    </td>
+                                    <td className="px-4 py-3"><span className="text-pink-600 dark:text-pink-500 font-bold">{artist.followers}</span></td>
+                                    <td className="px-4 py-3 text-right">{artist.id && <button onClick={() => handleDeleteDbArtist(artist.id)} className="hover:text-red-500 p-2"><Trash2 size={14}/></button>}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </CyberCard>
         </div>
-        <CyberCard className="bg-white dark:bg-black/20 border border-neutral-300 dark:border-white/10 rounded-none overflow-hidden backdrop-blur-sm">
-            <div className="overflow-x-auto max-h-[600px]">
-                <table className="w-full text-left text-xs font-mono text-neutral-600 dark:text-neutral-400">
-                    <thead className="bg-neutral-200 dark:bg-black/40 text-neutral-700 dark:text-neutral-500 sticky top-0 backdrop-blur-md uppercase tracking-widest border-b border-neutral-300 dark:border-white/10"><tr><th className="px-4 py-3">Artist_Entity</th><th className="px-4 py-3">Follow_Count</th><th className="px-4 py-3 text-right">Cmd</th></tr></thead>
-                    <tbody className="divide-y divide-neutral-200 dark:divide-white/5">
-                        {filteredArtists.map((artist, i) => (
-                            <tr key={i} className="hover:bg-neutral-50 dark:hover:bg-white/5 transition">
-                                <td className="px-4 py-3 flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-none bg-neutral-200 dark:bg-neutral-800 overflow-hidden border border-neutral-300 dark:border-white/10 relative">
-                                        {artist.image_url ? <img src={artist.image_url} className="w-full h-full object-cover"/> : <User size={14} className="text-neutral-400"/>}
-                                    </div>
-                                    <div className="flex flex-col"><span className="text-neutral-800 dark:text-neutral-200 font-bold uppercase">{artist.originalName}</span>{!artist.inDB && <span className="text-[8px] text-red-500 dark:text-red-400 border border-red-500/20 px-1 w-fit">SYNC_REQ</span>}</div>
-                                </td>
-                                <td className="px-4 py-3"><span className="text-pink-600 dark:text-pink-500 font-bold">{artist.followers}</span></td>
-                                <td className="px-4 py-3 text-right">{artist.id && <button onClick={() => handleDeleteDbArtist(artist.id)} className="hover:text-red-500 p-2"><Trash2 size={14}/></button>}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </CyberCard>
-    </div>
-    )}
-
-
+        )}
 
       <div className="mt-10 p-4 border border-yellow-500/20 bg-yellow-500/5 rounded-none flex items-center gap-3">
          <ShieldAlert className="text-yellow-600 dark:text-yellow-500" size={20} />

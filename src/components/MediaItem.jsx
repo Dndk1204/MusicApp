@@ -3,9 +3,6 @@
 import Image from "next/image";
 import useLoadImage from "@/hooks/useLoadImage";
 import Link from "next/link";
-// Import Scanline để đồng bộ hiệu ứng (nếu muốn), hoặc chỉ dùng CSS thuần cho nhẹ
-import { ScanlineOverlay } from "@/components/CyberComponents";
-import LikeButton from "./LikeButton";
 
 const formatDuration = (sec) => {
   if (!sec || sec === "--:--") return "";
@@ -101,11 +98,6 @@ const MediaItem = ({ data, onClick }) => {
               </>
             )}
         </div>
-      </div>
-
-      {/* 4. LIKE BUTTON */}
-      <div className="shrink-0">
-        <LikeButton songId={data.id} size={16} />
       </div>
     </div>
   );

@@ -116,7 +116,7 @@ const LikeButton = ({ songId, size = 20, className = "" }) => {
     <button
       onClick={handleLike}
       className={`
-        relative group flex items-center justify-center p-1.5 rounded-full transition-all duration-200
+        relative group flex items-center justify-center p-2 rounded-full transition-all duration-200
         hover:bg-neutral-200/50 dark:hover:bg-white/10 active:scale-95
         ${className}
       `}

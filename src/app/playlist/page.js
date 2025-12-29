@@ -346,8 +346,10 @@ export default function PlaylistPage() {
               className="px-4 py-0.5 md:px-8 md:py-1 bg-emerald-500/10 !border-emerald-500/50 dark:hover:!bg-emerald-500/20 !text-emerald-600 dark:!text-emerald-400 hover:!bg-emerald-500 hover:!text-white dark:hover:!text-white flex-1 md:flex-none justify-center"
           >
               {/* Thêm shrink-0 */}
-              <Play size={14} fill="currentColor" className="mr-1 shrink-0" /> 
-              <span className="text-[10px] md:text-xs whitespace-nowrap">PLAY_ALL</span>
+              <div className="hidden md:block">
+                <Play size={14} fill="currentColor" className="mr-1 shrink-0" />
+              </div> 
+              <span className="text-[8px] md:text-xs whitespace-nowrap">PLAY_ALL</span>
           </HoloButton>
 
           {/* NÚT SHUFFLE */}
@@ -356,25 +358,31 @@ export default function PlaylistPage() {
               className="px-4 py-0.5 md:px-8 md:py-1 bg-purple-500/10 !border-purple-500/30 text-purple-600 dark:!text-purple-400 hover:bg-purple-500 hover:!text-white flex-1 md:flex-none justify-center"
           >
               {/* Thêm shrink-0 */}
-              <Shuffle size={14} className="mr-1 shrink-0" /> 
-              <span className="text-[10px] md:text-xs whitespace-nowrap">SHUFFLE</span>
+              <div className="hidden md:block">
+                <Shuffle size={14} className="mr-1 shrink-0" />
+              </div>
+              <span className="text-[8px] md:text-xs whitespace-nowrap">SHUFFLE</span>
           </HoloButton>
 
           {/* NÚT ADD TRACK */}
           {isOwner && (
               <HoloButton onClick={() => setShowAddSongModal(true)} className="px-4 py-0.5 md:px-8 md:py-1 !border-cyan-500/30 dark:hover:!text-white hover:!text-white !text-cyan-600 hover:!bg-cyan-500 dark:hover:!bg-cyan-500/10 dark:!text-cyan-400 flex-1 md:flex-none justify-center">
                   {/* Thêm shrink-0 */}
-                  <Plus size={14} className="mr-1 shrink-0" /> 
-                  <span className="text-[10px] md:text-xs whitespace-nowrap">ADD_TRACK</span>
+                  <div className="hidden md:block">
+                    <Plus size={14} className="mr-1 shrink-0" />
+                  </div>
+                  <span className="text-[8px] md:text-xs whitespace-nowrap">ADD_TRACK</span>
               </HoloButton>
           )}
 
           {/* NÚT EDIT */}
           {isOwner && (
-              <HoloButton onClick={() => setShowEditModal(true)} className="px-4 py-0.5 md:px-8 md:py-1 !border-amber-500/30 dark:hover:!text-white hover:!text-white !text-amber-600 hover:!bg-amber-500 dark:hover:!bg-amber-500/10 dark:!text-amber-400 flex-1 md:flex-none justify-center">
+              <HoloButton onClick={() => setShowEditModal(true)} className="px-5 py-1 md:px-8 md:py-1.5 !border-amber-500/30 dark:hover:!text-white hover:!text-white !text-amber-600 hover:!bg-amber-500 dark:hover:!bg-amber-500/10 dark:!text-amber-400 flex-1 md:flex-none justify-center">
                   {/* Thêm shrink-0 */}
-                  <Edit2 size={14} className="mr-1 shrink-0" /> 
-                  <span className="text-[10px] md:text-xs whitespace-nowrap">EDIT</span>
+                  <div className="hidden md:block">
+                    <Edit2 size={14} className="mr-1 shrink-0" />
+                  </div>
+                  <span className="text-[8px] md:text-xs whitespace-nowrap">EDIT</span>
               </HoloButton>
           )}
       </div>
@@ -482,11 +490,11 @@ export default function PlaylistPage() {
                         </button>
                       ) : (
                         <div
-                          className="p-2 disabled text-neutral-600 dark:text-neutral-500 opacity-60"
+                          className="p-2 disabled text-neutral-600 dark:text-neutral-500 opacity-60 cursor-not-allowed"
                           title="You cannot remove songs from someone else's playlist"
                           aria-disabled="true"
                         >
-                          <Ban size={16} className="disabled" />
+                          <Ban size={16} className="disabled cursor-not-allowed pointer-events-none" />
                         </div>
                       )}
                     </td>

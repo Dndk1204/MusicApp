@@ -311,7 +311,7 @@ export default function AddSongModal({ playlistId, onClose, onAdded }) {
             <div className="flex gap-3">
                 <GlitchButton
                     onClick={onClose}
-                    className="text-[10px] md:text-xs px-4 md:px-6 py-3 border-red-400 dark:border-red/20 text-red-600 dark:text-red-400 hover:text-black dark:hover:text-white"
+                    className="text-[10px] md:text-xs px-4 md:px-6 py-3 border-red-400 dark:border-red/20 text-red-600 dark:text-red-400 hover:text-red-600 dark:hover:text-white"
                 >
                     ABORT
                 </GlitchButton>
