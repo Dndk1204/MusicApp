@@ -9,7 +9,6 @@ import usePlayer from "@/hooks/usePlayer";
 
 import { ScanlineOverlay, CyberCard } from "./CyberComponents";
 import HoverImagePreview from "@/components/HoverImagePreview";
-import LikeButton from "./LikeButton";
 
 const formatDuration = (sec) => {
   if (!sec || sec === "--:--") return "";
@@ -42,6 +41,7 @@ const SongItem = ({ data, onClick }) => {
 
   return (
     <CyberCard 
+      data-song-json={JSON.stringify(data)}
       className={`
         group relative p-0 
         bg-white dark:bg-neutral-900/40 
@@ -108,8 +108,8 @@ const SongItem = ({ data, onClick }) => {
                     {/* Nút Play hover (Chỉ hiện khi KHÔNG active) */}
                     {!isActive && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover/img:opacity-100 transition-all duration-300 backdrop-blur-[2px]">
-                          <div className="bg-emerald-500 text-black p-3 shadow-[0_0_20px_rgba(16,185,129,0.4)] transform scale-50 group-hover/img:scale-100 transition duration-300 border border-emerald-400">
-                              <Play size={24} fill="black" className="ml-1" />
+                          <div className="bg-emerald-500 text-white p-3 shadow-[0_0_20px_rgba(16,185,129,0.4)] transform scale-50 group-hover/img:scale-100 transition duration-300 border border-emerald-400">
+                              <Play size={24} fill="white" className="ml-1" />
                           </div>
                       </div>
                     )}
@@ -140,7 +140,6 @@ const SongItem = ({ data, onClick }) => {
               </div>
 
               <div className="flex items-center gap-2">
-                <LikeButton songId={data.id} size={14} />
                 <span className={`text-[10px] font-mono shrink-0 ${isActive ? 'text-emerald-500/70' : 'text-neutral-400 dark:text-neutral-500'}`}>
                   {formatDuration(data.duration)}
                 </span>

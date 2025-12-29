@@ -76,6 +76,7 @@ const SongSection = ({ title, songs, moreLink }) => {
         {songs.map((item, index) => (
           <div 
             key={item.id}
+            data-song-json={JSON.stringify(item)}
             className={`
               ${index < 3 ? "block" : "hidden"}
               ${index >= 3 && index < 5 ? "sm:block" : ""}
@@ -123,5 +124,4 @@ const SongSection = ({ title, songs, moreLink }) => {
   );
 };
 
-// 4. Bọc memo để ngăn chặn re-render khi volume thay đổi ở thanh Player
 export default memo(SongSection);

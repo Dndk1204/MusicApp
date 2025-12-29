@@ -253,8 +253,8 @@ const Sidebar = ({ children, className = "", isOpen = false, onClose = () => {} 
                         className={`
                             flex items-center gap-1.5 rounded-none
                             bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/30
-                            dark:!text-emerald-400 dark:hover:!text-white
-                            hover:bg-emerald-500 hover:!text-white hover:border-emerald-500
+                            dark:!text-emerald-400 hover:!text-white
+                            hover:bg-emerald-500 hover:border-emerald-500 !text-white
                             transition-all duration-300 group
                             ${isCollapsed ? 'md:!p-1.5 md:justify-center md:w-full' : '!px-2 !py-1'}
                         `}

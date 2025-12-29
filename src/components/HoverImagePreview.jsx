@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback, memo } from "react";
 import { createPortal } from "react-dom";
 import { ScanlineOverlay } from "@/components/CyberComponents";
 import { Volume2, VolumeX, Loader2, Disc, Activity } from "lucide-react"; 
@@ -59,6 +59,38 @@ const DigitalLine = ({ mouseX, mouseY, previewX, previewY }) => {
     );
 };
 
+const WaveVisualizer = memo(({ isPlaying }) => {
+    if (!isPlaying) return null;
+
+    return (
+        <div className="absolute bottom-2 left-2 flex items-end gap-[2px] h-10 z-30">
+            {[...Array(12)].map((_, i) => {
+                // Tạo một biến thể ngẫu nhiên cố định cho mỗi cột dựa trên index i
+                // để tránh việc gọi Math.random() mỗi khi re-render
+                const randomHeight = 15 + (i % 3) * 10 + (i % 2) * 5; 
+                
+                return (
+                    <motion.div 
+                        key={i} 
+                        className="w-[3px] bg-emerald-600 dark:bg-emerald-500/80" 
+                        animate={{ 
+                            height: [4, randomHeight, 4],
+                            opacity: [0.6, 1, 0.6]
+                        }} 
+                        transition={{ 
+                            repeat: Infinity, 
+                            duration: 0.5 + (i % 4) * 0.1, // Thời gian khác nhau cho sinh động
+                            delay: i * 0.05 
+                        }} 
+                    />
+                );
+            })}
+        </div>
+    );
+});
+
+WaveVisualizer.displayName = "WaveVisualizer";
+
 const HoverImagePreview = ({ 
     src, 
     alt, 
@@ -87,6 +119,14 @@ const HoverImagePreview = ({
         checkMobile();
         return () => stopAudioImmediate();
     }, []);
+
+    useEffect(() => {
+        // Nếu nhạc ở Player chính bắt đầu chạy (player.isPlaying === true)
+        // Và nhạc Preview cũng đang chạy (status !== "idle")
+        if (player.isPlaying && status !== "idle") {
+            stopAudioImmediate(); // Dừng ngay lập tức nhạc preview
+        }
+    }, [player.isPlaying, status]);
 
     // --- AUDIO LOGIC ---
     const playPreview = () => {
@@ -138,7 +178,7 @@ const HoverImagePreview = ({
         isHoveringRef.current = true;
         playTimeoutRef.current = setTimeout(() => {
             if (isHoveringRef.current) playPreview();
-        }, 400);
+        }, 1500);
     };
 
     const handleMouseMove = (e) => {
@@ -246,19 +286,7 @@ const HoverImagePreview = ({
                                 {/* SCANLINE LỚP PHỦ */}
                                 <ScanlineOverlay className="opacity-[0.05] dark:opacity-100" />
 
-                                {/* WAVE VISUALIZER */}
-                                {status === "playing" && (
-                                    <div className="absolute bottom-2 left-2 flex items-end gap-[2px] h-10 z-30">
-                                        {[...Array(12)].map((_, i) => (
-                                            <motion.div 
-                                                key={i} 
-                                                className="w-[3px] bg-emerald-600 dark:bg-emerald-500/80" 
-                                                animate={{ height: [4, Math.random() * 30 + 5, 4] }} 
-                                                transition={{ repeat: Infinity, duration: 0.4, delay: i * 0.05 }} 
-                                            />
-                                        ))}
-                                    </div>
-                                )}
+                                <WaveVisualizer isPlaying={status === "playing"} />
                             </div>
 
                             {/* CYBER HEADER (Thanh tiêu đề nhỏ phía trên) */}

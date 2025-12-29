@@ -230,7 +230,7 @@ export default function EditPlaylistModal({ playlist, onClose, onUpdated, onDele
             <GlitchButton 
                 onClick={handleDelete}
                 disabled={loading}
-                className="border-red-500 text-red-600 dark:text-red-500 bg-red-500/10 hover:!text-white text-xs px-6 py-3 rounded-none order-2 md:order-1"
+                className="border-red-500 text-red-600 dark:text-red-500 bg-red-500/10 hover:!text-red-500 dark:hover:!text-white text-xs px-6 py-3 rounded-none order-2 md:order-1"
             >
                 <div className="flex items-center justify-center gap-2">
                     <Trash2 size={14} /> PURGE_DATA

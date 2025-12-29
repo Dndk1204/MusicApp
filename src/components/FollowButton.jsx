@@ -80,9 +80,6 @@ const FollowButton = ({ artistName, artistImage, onFollowChange }) => {
             
             if (error) throw error;
             if (onFollowChange) onFollowChange(true);
-            
-            // Thông báo thành công (tùy chọn, có thể bỏ nếu muốn trải nghiệm nhanh)
-            // alert(`FOLLOWING: ${artistName}`, "success");
         }
         router.refresh();
     } catch (error) {
@@ -104,7 +101,7 @@ const FollowButton = ({ artistName, artistImage, onFollowChange }) => {
         font-mono text-[10px] font-bold tracking-widest uppercase transition-all duration-200 z-20 rounded-none border
         
         ${isFollowing 
-            ? 'bg-emerald-500 text-black border-emerald-500 hover:bg-red-500 hover:!text-white hover:border-red-500' 
+            ? 'bg-emerald-500 text-white border-emerald-500 hover:bg-red-500 hover:!text-white hover:border-red-500' 
             : 'bg-transparent text-emerald-600 dark:text-emerald-400 border-emerald-500 hover:bg-emerald-500 hover:!text-white'
         }
       `}

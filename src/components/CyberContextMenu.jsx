@@ -135,23 +135,32 @@ const CyberContextMenu = () => {
     alert("CONSOLE_LOG_INITIATED. PRESS F12", "info");
     setVisible(false);
   };
+
   const handleAddToPlaylist = () => {
     if (!targetSong) return;
+
     if (!user) {
       alert("ACCESS_DENIED: LOGIN_REQUIRED", "error");
-      openModal();
+      openModal(); // Mở modal đăng nhập nếu chưa có user
       setVisible(false);
       return;
     }
+
+    // Chuẩn hóa dữ liệu (Normalization) để trang /add-to-playlist luôn nhận được 1 format chung
     const normalizedSong = {
       id: targetSong.id || targetSong.encodeId,
       title: targetSong.title,
-      author: targetSong.artistsNames || targetSong.author,
-      song_url: targetSong.streaming?.mp3 || targetSong.song_url,
-      image_url: targetSong.thumbnailM || targetSong.image_url || targetSong.image_path,
+      author: targetSong.author || targetSong.artistsNames,
+      // Ưu tiên song_url của mình, sau đó đến link từ API
+      song_url: targetSong.song_url || targetSong.song_path || targetSong.streaming, 
+      image_url: targetSong.image_url || targetSong.image_path || targetSong.thumbnailM,
       duration: targetSong.duration
     };
-    router.push(`/add-to-playlist?song=${encodeURIComponent(JSON.stringify(normalizedSong))}`);
+
+    // Chuyển hướng sang trang chọn playlist kèm theo thông tin bài hát
+    const songDataString = encodeURIComponent(JSON.stringify(normalizedSong));
+    router.push(`/add-to-playlist?song=${songDataString}`);
+    
     setVisible(false);
   };
 
@@ -188,10 +197,39 @@ const CyberContextMenu = () => {
             
             {targetSong && (
                 <>
-                    <div className="px-2 py-1.5 text-[9px] text-emerald-700 dark:text-emerald-400 font-mono tracking-widest bg-emerald-50 dark:bg-emerald-500/5 truncate flex items-center gap-2 border-l-2 border-emerald-600 dark:border-emerald-500">
-                        <AlertCircle size={10} /> TRACK: {targetSong.title}
+                    <div className="px-2 py-2 bg-emerald-500/10 border-l-4 border-emerald-500 mb-1 flex items-center gap-3">
+                        {/* THUMBNAIL CONTAINER */}
+                        <div className="relative w-10 h-10 shrink-0 border border-emerald-500/50 overflow-hidden bg-black">
+                            <img 
+                                src={targetSong.image_url || targetSong.image_path || targetSong.thumbnailM || "/images/music-placeholder.png"} 
+                                alt={targetSong.title}
+                                className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-300"
+                            />
+                            {/* Lớp phủ Scanline mini cho ảnh */}
+                            <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] bg-[length:100%_2px,3px_100%]"></div>
+                        </div>
+
+                        {/* TEXT INFO */}
+                        <div className="flex-1 min-w-0">
+                            <p className="text-[8px] text-emerald-500 font-mono leading-none mb-1 opacity-70 flex items-center gap-1">
+                                <span className="w-1 h-1 bg-emerald-500 animate-ping"></span>
+                                TARGET_LOCKED
+                            </p>
+                            <p className="text-[11px] font-bold text-neutral-800 dark:text-emerald-400 truncate font-mono uppercase tracking-tighter">
+                                {targetSong.title}
+                            </p>
+                            <p className="text-[9px] text-neutral-500 dark:text-emerald-500/60 truncate font-mono">
+                                {targetSong.author || targetSong.artistsNames}
+                            </p>
+                        </div>
                     </div>
-                    <MenuItem icon={<ListPlus size={14}/>} label="ADD_TO_PLAYLIST" onClick={handleAddToPlaylist} active />
+                    
+                    <MenuItem 
+                        icon={<ListPlus size={16} className="text-emerald-500" />} 
+                        label="ADD_TO_PLAYLIST" 
+                        onClick={handleAddToPlaylist} 
+                        active 
+                    />
                     <div className="h-px bg-neutral-200 dark:bg-white/10 my-1 mx-2"></div>
                 </>
             )}
