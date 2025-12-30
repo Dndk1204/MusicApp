@@ -13,6 +13,9 @@ import {
 } from "lucide-react";
 import useUI from "@/hooks/useUI";
 
+// Import Auth Context để lấy trạng thái Online
+import { useAuth } from "@/components/AuthWrapper"; // Đảm bảo đường dẫn này đúng với file AuthWrapper của bạn
+
 // Import các Cyber Components
 import { GlitchButton, CyberButton, GlitchText, CyberCard, NeonButton, ScanlineOverlay } from "@/components/CyberComponents";
 
@@ -224,6 +227,10 @@ const AdminDashboard = () => {
 const router = useRouter();
 const { alert, confirm } = useUI();
 
+// --- SỬ DỤNG AUTH CONTEXT CHO PRESENCE ---
+const { onlineUsers } = useAuth();
+// -----------------------------------------
+
 const success = (msg) => alert(msg, 'success', 'SUCCESS');
 const error = (msg) => alert(msg, 'error', 'ERROR');
 
@@ -247,7 +254,7 @@ const [songSearchTerm, setSongSearchTerm] = useState("");
 const [artistSearchTerm, setArtistSearchTerm] = useState("");
 const [songSortType, setSongSortType] = useState('date'); 
 
-const [onlineUsers, setOnlineUsers] = useState(new Set());
+// const [onlineUsers, setOnlineUsers] = useState(new Set()); // ĐÃ XÓA DÒNG NÀY VÌ DÙNG USEAUTH
 const [selectedSong, setSelectedSong] = useState(null);
 const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
 const [selectedSongForLikes, setSelectedSongForLikes] = useState(null);
@@ -380,64 +387,8 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
   };
 
   // --- PRESENCE LOGIC ---
-    useEffect(() => {
-        let channel = null;
-
-        const handlePresenceSync = () => {
-            if (!channel) return;
-
-            const newState = channel.presenceState();
-            const onlineIds = new Set();
-
-            // Duyệt qua toàn bộ state của Presence để lấy các user_id đang online
-            Object.keys(newState).forEach((key) => {
-                newState[key].forEach((presence) => {
-                    if (presence.user_id) {
-                        onlineIds.add(String(presence.user_id)); // Ép kiểu string để so sánh chính xác
-                    }
-                });
-            });
-
-            // QUAN TRỌNG: Cập nhật state với một Set mới để React re-render
-            setOnlineUsers(new Set(onlineIds));
-            console.log("PROTOCOL: ONLINE_SENSORS_UPDATED", onlineIds);
-        };
-
-        const initPresence = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session?.user) return;
-
-            // Tạo channel chung cho toàn bộ hệ thống online
-            channel = supabase.channel('online-users', {
-                config: { presence: { key: session.user.id } }
-            });
-
-            channel
-                .on('presence', { event: 'sync' }, handlePresenceSync)
-                .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-                    console.log(':: NEW_SIGNAL_DETECTED ::', key, newPresences);
-                    handlePresenceSync();
-                })
-                .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-                    console.log(':: SIGNAL_LOST ::', key, leftPresences);
-                    handlePresenceSync();
-                })
-                .subscribe(async (status) => {
-                    if (status === 'SUBSCRIBED') {
-                        await channel.track({ 
-                            user_id: session.user.id, 
-                            online_at: new Date().toISOString() 
-                        });
-                    }
-                });
-        };
-
-        initPresence();
-
-        return () => {
-            if (channel) supabase.removeChannel(channel);
-        };
-    }, []);
+  // ĐÃ XÓA TOÀN BỘ useEffect Ở ĐÂY ĐỂ DÙNG USEAUTH
+  // ----------------------------------------------
 
   useEffect(() => {
     const init = async () => {
@@ -971,7 +922,9 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
                     {/* 1. MOBILE VIEW: Hiển thị dạng Card (Ẩn khi màn hình >= md) */}
                     <div className="block md:hidden divide-y divide-neutral-200 dark:divide-white/5">
                         {usersList.map((user) => {
+                            // --- THAY ĐỔI: Sử dụng onlineUsers từ Context ---
                             const isOnline = Array.from(onlineUsers).some(id => String(id) === String(user.id));
+                            // ------------------------------------------------
                             return (
                                 <div key={user.id} className="p-4 flex flex-col gap-3 hover:bg-neutral-50 dark:hover:bg-white/5 transition">
                                     <div className="flex justify-between items-start">
@@ -1056,7 +1009,9 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
                             </thead>
                             <tbody className="divide-y divide-neutral-200 dark:divide-white/5">
                                 {usersList.map((user) => {
+                                    // --- THAY ĐỔI: Sử dụng onlineUsers từ Context ---
                                     const isOnline = Array.from(onlineUsers).some(id => String(id) === String(user.id));
+                                    // ------------------------------------------------
                                     return (
                                         <tr key={user.id} className="hover:bg-neutral-50 dark:hover:bg-white/5 transition group">
                                             <td className="px-6 py-3 flex items-center gap-3">
@@ -1089,16 +1044,16 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
                                                             "
                                                         >
                                                             <option value="user" className="bg-white dark:bg-[#0a0a0a] text-neutral-800 dark:text-white">
-                                                            // ACCESS: USER
+                                                                // ACCESS: USER
                                                             </option>
                                                             <option value="admin" className="bg-white dark:bg-[#0a0a0a] text-red-500 font-bold">
-                                                            // ACCESS: ADMIN
+                                                                // ACCESS: ADMIN
                                                             </option>
                                                         </select>
 
                                                         {/* Custom Arrow với hiệu ứng của theme */}
                                                         <div className="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none 
-                                                                        text-neutral-400 group-hover:text-emerald-500 transition-colors">
+                                                                            text-neutral-400 group-hover:text-emerald-500 transition-colors">
                                                             <ChevronDown size={12} strokeWidth={3} />
                                                         </div>
 
@@ -1230,7 +1185,7 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-3 text-right align-middle shrink-0">
-                                                        <button
+                                                        <button 
                                                             onClick={() => { setSelectedSongForLikes(song); setIsLikedUsersModalOpen(true); }}
                                                             className="p-2 text-neutral-400 hover:text-red-500 transition-colors"
                                                         >
@@ -1294,13 +1249,13 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
                                                     </td>
                                                     <td className="px-6 py-3 text-right align-middle shrink-0">
                                                         <div className="flex justify-end items-center gap-1">
-                                                            <button
+                                                            <button 
                                                                 onClick={() => { setSelectedSong(song); setIsTrackModalOpen(true); }}
                                                                 className="p-2 text-neutral-400 hover:text-emerald-500 transition-colors"
                                                             >
                                                                 <Eye size={14} />
                                                             </button>
-                                                            <button
+                                                            <button 
                                                                 onClick={() => handleDeleteSong(song.id)}
                                                                 className="p-2 text-neutral-400 hover:text-red-500 transition-colors"
                                                             >
@@ -1554,17 +1509,17 @@ const [approvalFilter, setApprovalFilter] = useState('pending');
          <p className="text-xs text-yellow-700 dark:text-yellow-500/80 font-mono tracking-widest">WARNING: RESTRICTED AREA. UNAUTHORIZED ACTIONS ARE LOGGED.</p>
       </div>
 
-      <TrackDetailModal
-            song={selectedSong}
-            isOpen={isTrackModalOpen}
+      <TrackDetailModal 
+            song={selectedSong} 
+            isOpen={isTrackModalOpen} 
             onClose={() => setIsTrackModalOpen(false)}
             onUpdate={handleUpdateSong}
             getUploaderInfo={getUploaderInfo}
         />
 
-      <LikedUsersModal
-            song={selectedSongForLikes}
-            isOpen={isLikedUsersModalOpen}
+      <LikedUsersModal 
+            song={selectedSongForLikes} 
+            isOpen={isLikedUsersModalOpen} 
             onClose={() => setIsLikedUsersModalOpen(false)}
         />
     </div>
