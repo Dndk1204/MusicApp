@@ -547,8 +547,8 @@ const NowPlayingPage = () => {
           <button onClick={() => router.back()} className="absolute top-0 left-0 z-20 mb-6 group flex items-center gap-2 px-3 py-3 backdrop-blur-md border border-neutral-300 dark:border-white/10 hover:border-emerald-500 hover:bg-emerald-500 hover:text-white transition-all duration-300 font-mono text-[10px] font-bold tracking-widest uppercase"><ArrowLeft size={24} className="group-hover:-translate-x-1 transition-transform" /></button>
           
           {fromPage && (
-            <div className="hidden lg:block absolute top-[9rem] right-[13.6rem] z-50 pointer-events-none select-none animate-in fade-in zoom-in-95 duration-500">
-                <div className="relative flex items-center group"> 
+            <div className="hidden md:block absolute top-[45%] left-1/2 -translate-x-1/2 z-50 pointer-events-none select-none animate-in fade-in zoom-in-95 duration-500">
+                <div className="relative flex items-center justify-center group"> 
                     <div className="relative h-8 w-8 flex translate-x-10 !items-center !justify-center shrink-0">
                         <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_5px_currentColor] z-10 translate-x-1 translate-y-[0.05rem]"></div>
                         <div className="absolute w-full h-full border border-emerald-500/30 rounded-full animate-[spin_3s_linear_infinite]"></div>

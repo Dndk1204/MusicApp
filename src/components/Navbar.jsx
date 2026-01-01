@@ -194,7 +194,7 @@ const Navbar = ({ onToggleSidebar }) => {
   return (
     <div className="
         w-full max-w-[100vw] /* Chặn tràn ngang */
-        h-14 md:h-16 /* Cố định chiều cao */
+        h-20 md:h-16 /* Cố định chiều cao */
         flex items-center justify-between px-4 md:px-6 
         bg-white/90 dark:bg-black/90 backdrop-blur-md 
         border-b border-neutral-300 dark:border-white/10 
@@ -209,12 +209,12 @@ const Navbar = ({ onToggleSidebar }) => {
             onClick={handleSidebarToggle}
             className="md:hidden p-1 text-neutral-600 dark:text-neutral-400 hover:text-emerald-500 transition active:scale-95"
         >
-            <Menu size={24} />
+            <Menu size={34} />
         </button>
 
         <Link href="/" className="flex items-center gap-x-3 cursor-pointer group shrink-0">
           {/* Logo Image Box - Thay thế Icon Disc bằng Ảnh */}
-          <div className="relative w-8 h-8 md:w-10 md:h-10 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+          <div className="relative w-12 h-12 md:w-10 md:h-10 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
               {/* Logo cho Light Mode (Sẽ ẩn khi ở Dark Mode) */}
               <img 
                 src="/VOID-Light.png" 
@@ -309,11 +309,11 @@ const Navbar = ({ onToggleSidebar }) => {
                     value={searchValue} 
                     onChange={(e) => setSearchValue(e.target.value)} 
                     onKeyDown={(e) => e.key === "Enter" && handleSearch()} 
-                    className="w-full h-10 bg-neutral-100 dark:bg-white/10 border border-neutral-300 dark:border-white/20 pl-3 pr-10 text-sm font-mono text-neutral-900 dark:text-white outline-none focus:border-emerald-500 rounded-none"
+                    className="w-full h-11 bg-neutral-100 dark:bg-white/10 border border-neutral-300 dark:border-white/20 pl-3 pr-10 text-sm font-mono text-neutral-900 dark:text-white outline-none focus:border-emerald-500 rounded-none"
                 />
-                <button onClick={handleSearch} className="absolute right-0 top-0 h-full px-3 text-neutral-500"><Search size={16}/></button>
+                <button onClick={handleSearch} className="absolute right-0 top-0 h-full px-3 text-neutral-500"><Search size={20}/></button>
             </div>
-            <button onClick={() => setShowMobileSearch(false)} className="ml-3 p-2 text-neutral-500 hover:text-red-500"><X size={20}/></button>
+            <button onClick={() => setShowMobileSearch(false)} className="ml-3 p-2 text-neutral-500 hover:text-red-500"><X size={24}/></button>
         </div>
       )}
 
@@ -322,12 +322,12 @@ const Navbar = ({ onToggleSidebar }) => {
           {/* Mobile Search Button */}
           {!showMobileSearch && (
             <button className="md:hidden p-2 text-neutral-600 dark:text-neutral-400 hover:text-emerald-500 transition" onClick={() => setShowMobileSearch(true)}>
-                <Search size={20}/>
+                <Search size={30}/>
             </button>
           )}
           
           {/* Avatar Menu Button */}
-          <button onClick={() => setShowMenu(!showMenu)} className="relative h-8 w-8 md:h-10 md:w-10 flex items-center justify-center bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/20 hover:border-emerald-500 transition-all duration-300 group rounded-none overflow-hidden shrink-0">
+          <button onClick={() => setShowMenu(!showMenu)} className="relative h-12 w-12 md:h-10 md:w-10 flex items-center justify-center bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-white/20 hover:border-emerald-500 transition-all duration-300 group rounded-none overflow-hidden shrink-0">
             {user && avatarUrl ? (
               <img 
                   key={avatarUrl} // Thêm key để React render lại animation khi URL thay đổi
