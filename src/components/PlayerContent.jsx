@@ -241,7 +241,7 @@ const PlayerContent = ({ song, songUrl }) => {
           border-t border-emerald-500/50
           shadow-[0_-10px_30px_-15px_rgba(16,185,129,0.3)]
           overflow-visible 
-          ${isExpanded ? 'h-[55vh] pb-10 rounded-t-3xl' : 'h-20 rounded-t-none'}
+          ${isExpanded ? 'h-[90vh] pb-10 rounded-t-3xl' : 'h-20 rounded-t-none'}
         `}
       >
         {/* NÚT TOGGLE - DẠNG TAB CÔNG NGHỆ */}
