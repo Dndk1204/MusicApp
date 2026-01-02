@@ -1,4 +1,4 @@
-# 🎵 MusicDB - Modern Music Streaming Platform
+# 🎵 MusicVoid - Modern Music Streaming Platform
 
 ![Project Status](https://img.shields.io/badge/status-active-success.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
@@ -6,7 +6,7 @@
 
 ## 📖 Giới thiệu (Introduction)
 
-**MusicDB** là một nền tảng nghe nhạc trực tuyến hiện đại, được phát triển nhằm cung cấp trải nghiệm âm nhạc mượt mà trên đa thiết bị. Dự án tích hợp kho nhạc khổng lồ từ **Jamendo API**, hệ thống quản lý nội dung chặt chẽ với **Supabase**, và đặc biệt là hệ thống xử lý âm thanh chuyên sâu (Audio Engine) sử dụng **Howler.js**.
+**MusicVoid** là một nền tảng nghe nhạc trực tuyến hiện đại, được phát triển nhằm cung cấp trải nghiệm âm nhạc mượt mà trên đa thiết bị. Dự án tích hợp kho nhạc khổng lồ từ **Jamendo API**, hệ thống quản lý nội dung chặt chẽ với **Supabase**, và đặc biệt là hệ thống xử lý âm thanh chuyên sâu (Audio Engine) sử dụng **Howler.js**.
 
 Dự án được thực hiện trong kỳ thực tập tại **Công ty TNHH Công Nghệ và Truyền Thông Widosoft**.
 
@@ -56,26 +56,18 @@ Dự án được thực hiện trong kỳ thực tập tại **Công ty TNHH C�
 
 ### 1. Giao diện Trang chủ & Responsive
 *Hệ thống tự động tối ưu hiển thị cho mọi thiết bị.*
-
 | 🖥️ Desktop View | 📱 Mobile View |
 | :---: | :---: |
 | <img src="https://github.com/user-attachments/assets/dc3d1c0d-a242-4e3a-9454-9a21aedaaa8a" width="100%"> | <img src="https://github.com/user-attachments/assets/92b528ee-8cc3-4a71-bebe-90a494a8402b" width="100%"> |
 
 ### 2. Bộ xử lý âm thanh (Equalizer)
 *Tùy chỉnh âm thanh 3 dải tần với hiệu ứng trực quan.*
-![Equalizer](link-anh-equalizer-cua-ban.png)
+<img src="https://github.com/user-attachments/assets/91e951e9-0e6f-45a0-8e68-f0a20c27ee2c" width="100%" alt="Equalizer UI" />
 
-### 3. Giao diện Admin & Duyệt nhạc
-*Hệ thống phân quyền và menu quản trị viên.*
-![Admin Dashboard](link-anh-admin-menu.png)
+### 3. Giao diện Admin & Duyệt nhạc (Admin Dashboard)
+*Quy trình kiểm duyệt nội dung chặt chẽ với 3 trạng thái: Pending (Chờ), Approved (Đã duyệt), Denied (Từ chối).*
+| ⏳ Pending (Chờ duyệt) | ✅ Approved (Đã duyệt) | 🚫 Denied (Từ chối) |
+| :---: | :---: | :---: |
+| <img src="https://github.com/user-attachments/assets/3d660492-b867-455d-b982-ae46464849b3" width="100%"> | <img src="https://github.com/user-attachments/assets/786ce4fd-529b-4e4d-b7cf-5d59141e6fe3" width="100%"> | <img src="https://github.com/user-attachments/assets/d902d4b1-6623-4c0b-8780-6a58c285462d" width="100%"> |
 
 ---
-
-## ⚙️ Cài đặt và Chạy dự án (Installation)
-
-Để chạy dự án này trên máy cá nhân (Localhost), hãy làm theo các bước sau:
-
-### Bước 1: Clone dự án
-```bash
-git clone [https://github.com/username-cua-ban/ten-du-an.git](https://github.com/username-cua-ban/ten-du-an.git)
-cd ten-du-an
