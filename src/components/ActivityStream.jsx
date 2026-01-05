@@ -112,7 +112,7 @@ const ActivityStream = ({ items, getUploaderInfo, onUpdateSong }) => {
                                      </span>
                                  </div>
                                  <span className="text-[9px] text-neutral-400 font-mono bg-neutral-100 dark:bg-white/5 px-1">
-                                     {new Date(song.created_at).toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute:'2-digit'})}
+                                     {new Date(song.created_at).toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute:'2-digit', day: '2-digit', month: '2-digit', year:"2-digit"})}
                                  </span>
                              </div>
                         </div>
