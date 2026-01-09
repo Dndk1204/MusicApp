@@ -42,23 +42,35 @@ const AuthModal = () => {
         // --- 1. ĐĂNG KÝ (CẬP NHẬT LOGIC ĐIỀU HƯỚNG) ---
         if (variant === 'register') {
             if (password !== confirmPassword) throw new Error("PASSWORDS_DO_NOT_MATCH");
-            
-            // Lấy URL hiện tại để làm base redirect
-            const origin = window.location.origin;
 
+            // BƯỚC MỚI: Gọi API kiểm tra tên miền trước
+            setMessage({ type: 'success', text: ':: VERIFYING DOMAIN... ::' }); // Hiệu ứng cho ngầu
+            
+            const checkRes = await fetch('/api/validate-domain', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+
+            const checkData = await checkRes.json();
+
+            if (!checkData.valid) {
+                // Nếu tên miền không tồn tại, ném lỗi ngay tại đây
+                throw new Error("INVALID_EMAIL_DOMAIN"); 
+            }
+
+            // Nếu domain hợp lệ, tiếp tục logic cũ
+            const origin = window.location.origin;
             const { data, error } = await supabase.auth.signUp({
                 email, password,
                 options: { 
                     data: { full_name: 'User', role: 'user' },
-                    // QUAN TRỌNG: Dòng này giúp link trong email chuyển hướng đúng chỗ
-                    // Yêu cầu bạn phải có file app/auth/callback/route.js xử lý param 'next'
                     emailRedirectTo: `${origin}/auth/callback?next=/complete-profile`
                 }
             });
             
             if (error) throw error;
 
-            // KIỂM TRA: Nếu Supabase trả về session ngay lập tức (do tắt Confirm Email)
             if (data.session) {
                 setMessage({ type: 'success', text: ':: REGISTERED :: Redirecting to Setup...' });
                 setTimeout(() => {
@@ -66,7 +78,6 @@ const AuthModal = () => {
                     router.push("/complete-profile");
                 }, 1500);
             } else {
-                // Nếu bắt buộc xác thực email
                 setMessage({ type: 'success', text: ':: CHECK EMAIL TO ACTIVATE ::' });
             }
         }
@@ -118,7 +129,10 @@ const AuthModal = () => {
         }
 
     } catch (error) {
-      setMessage({ type: 'error', text: `ERR: ${error.message}` });
+      let errorMsg = error.message;
+      if (errorMsg === 'INVALID_EMAIL_DOMAIN') errorMsg = 'DOMAIN NOT FOUND (CHECK TYPO)';
+      
+      setMessage({ type: 'error', text: `ERR: ${errorMsg}` });
     } finally {
       setLoading(false);
     }
